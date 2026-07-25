@@ -40,6 +40,10 @@ variante `_console.exe` para ver la salida:
 ## Documentación
 
 - [docs/](docs/) — índice completo
+- [docs/CONVENCIONES.md](docs/CONVENCIONES.md) — **las reglas del proyecto**: arquitectura
+  por feature, dependencias, nombres, estilo y qué verificar antes de subir
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — cómo está construido y por qué
 - [docs/PLAN.md](docs/PLAN.md) — diseño del MVP
 - [AGENTS.md](AGENTS.md) — instrucciones para agentes de IA que trabajen en el repo
+
+Antes de tocar código, leer [docs/CONVENCIONES.md](docs/CONVENCIONES.md).

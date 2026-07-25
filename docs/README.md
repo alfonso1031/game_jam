@@ -2,6 +2,7 @@
 
 | Documento | Contenido |
 |---|---|
+| [CONVENCIONES.md](CONVENCIONES.md) | **Las reglas del proyecto.** Arquitectura por feature, dirección de las dependencias, nombres, estilo y qué verificar antes de subir |
 | [ARQUITECTURA.md](ARQUITECTURA.md) | Cómo está construido el juego: sistema de salas, movimiento, HUD, boss, flujo de pantallas, bugs resueltos y estado del plan |
 | [PLAN.md](PLAN.md) | Diseño original del MVP: alcance, paleta, niveles, orden de ejecución |
 | [agents/REFERENCIA.md](agents/REFERENCIA.md) | Referencia técnica para agentes de IA: medidas de sala, recetas, estilo, formato `.tscn` |
