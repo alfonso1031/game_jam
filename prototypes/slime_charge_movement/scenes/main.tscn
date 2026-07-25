@@ -1,0 +1,65 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/arena.gd" id="1_arena"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
+bg_color = Color(0.035, 0.094, 0.11, 0.94)
+border_width_bottom = 3
+border_color = Color(0.302, 0.882, 0.635, 0.65)
+
+[node name="Main" type="Node2D"]
+
+[node name="Arena" type="Node2D" parent="."]
+script = ExtResource("1_arena")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(960, 780)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(960, 540)
+
+[node name="Interface" type="CanvasLayer" parent="."]
+
+[node name="TopPanel" type="Panel" parent="Interface"]
+offset_right = 1920.0
+offset_bottom = 104.0
+theme_override_styles/panel = SubResource("StyleBox_panel")
+
+[node name="Title" type="Label" parent="Interface/TopPanel"]
+offset_left = 42.0
+offset_top = 18.0
+offset_right = 620.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.302, 0.89, 0.655, 1)
+theme_override_font_sizes/font_size = 32
+text = "SUJETO S-01  //  MOVILIDAD BASE"
+
+[node name="Instruction" type="Label" parent="Interface/TopPanel"]
+offset_left = 44.0
+offset_top = 61.0
+offset_right = 1080.0
+offset_bottom = 92.0
+theme_override_colors/font_color = Color(0.77, 0.88, 0.88, 1)
+theme_override_font_sizes/font_size = 22
+text = "Mantén WASD o flechas para cargar. Suelta para impulsarte."
+
+[node name="Status" type="Label" parent="Interface/TopPanel"]
+offset_left = 1370.0
+offset_top = 28.0
+offset_right = 1874.0
+offset_bottom = 77.0
+theme_override_colors/font_color = Color(1, 0.885, 0.478, 1)
+theme_override_font_sizes/font_size = 24
+text = "MOVIMIENTO COMPROMETIDO"
+horizontal_alignment = 2
+
+[node name="Footer" type="Label" parent="Interface"]
+offset_left = 140.0
+offset_top = 980.0
+offset_right = 1780.0
+offset_bottom = 1030.0
+theme_override_colors/font_color = Color(0.56, 0.72, 0.74, 1)
+theme_override_font_sizes/font_size = 20
+text = "CARGA CORTA = SALTO CORTO   •   CARGA COMPLETA = MÁXIMO ALCANCE   •   NO PUEDES GIRAR EN EL IMPULSO"
+horizontal_alignment = 1
