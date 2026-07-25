@@ -15,10 +15,13 @@ const MAX_DISTANCE := 520.0
 # El recorrido no va a velocidad fija: sale acelerando y frena de forma
 # exponencial hacia el final. La distancia recorrida no cambia (la controla
 # `_remaining`), solo el reparto del tiempo — es lo que quita la sensación tosca.
-const LAUNCH_PEAK_SPEED := 1500.0
-const LAUNCH_END_SPEED := 240.0
+const LAUNCH_PEAK_SPEED := 2100.0
+const LAUNCH_END_SPEED := 120.0
 const LAUNCH_EASE := 0.7
-const LAUNCH_RAMP := 0.14
+# Arranque: fracción del pico con la que sale y tramo en el que acelera.
+# Cuanto más bajo el arranque y más largo el tramo, más se nota el despegue.
+const LAUNCH_START := 0.18
+const LAUNCH_RAMP := 0.28
 
 const RECOVERY_TIME := 0.12
 # Chocar contra una pared cuesta caro: el slime queda aplastado y aturdido.
@@ -30,11 +33,12 @@ const FIZZLE_RECOVERY_TIME := 0.28
 # Mismo perfil de aceleración. Las constantes están calibradas para que la
 # integral de la curva supere con margen el ancho del hueco de L2_BIOLAB
 # (120 px) más el diámetro del slime (90 px).
-const DASH_PEAK_SPEED := 2000.0
+const DASH_PEAK_SPEED := 2200.0
 const DASH_END_SPEED := 300.0
 const DASH_EASE := 0.8
-const DASH_RAMP := 0.15
-const DASH_TIME := 0.28
+const DASH_START := 0.30
+const DASH_RAMP := 0.22
+const DASH_TIME := 0.32
 const DASH_COOLDOWN := 0.8
 
 const INVULN_TIME := 1.0
@@ -154,7 +158,7 @@ func _release_charge() -> void:
 
 func _advance_launch(delta: float) -> void:
 	var ratio: float = clampf(_remaining / _launch_distance, 0.0, 1.0)
-	var speed := _eased_speed(ratio, LAUNCH_PEAK_SPEED, LAUNCH_END_SPEED, LAUNCH_EASE, LAUNCH_RAMP)
+	var speed := _eased_speed(ratio, LAUNCH_PEAK_SPEED, LAUNCH_END_SPEED, LAUNCH_EASE, LAUNCH_RAMP, LAUNCH_START)
 	_speed_ratio = speed / LAUNCH_PEAK_SPEED
 	velocity = _charge_dir * speed
 
@@ -169,11 +173,18 @@ func _advance_launch(delta: float) -> void:
 # Perfil compartido por el impulso y el DASH: arranca acelerando desde una
 # fracción del pico y cae exponencialmente hasta una velocidad final finita
 # (finita para que el recorrido termine en vez de arrastrarse).
-func _eased_speed(remaining_ratio: float, peak: float, end: float, ease_exp: float, ramp: float) -> float:
+func _eased_speed(
+	remaining_ratio: float,
+	peak: float,
+	end: float,
+	ease_exp: float,
+	ramp: float,
+	start: float
+) -> float:
 	var speed: float = end + (peak - end) * pow(remaining_ratio, ease_exp)
 	var progress := 1.0 - remaining_ratio
 	var ramp_t: float = clampf(progress / ramp, 0.0, 1.0)
-	return speed * lerpf(0.45, 1.0, smoothstep(0.0, 1.0, ramp_t))
+	return speed * lerpf(start, 1.0, smoothstep(0.0, 1.0, ramp_t))
 
 func _begin_recovery(time: float) -> void:
 	_state = State.RECOVERING
@@ -210,7 +221,7 @@ func _start_dash() -> void:
 
 func _advance_dash(delta: float) -> void:
 	var ratio: float = clampf(_dash_time / DASH_TIME, 0.0, 1.0)
-	var speed := _eased_speed(ratio, DASH_PEAK_SPEED, DASH_END_SPEED, DASH_EASE, DASH_RAMP)
+	var speed := _eased_speed(ratio, DASH_PEAK_SPEED, DASH_END_SPEED, DASH_EASE, DASH_RAMP, DASH_START)
 	_speed_ratio = speed / DASH_PEAK_SPEED
 	velocity = _facing * speed
 

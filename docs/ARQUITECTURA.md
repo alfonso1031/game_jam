@@ -1,10 +1,10 @@
-# SLIME ESCAPE — Documentación técnica
+# SLIME ESCAPE — Arquitectura
 
 Juego 2D cenital hecho en **Godot 4.7.1**. Un slime recién liberado escapa de un
 laboratorio abandonado subiendo de nivel en nivel. Implementación del plan descrito en
 [PLAN.md](PLAN.md).
 
-> Si sos un agente de IA trabajando en este repo, leé primero [AGENTS.md](AGENTS.md):
+> Si sos un agente de IA trabajando en este repo, leé primero [AGENTS.md](../AGENTS.md):
 > tiene las reglas duras, los comandos de verificación y los errores ya cometidos.
 
 - **Proyecto activo:** `prueba_2/`
@@ -179,7 +179,8 @@ que tocar** si el juego se ve muy oscuro o muy claro.
 ### Impulso cargado — movimiento base
 
 El slime **no tiene piernas**: no camina, acumula energía y se lanza. Portado desde
-`prototypes/slime_charge_movement/` (ver su [DASH_DEFINITION.md](prototypes/slime_charge_movement/docs/DASH_DEFINITION.md)).
+`prototypes/slime_charge_movement/` (ver su
+[DASH_DEFINITION.md](../prototypes/slime_charge_movement/docs/DASH_DEFINITION.md)).
 
 ```
 IDLE ──mantener dirección──▶ CHARGING ──soltar──▶ LAUNCHING ──▶ RECOVERING ──▶ IDLE
@@ -196,8 +197,10 @@ IDLE ──mantener dirección──▶ CHARGING ──soltar──▶ LAUNCHING
 | `MIN_CHARGE_TIME` | 0.18 s | **Mínimo para que haya impulso** |
 | `MIN_DISTANCE` | 112 px | Distancia con carga mínima |
 | `MAX_DISTANCE` | 520 px | Distancia con carga completa |
-| `LAUNCH_PEAK_SPEED` | 1500 px/s | Velocidad al salir |
-| `LAUNCH_END_SPEED` | 240 px/s | Velocidad al llegar |
+| `LAUNCH_PEAK_SPEED` | 2100 px/s | Velocidad de crucero |
+| `LAUNCH_END_SPEED` | 120 px/s | Velocidad al llegar |
+| `LAUNCH_START` | 0.18 | Fracción del pico con la que despega |
+| `LAUNCH_RAMP` | 0.28 | Tramo del recorrido en el que acelera |
 | `RECOVERY_TIME` | 0.12 s | Pausa tras un recorrido limpio |
 | `WALL_RECOVERY_TIME` | 0.45 s | **Aturdimiento al chocar contra una pared** |
 | `FIZZLE_RECOVERY_TIME` | 0.28 s | Penalización por soltar antes del mínimo |
@@ -210,15 +213,26 @@ El recorrido **no** va a velocidad constante — eso era lo que lo hacía sentir
 `_eased_speed()` reparte el tiempo con este perfil, compartido por el impulso y el DASH:
 
 ```
-velocidad = fin + (pico − fin) · restante^ease        ← frenada exponencial
-          · lerp(0.45, 1.0, smoothstep(arranque))     ← salida acelerada
+velocidad = fin + (pico − fin) · restante^ease         ← frenada exponencial
+          · lerp(START, 1.0, smoothstep(arranque))     ← salida acelerada
 ```
 
-- Arranca al 45 % del pico y sube en el primer 14 % del recorrido: no hay salto brusco.
-- Después cae exponencialmente hacia `END_SPEED`, que es **finita a propósito**: si
-  tendiera a cero el recorrido se arrastraría sin terminar nunca.
+- **Despega al 18 % del pico** y tarda el primer 28 % del recorrido en alcanzarlo: el
+  arranque se siente pesado, como un cuerpo blando que se despega del suelo.
+- La amplitud de la exponencial es alta a propósito (2100 → 120 px/s): entre el crucero y
+  la llegada hay casi 18×, así que el frenado se nota como un frenado y no como un corte.
+- `END_SPEED` es **finita a propósito**: si tendiera a cero, el recorrido se arrastraría
+  sin terminar nunca.
 - **La distancia no cambia**, la controla `_remaining`. Solo cambia cómo se reparte el
   tiempo, así que toda la calibración de alcance sigue valiendo.
+
+Duración resultante del impulso cargado:
+
+| Carga | Distancia | Duración |
+|---|---:|---:|
+| Mínima | 112 px | 0.14 s |
+| Media | 316 px | 0.39 s |
+| Completa | 520 px | 0.65 s |
 
 El cuerpo se estira en proporción a la velocidad real (`_speed_ratio`), no a un valor fijo:
 se afila al salir y se redondea solo mientras frena. Todo el suavizado visual usa
@@ -239,15 +253,16 @@ caro. Aplica igual al DASH de habilidad.
 
 ### DASH de habilidad
 
-Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 0.28 s con la misma curva
-(pico 2000 px/s → 300 px/s), invulnerable, cooldown 0.8 s, atraviesa huecos. Se lanza en la
-última dirección cargada y no se puede usar en pleno impulso ni en recuperación.
+Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 0.32 s con la misma curva
+(pico 2200 px/s → 300 px/s, arranque al 30 %), invulnerable, cooldown 0.8 s, atraviesa
+huecos. Se lanza en la última dirección cargada y no se puede usar en pleno impulso ni en
+recuperación.
 
-> **Calibración crítica:** la integral de la curva da **326 px** de alcance. Cruzar el hueco
+> **Calibración crítica:** la integral de la curva da **382 px** de alcance. Cruzar el hueco
 > de `L2_BIOLAB` exige 210 px (120 de hueco + 90 de diámetro del slime), así que el margen
-> es de 116 px. Cualquier retoque de `DASH_PEAK_SPEED`, `DASH_END_SPEED`, `DASH_EASE`,
-> `DASH_RAMP` o `DASH_TIME` **cambia el alcance** y puede volver el hueco infranqueable,
-> dejando el juego sin final. Recalcular antes de tocarlos.
+> es de 172 px. Cualquier retoque de `DASH_PEAK_SPEED`, `DASH_END_SPEED`, `DASH_EASE`,
+> `DASH_RAMP`, `DASH_START` o `DASH_TIME` **cambia el alcance** y puede volver el hueco
+> infranqueable, dejando el juego sin final. Recalcular antes de tocarlos.
 
 ### Presentación
 
