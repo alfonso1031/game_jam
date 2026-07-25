@@ -1,6 +1,7 @@
 extends Control
 
 const Palette := preload("res://core/palette.gd")
+const PartsDB := preload("res://core/parts_db.gd")
 
 const HEALTH_RADIUS := 14.0
 const HEALTH_GAP := 36.0
@@ -9,10 +10,15 @@ const HEALTH_ORIGIN := Vector2(40, 40)
 const MINIMAP_PANEL := Rect2(1660, 20, 240, 180)
 const MINIMAP_MAX_CELL := 42.0
 
-const ABILITY_ORIGIN := Vector2(40, 300)
+const ABILITY_ORIGIN := Vector2(40, 110)
 const ABILITY_SIZE := 56.0
 const ABILITY_GAP := 84.0
 const ABILITY_IDS := ["dash"]
+
+# Tira de partes: seis huecos en columna, con la tecla que los dispara.
+const SLOT_ORIGIN := Vector2(40, 300)
+const SLOT_SIZE := Vector2(230, 62)
+const SLOT_GAP := 8.0
 
 @onready var level_label: Label = $LevelLabel
 @onready var room_label: Label = $RoomLabel
@@ -21,6 +27,16 @@ func _ready() -> void:
 	GameState.room_changed.connect(_on_room_changed)
 	GameState.ability_gained.connect(_on_ability_gained)
 	GameState.health_changed.connect(_on_health_changed)
+	Inventory.slots_changed.connect(queue_redraw)
+	Inventory.pending_changed.connect(_on_pending_changed)
+	queue_redraw()
+
+func _process(_delta: float) -> void:
+	# Las recargas cambian cada frame; redibujar el HUD entero es barato porque
+	# es todo geometría plana.
+	queue_redraw()
+
+func _on_pending_changed(_part_id: String) -> void:
 	queue_redraw()
 
 func _on_health_changed(_health: int) -> void:
@@ -44,14 +60,27 @@ func _draw() -> void:
 	_draw_health()
 	_draw_minimap()
 	_draw_abilities()
+	_draw_part_slots()
 
 func _draw_health() -> void:
-	for i in range(GameState.max_health):
+	# La vida se lleva en medios corazones: consumir una parte cura exactamente
+	# medio, así que el HUD tiene que poder mostrar mitades.
+	var hearts: int = GameState.max_health_halves / 2
+	for i in range(hearts):
 		var pos: Vector2 = HEALTH_ORIGIN + Vector2(i * HEALTH_GAP, 0)
-		if i < GameState.health:
+		var filled: int = clampi(GameState.health_halves - i * 2, 0, 2)
+		draw_arc(pos, HEALTH_RADIUS, 0.0, TAU, 24, Palette.VOID, 2.0)
+		if filled == 2:
 			draw_circle(pos, HEALTH_RADIUS, Palette.SLIME_BODY)
-		else:
-			draw_arc(pos, HEALTH_RADIUS, 0.0, TAU, 24, Palette.VOID, 2.0)
+		elif filled == 1:
+			# Media luna izquierda: se lee de un vistazo aunque sea diminuta.
+			var points: PackedVector2Array = []
+			for step in range(13):
+				var angle: float = PI / 2.0 + PI * float(step) / 12.0
+				points.append(pos + Vector2.RIGHT.rotated(angle) * HEALTH_RADIUS)
+			points.append(pos)
+			draw_colored_polygon(points, Palette.SLIME_BODY)
+		draw_arc(pos, HEALTH_RADIUS, 0.0, TAU, 24, Palette.WALL, 2.0)
 
 func _draw_minimap() -> void:
 	draw_rect(MINIMAP_PANEL, Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.75), true)
@@ -115,3 +144,40 @@ func _draw_abilities() -> void:
 		else:
 			draw_rect(rect, Palette.WALL, false, 2.0)
 		draw_string(font, Vector2(panel.position.x, pos.y + ABILITY_SIZE + 18), id.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, panel_width, 14, Palette.WARM_LIGHT)
+
+func _draw_part_slots() -> void:
+	var font := ThemeDB.fallback_font
+	var panel := Rect2(
+		SLOT_ORIGIN - Vector2(14, 42),
+		Vector2(SLOT_SIZE.x + 28, 54 + Inventory.SLOT_COUNT * (SLOT_SIZE.y + SLOT_GAP))
+	)
+	draw_rect(panel, Color(Palette.VOID, 0.75), true)
+	draw_rect(panel, Palette.WALL, false, 2.0)
+	draw_string(font, panel.position + Vector2(0, 26), "PARTES  [I]", HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 18, Palette.WARM_LIGHT)
+
+	for i in range(Inventory.SLOT_COUNT):
+		var rect := Rect2(SLOT_ORIGIN + Vector2(0, i * (SLOT_SIZE.y + SLOT_GAP)), SLOT_SIZE)
+		var id := Inventory.part_at(i)
+		draw_rect(rect, Color(Palette.FLOOR, 0.5 if id != "" else 0.2), true)
+
+		# La recarga se vacía de abajo hacia arriba sobre el propio hueco.
+		var ratio := Inventory.cooldown_ratio(i)
+		if ratio > 0.0:
+			var height: float = rect.size.y * ratio
+			draw_rect(Rect2(rect.position + Vector2(0, rect.size.y - height), Vector2(rect.size.x, height)), Color(Palette.VOID, 0.7), true)
+
+		draw_rect(rect, Palette.WALL, false, 2.0)
+		draw_string(font, rect.position + Vector2(10, 24), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, 24, 18, Palette.WARM_LIGHT)
+		draw_string(font, rect.position + Vector2(34, 24), Inventory.slot_label(i), HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 44, 15, Palette.WALL.lightened(0.4))
+
+		if id == "":
+			continue
+		var color: Color = Palette.WARM_LIGHT if PartsDB.is_boss_part(id) else Palette.SLIME_CORE
+		draw_string(font, rect.position + Vector2(10, 50), PartsDB.display_name(id), HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 20, 17, color)
+
+	if Inventory.pending == "":
+		return
+	var warn := Rect2(SLOT_ORIGIN + Vector2(0, Inventory.SLOT_COUNT * (SLOT_SIZE.y + SLOT_GAP) + 6), Vector2(SLOT_SIZE.x, 40))
+	draw_rect(warn, Color(Palette.WARM_LIGHT, 0.22), true)
+	draw_rect(warn, Palette.WARM_LIGHT, false, 2.0)
+	draw_string(font, warn.position + Vector2(0, 26), "PENDIENTE · [I]", HORIZONTAL_ALIGNMENT_CENTER, warn.size.x, 18, Palette.WARM_LIGHT)

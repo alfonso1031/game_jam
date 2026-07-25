@@ -1,4 +1,8 @@
-class_name Palette
+# Sin `class_name` a propósito: el registro global de clases vive en `.godot/`, que
+# no se versiona, así que en un clon nuevo ese nombre no existe hasta abrir el
+# editor. Todos los consumidores hacen `preload("res://core/palette.gd")`, que
+# funciona siempre. Declararlo además como clase global solo provocaba el warning
+# de constante que tapa a una clase.
 
 const VOID := Color("#313638")
 const FLOOR := Color("#32535f")

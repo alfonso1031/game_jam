@@ -1,11 +1,19 @@
 extends Control
 
-const Palette := preload("res://core/palette.gd")
+# Mapa del complejo. Dibuja cada sala como el rectángulo que es de verdad, en su
+# posición real de la rejilla, con las puertas en el lado por el que se sale.
+# La versión anterior las ponía en fila ignorando `grid.y`, así que las salas que
+# están una encima de otra se pisaban y el mapa no se parecía al juego.
 
-const BASE_Y := 900.0
-const LEVEL_GAP := 220.0
-const CELL := 90.0
-const NODE_RADIUS := 22.0
+const Palette := preload("res://core/palette.gd")
+const EnemyDB := preload("res://core/enemy_db.gd")
+
+# Proporción de una sala real (1920 x 1080) reducida.
+const ROOM_SIZE := Vector2(150.0, 84.0)
+const ROOM_GAP := Vector2(18.0, 18.0)
+const FLOOR_GAP := 64.0
+const DOOR_LENGTH := 9.0
+const DOOR_THICKNESS := 6.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -32,50 +40,201 @@ func _draw() -> void:
 	if not visible:
 		return
 
-	draw_rect(Rect2(Vector2.ZERO, Vector2(1920, 1080)), Color(0.192157, 0.211765, 0.219608, 0.92), true)
+	draw_rect(Rect2(Vector2.ZERO, Vector2(1920, 1080)), Color(Palette.VOID, 0.94), true)
 
-	var levels: Array = []
-	for room_id in RoomDB.ROOMS:
-		var lvl: int = RoomDB.ROOMS[room_id]["level"]
-		if not levels.has(lvl):
-			levels.append(lvl)
-	levels.sort()
-
-	var level_row_y := {}
-	for i in range(levels.size()):
-		level_row_y[levels[i]] = BASE_Y - i * LEVEL_GAP
-
+	var layout := _build_layout()
 	var font := ThemeDB.fallback_font
 
-	for lvl in levels:
-		var y: float = level_row_y[lvl]
-		draw_string(font, Vector2(140, y + 8), "NIVEL %d" % lvl, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Palette.WARM_LIGHT)
-
+	# Primero los enlaces, para que queden por debajo de las salas.
 	for room_id in RoomDB.ROOMS:
+		if not _is_known(room_id):
+			continue
 		var data: Dictionary = RoomDB.ROOMS[room_id]
 		for dir in data["doors"]:
 			var target_id: String = data["doors"][dir]
-			var a: Vector2 = _room_map_pos(room_id, level_row_y)
-			var b: Vector2 = _room_map_pos(target_id, level_row_y)
-			draw_line(a, b, Palette.WALL, 3.0)
+			_draw_link(layout, room_id, target_id, dir)
 
 	for room_id in RoomDB.ROOMS:
-		var data: Dictionary = RoomDB.ROOMS[room_id]
-		var pos: Vector2 = _room_map_pos(room_id, level_row_y)
-		var color: Color = Palette.VOID
-		if room_id == GameState.current_room:
-			color = Palette.SLIME_CORE
-		elif GameState.visited.get(room_id, false):
-			color = Palette.WALL
-		draw_circle(pos, NODE_RADIUS, color)
-		draw_arc(pos, NODE_RADIUS, 0.0, TAU, 32, Palette.FLOOR, 2.0)
-		if data.get("is_boss", false):
-			draw_arc(pos, NODE_RADIUS + 8.0, 0.0, TAU, 32, Palette.WARM_LIGHT, 3.0)
-		draw_string(font, pos + Vector2(-70, 40), data["room_name"], HORIZONTAL_ALIGNMENT_CENTER, 140, 16, Palette.WARM_LIGHT)
+		if not _is_known(room_id):
+			continue
+		_draw_room(font, layout, room_id)
 
-func _room_map_pos(room_id: String, level_row_y: Dictionary) -> Vector2:
+	_draw_floor_labels(font, layout)
+	_draw_legend(font)
+
+# --- Distribución ---
+
+# Devuelve { "rooms": {id: Rect2}, "floors": {nivel: y_etiqueta} }.
+func _build_layout() -> Dictionary:
+	var pitch := ROOM_SIZE + ROOM_GAP
+
+	var levels: Array = []
+	var min_grid_x := 9999
+	for room_id in RoomDB.ROOMS:
+		var data: Dictionary = RoomDB.ROOMS[room_id]
+		var level: int = data["level"]
+		if not levels.has(level):
+			levels.append(level)
+		min_grid_x = min(min_grid_x, data["grid"].x)
+	# De arriba abajo: el nivel 0 (la salida) queda arriba del todo.
+	levels.sort()
+	levels.reverse()
+
+	# Filas que ocupa cada piso y su y mínima, para colocar las bandas.
+	var rows := {}
+	var min_y := {}
+	var max_x := -9999
+	for level in levels:
+		var lo := 9999
+		var hi := -9999
+		for room_id in RoomDB.ROOMS:
+			var data: Dictionary = RoomDB.ROOMS[room_id]
+			if data["level"] != level:
+				continue
+			lo = min(lo, data["grid"].y)
+			hi = max(hi, data["grid"].y)
+			max_x = max(max_x, data["grid"].x)
+		rows[level] = hi - lo + 1
+		min_y[level] = lo
+
+	var total_height := 0.0
+	for level in levels:
+		total_height += rows[level] * pitch.y
+	total_height += FLOOR_GAP * max(0, levels.size() - 1)
+
+	var columns: int = max_x - min_grid_x + 1
+	var origin_x: float = 960.0 - (columns * pitch.x - ROOM_GAP.x) * 0.5
+	var cursor_y: float = 540.0 - total_height * 0.5
+
+	var room_rects := {}
+	var floor_labels := {}
+	for level in levels:
+		floor_labels[level] = cursor_y
+		for room_id in RoomDB.ROOMS:
+			var data: Dictionary = RoomDB.ROOMS[room_id]
+			if data["level"] != level:
+				continue
+			var grid: Vector2i = data["grid"]
+			room_rects[room_id] = Rect2(
+				Vector2(
+					origin_x + (grid.x - min_grid_x) * pitch.x,
+					cursor_y + (grid.y - min_y[level]) * pitch.y
+				),
+				ROOM_SIZE
+			)
+		cursor_y += rows[level] * pitch.y + FLOOR_GAP
+
+	return {"rooms": room_rects, "floors": floor_labels, "origin_x": origin_x}
+
+# Una sala se dibuja si ya se pisó, o si es vecina de una pisada: así el mapa
+# muestra hacia dónde se puede seguir sin revelar el complejo entero.
+func _is_known(room_id: String) -> bool:
+	if GameState.visited.get(room_id, false):
+		return true
+	for other_id in RoomDB.ROOMS:
+		if not GameState.visited.get(other_id, false):
+			continue
+		if RoomDB.ROOMS[other_id]["doors"].values().has(room_id):
+			return true
+	return false
+
+# --- Dibujo ---
+
+func _draw_room(font: Font, layout: Dictionary, room_id: String) -> void:
+	var rect: Rect2 = layout["rooms"][room_id]
 	var data: Dictionary = RoomDB.ROOMS[room_id]
-	var grid: Vector2i = data["grid"]
-	var y: float = level_row_y[data["level"]]
-	var x: float = 960.0 + grid.x * CELL
-	return Vector2(x, y)
+	var visited: bool = GameState.visited.get(room_id, false)
+
+	var fill: Color = Color(Palette.FLOOR, 0.25)
+	var border: Color = Palette.WALL
+	if room_id == GameState.current_room:
+		fill = Color(Palette.SLIME_CORE, 0.45)
+		border = Palette.SLIME_CORE
+	elif visited:
+		fill = Color(Palette.FLOOR, 0.8)
+		border = Palette.WALL.lightened(0.2)
+
+	draw_rect(rect, fill, true)
+	draw_rect(rect, border, false, 3.0 if room_id == GameState.current_room else 2.0)
+
+	# Huecos de puerta en el borde que toca, igual que en la sala de verdad.
+	for dir in data["doors"]:
+		_draw_door_notch(rect, dir, border)
+
+	if not visited:
+		# Aún sin visitar: solo la silueta y una interrogación.
+		draw_string(font, rect.position + Vector2(0, rect.size.y * 0.6), "?", HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 26, Palette.WALL)
+		return
+
+	var label: String = data["room_name"]
+	draw_string(font, rect.position + Vector2(6, 24), label, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 12, 15, Palette.WARM_LIGHT)
+
+	var tag := ""
+	var tag_color: Color = Palette.WARM_LIGHT
+	if data.get("is_safe", false):
+		tag = "SEGURA"
+		tag_color = Palette.SLIME_BODY
+	elif data.get("is_exit", false):
+		tag = "SALIDA"
+	elif data.get("is_boss", false):
+		tag = "JEFE"
+	elif GameState.is_room_cleared(room_id):
+		tag = "LIMPIA"
+		tag_color = Palette.SLIME_BODY
+	elif _has_enemies(room_id):
+		tag = "HOSTIL"
+		tag_color = Color(0.9, 0.55, 0.45)
+	if tag != "":
+		draw_string(font, rect.position + Vector2(6, rect.size.y - 12), tag, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 12, 14, tag_color)
+
+func _has_enemies(room_id: String) -> bool:
+	return not EnemyDB.spawns_for(room_id).is_empty()
+
+func _draw_door_notch(rect: Rect2, dir: String, color: Color) -> void:
+	var center := rect.get_center()
+	match dir:
+		"N":
+			draw_rect(Rect2(center.x - DOOR_LENGTH, rect.position.y - DOOR_THICKNESS * 0.5, DOOR_LENGTH * 2.0, DOOR_THICKNESS), color, true)
+		"S":
+			draw_rect(Rect2(center.x - DOOR_LENGTH, rect.end.y - DOOR_THICKNESS * 0.5, DOOR_LENGTH * 2.0, DOOR_THICKNESS), color, true)
+		"O":
+			draw_rect(Rect2(rect.position.x - DOOR_THICKNESS * 0.5, center.y - DOOR_LENGTH, DOOR_THICKNESS, DOOR_LENGTH * 2.0), color, true)
+		"E":
+			draw_rect(Rect2(rect.end.x - DOOR_THICKNESS * 0.5, center.y - DOOR_LENGTH, DOOR_THICKNESS, DOOR_LENGTH * 2.0), color, true)
+
+func _draw_link(layout: Dictionary, room_id: String, target_id: String, _dir: String) -> void:
+	if not layout["rooms"].has(target_id):
+		return
+	var a: Rect2 = layout["rooms"][room_id]
+	var b: Rect2 = layout["rooms"][target_id]
+	var same_floor: bool = RoomDB.ROOMS[room_id]["level"] == RoomDB.ROOMS[target_id]["level"]
+	# Los ascensores cruzan pisos: se marcan más gruesos y en color cálido para
+	# que se distingan de una puerta normal de un vistazo.
+	var color: Color = Palette.WALL if same_floor else Palette.WARM_LIGHT
+	var width: float = 3.0 if same_floor else 5.0
+	draw_line(a.get_center(), b.get_center(), Color(color, 0.55), width)
+
+func _draw_floor_labels(font: Font, layout: Dictionary) -> void:
+	var names := {}
+	for room_id in RoomDB.ROOMS:
+		var data: Dictionary = RoomDB.ROOMS[room_id]
+		names[data["level"]] = data["level_name"]
+
+	for level in layout["floors"]:
+		var y: float = layout["floors"][level]
+		var text := "NIVEL %d · %s" % [level, names[level]]
+		draw_string(font, Vector2(layout["origin_x"] - 340.0, y + 24.0), text, HORIZONTAL_ALIGNMENT_RIGHT, 320.0, 20, Palette.WARM_LIGHT)
+
+func _draw_legend(font: Font) -> void:
+	var lines := [
+		"AQUÍ ESTÁS",
+		"VISITADA",
+		"SIN VISITAR",
+		"ASCENSOR ENTRE NIVELES",
+	]
+	var colors := [Palette.SLIME_CORE, Palette.FLOOR, Palette.WALL, Palette.WARM_LIGHT]
+	var origin := Vector2(80, 860)
+	for i in range(lines.size()):
+		var y: float = origin.y + i * 34.0
+		draw_rect(Rect2(origin.x, y - 12.0, 26.0, 16.0), colors[i], true)
+		draw_string(font, Vector2(origin.x + 38.0, y + 2.0), lines[i], HORIZONTAL_ALIGNMENT_LEFT, 400.0, 18, Palette.WALL.lightened(0.5))

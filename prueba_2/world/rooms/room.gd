@@ -1,6 +1,7 @@
 extends Node2D
 
 const Palette := preload("res://core/palette.gd")
+const EnemyDB := preload("res://core/enemy_db.gd")
 
 const LampScene := preload("res://world/props/lamp.tscn")
 const TankScene := preload("res://world/props/tank.tscn")
@@ -37,7 +38,16 @@ const WALL_E_X := 1800.0
 @export var sign_text: String = ""
 @export var sign_cell: Vector2i = Vector2i(6, 0)
 
+# Experimentos vivos en la sala. Cuando se vacía, la sala queda limpia para
+# siempre y no vuelve a poblarse.
+var _alive: Array[Node] = []
+var _has_leader := false
+
 func _ready() -> void:
+	# `Transition` bautiza la instancia con el id de la sala antes de meterla en
+	# el árbol, así que `name` es la fuente fiable para buscar en las tablas.
+	add_to_group("room")
+
 	# Orden de abajo hacia arriba: manchas, escombros, tanques.
 	_spawn_at(PuddleScene, puddles)
 	_spawn_at(DebrisScene, debris)
@@ -54,6 +64,8 @@ func _ready() -> void:
 
 	if sign_text != "":
 		_spawn_sign()
+
+	_spawn_enemies()
 
 func cell_center(cell: Vector2i) -> Vector2:
 	return INTERIOR_ORIGIN + Vector2(cell.x, cell.y) * CELL + Vector2(CELL, CELL) * 0.5
@@ -84,6 +96,48 @@ func wall_lamp_position(side: String, index: int) -> Vector2:
 			return Vector2(WALL_O_X, INTERIOR_ORIGIN.y + index * CELL + CELL * 0.5)
 		_:
 			return Vector2(WALL_E_X, INTERIOR_ORIGIN.y + index * CELL + CELL * 0.5)
+
+# --- Experimentos ---
+
+func _spawn_enemies() -> void:
+	if GameState.is_room_cleared(name):
+		return
+	if RoomDB.ROOMS.get(name, {}).get("is_safe", false):
+		return
+	for entry in EnemyDB.spawns_for(name):
+		var scene: PackedScene = EnemyDB.scene_for(entry["type"])
+		if scene == null:
+			push_error("Room %s: tipo de enemigo desconocido %s" % [name, entry["type"]])
+			continue
+		var enemy: Node2D = scene.instantiate()
+		enemy.position = cell_center(entry["cell"])
+		enemy.is_room_leader = entry.get("leader", false)
+		enemy.died.connect(_on_enemy_died)
+		add_child(enemy)
+		_alive.append(enemy)
+		if enemy.is_room_leader:
+			_has_leader = true
+
+	# Entrar en una sala sucia la cierra entera. No se sale hasta limpiarla.
+	if not _alive.is_empty():
+		_seal_doors(true)
+
+func _on_enemy_died(enemy: Node) -> void:
+	_alive.erase(enemy)
+	if not _alive.is_empty():
+		return
+	# Último experimento en pie: la sala queda limpia para siempre y se abre.
+	GameState.mark_room_cleared(name)
+	_seal_doors(false)
+
+func _seal_doors(value: bool) -> void:
+	for node in get_children():
+		# Puertas y ascensores comparten el contrato `set_sealed`/`direction`.
+		if node.has_method("set_sealed"):
+			node.set_sealed(value)
+
+func is_cleared() -> bool:
+	return _alive.is_empty()
 
 func _spawn_sign() -> void:
 	var label := Label.new()

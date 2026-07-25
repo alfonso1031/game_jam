@@ -10,6 +10,7 @@ const ROOMS := {
 		"grid": Vector2i(0, 0),
 		"scene": "res://world/rooms/l3_celda.tscn",
 		"doors": {"E": "L3_PASILLO"},
+		"is_safe": true,
 	},
 	"L3_PASILLO": {
 		"level": -3,
@@ -58,7 +59,63 @@ const ROOMS := {
 		"room_name": "Esclusa",
 		"grid": Vector2i(2, 0),
 		"scene": "res://world/rooms/l2_esclusa.tscn",
-		"doors": {"O": "L2_BIOLAB"},
+		"doors": {"O": "L2_BIOLAB", "N": "L1_ASCENSOR"},
+	},
+
+	# --- Nivel -1: MANTENIMIENTO ---
+	# La columna x de cada ascensor coincide con la del piso de abajo, para que
+	# en el mapa el salto entre niveles se lea como una escalera y no como un
+	# cable cruzando la pantalla.
+	"L1_ASCENSOR": {
+		"level": -1,
+		"level_name": "MANTENIMIENTO",
+		"room_name": "Ascensor de Servicio",
+		"grid": Vector2i(2, 0),
+		"scene": "res://world/rooms/l1_ascensor.tscn",
+		"doors": {"S": "L2_ESCLUSA", "E": "L1_TALLER"},
+	},
+	"L1_TALLER": {
+		"level": -1,
+		"level_name": "MANTENIMIENTO",
+		"room_name": "Taller de Piezas",
+		"grid": Vector2i(3, 0),
+		"scene": "res://world/rooms/l1_taller.tscn",
+		"doors": {"O": "L1_ASCENSOR", "N": "L1_DEPOSITO", "E": "L1_COMPUERTA"},
+	},
+	"L1_DEPOSITO": {
+		"level": -1,
+		"level_name": "MANTENIMIENTO",
+		"room_name": "Depósito de Residuos",
+		"grid": Vector2i(3, -1),
+		"scene": "res://world/rooms/l1_deposito.tscn",
+		"doors": {"S": "L1_TALLER"},
+	},
+	"L1_COMPUERTA": {
+		"level": -1,
+		"level_name": "MANTENIMIENTO",
+		"room_name": "Compuerta de Presión",
+		"grid": Vector2i(4, 0),
+		"scene": "res://world/rooms/l1_compuerta.tscn",
+		"doors": {"O": "L1_TALLER", "N": "L0_VESTIBULO"},
+	},
+
+	# --- Nivel 0: SUPERFICIE ---
+	"L0_VESTIBULO": {
+		"level": 0,
+		"level_name": "SUPERFICIE",
+		"room_name": "Vestíbulo",
+		"grid": Vector2i(4, 0),
+		"scene": "res://world/rooms/l0_vestibulo.tscn",
+		"doors": {"S": "L1_COMPUERTA", "E": "L0_SALIDA"},
+	},
+	"L0_SALIDA": {
+		"level": 0,
+		"level_name": "SUPERFICIE",
+		"room_name": "Salida",
+		"grid": Vector2i(5, 0),
+		"scene": "res://world/rooms/l0_salida.tscn",
+		"doors": {"O": "L0_VESTIBULO"},
+		"is_exit": true,
 	},
 }
 

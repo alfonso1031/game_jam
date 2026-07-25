@@ -2,6 +2,9 @@ extends CharacterBody2D
 
 const Palette := preload("res://core/palette.gd")
 const Layers := preload("res://core/layers.gd")
+const PartsDB := preload("res://core/parts_db.gd")
+const ZoneScene := preload("res://world/props/hazard_zone.tscn")
+const RadialPulseScene := preload("res://actors/player/abilities/radial_pulse.tscn")
 
 # --- Impulso cargado: movimiento base del slime (todavía no tiene piernas) ---
 # Portado de prototypes/slime_charge_movement. Se mantiene la dirección para
@@ -55,7 +58,31 @@ const BAR_WIDTH := 96.0
 const BAR_HEIGHT := 10.0
 const BAR_Y := -78.0
 
-enum State {IDLE, CHARGING, LAUNCHING, RECOVERING, DASHING}
+# --- Embestida ---
+# El slime hace daño al chocar contra un experimento si viene lanzado de verdad.
+# Por debajo de esta fracción del pico de velocidad el choque es solo un empujón.
+const RAM_SPEED_RATIO := 0.35
+# Tras clavar una embestida no vuelve a puntuar hasta soltarse del enemigo.
+const RAM_HIT_COOLDOWN := 0.35
+
+# La carga manda: soltar en cuanto se puede pega como un empujón, aguantar hasta
+# el tope convierte el impulso en el ataque más fuerte que tiene el slime sin
+# partes. Umbrales sobre la potencia de carga (0..1) y su daño.
+const RAM_TIERS := [
+	{"power": 0.85, "damage": 3},
+	{"power": 0.5, "damage": 2},
+	{"power": 0.0, "damage": 1},
+]
+# El DASH de habilidad no se carga, así que pega siempre en el escalón medio.
+const DASH_RAM_DAMAGE := 2
+
+# El rastro del DASH de partes deja una zona cada tantos píxeles recorridos.
+const TRAIL_STEP := 90.0
+# Radios de sondeo para encontrar la pared más cercana (Ventosas Adhesivas).
+const WALL_PROBE_DIRECTIONS := 8
+const WALL_PROBE_LENGTH := 2000.0
+
+enum State {IDLE, CHARGING, LAUNCHING, RECOVERING, DASHING, PART_DASH}
 
 @onready var body: Polygon2D = $Body
 @onready var core: Polygon2D = $Body/Core
@@ -67,6 +94,8 @@ var _charge_dir := Vector2.RIGHT
 var _facing := Vector2.RIGHT
 var _remaining := 0.0
 var _launch_distance := 1.0
+# Potencia de carga con la que se soltó el impulso actual: fija su daño.
+var _launch_power := 0.0
 var _recovery := 0.0
 # Velocidad actual normalizada al pico: alimenta el estiramiento del cuerpo.
 var _speed_ratio := 0.0
@@ -77,12 +106,43 @@ var _invuln := 0.0
 var _knockback := Vector2.ZERO
 var _breathe := 0.0
 
+# --- Partes equipadas ---
+# Buff activo (Piel Escamada, Garras Silenciosas, Placa de Cadera...).
+var _buff_time := 0.0
+var _buff_flags: Dictionary = {}
+# Impactos que el escudo todavía puede absorber.
+var _shield := 0
+# Estados que los experimentos ponen sobre el slime (red del Arácnido, esporas).
+var _status: Dictionary = {}
+# Cargas de DASH de la Pierna de Zorro; -1 = la parte no está equipada.
+var _dash_charges := -1
+# Bloqueo por fallar un golpe con la Garra de Oso.
+var _whiff_lock := 0.0
+# Estado del DASH que viene de una parte (distinto del DASH de habilidad).
+var _part_dash: Dictionary = {}
+var _part_dir := Vector2.RIGHT
+var _part_remaining := 0.0
+var _part_trail := 0.0
+var _ram_hit_cd := 0.0
+var _rammed: Dictionary = {}
+
+func _ready() -> void:
+	GameState.room_changed.connect(_on_room_changed)
+	Inventory.slots_changed.connect(_refresh_dash_charges)
+	_refresh_dash_charges()
+
 func _physics_process(delta: float) -> void:
 	_dash_cd = max(0.0, _dash_cd - delta)
 	_invuln = max(0.0, _invuln - delta)
+	_whiff_lock = max(0.0, _whiff_lock - delta)
+	_ram_hit_cd = max(0.0, _ram_hit_cd - delta)
+	_tick_buff(delta)
+	_tick_status(delta)
 	_apply_knockback(delta)
 
-	if _state == State.DASHING:
+	if _state == State.PART_DASH:
+		_advance_part_dash(delta)
+	elif _state == State.DASHING:
 		_advance_dash(delta)
 	elif not _try_dash():
 		match _state:
@@ -106,10 +166,50 @@ func _physics_process(delta: float) -> void:
 # --- API pública ---
 
 func is_dashing() -> bool:
-	return _state == State.DASHING
+	return _state == State.DASHING or _state == State.PART_DASH
+
+func aim_direction() -> Vector2:
+	return _facing
+
+# Los experimentos preguntan esto al tocarlo: si viene lanzado, el que cobra
+# es el experimento, no el slime.
+func is_ramming() -> bool:
+	if _ram_hit_cd > 0.0:
+		return false
+	if _state == State.DASHING or _state == State.PART_DASH:
+		return true
+	return _state == State.LAUNCHING and _speed_ratio >= RAM_SPEED_RATIO
+
+# Daño de la embestida, escalado por lo cargado que iba el impulso. El Caparazón
+# del Ariete lo sube; el bono por partes de jefe consumidas se aplica acá porque
+# la embestida es el ataque básico del slime, y es lo único que tiene sin partes.
+func ram_damage() -> int:
+	var base := DASH_RAM_DAMAGE
+	if _state == State.LAUNCHING:
+		base = _tier_damage(_launch_power)
+	base += int(Inventory.mod_sum("ram_damage"))
+	return int(round(base * GameState.base_damage_multiplier()))
+
+func _tier_damage(power: float) -> int:
+	for tier in RAM_TIERS:
+		if power >= tier["power"]:
+			return tier["damage"]
+	return 1
+
+# Potencia con la que salió el impulso en curso, para la barra y el HUD.
+func launch_power() -> float:
+	return _launch_power
+
+func notify_ram_hit(_enemy: Node) -> void:
+	_ram_hit_cd = RAM_HIT_COOLDOWN
 
 func take_damage(amount: int = 1, from: Vector2 = Vector2.ZERO) -> void:
 	if _invuln > 0.0:
+		return
+	# La Piel Escamada se come el impacto entero, no una fracción.
+	if _shield > 0:
+		_shield -= 1
+		_invuln = INVULN_TIME
 		return
 	_invuln = INVULN_TIME
 	GameState.damage(amount)
@@ -117,11 +217,29 @@ func take_damage(amount: int = 1, from: Vector2 = Vector2.ZERO) -> void:
 		apply_knockback(from, KNOCKBACK)
 
 func apply_knockback(from: Vector2, force: float) -> void:
+	# La Placa de Cadera ignora empujes durante su ventana.
+	if _buff_flags.get("immune_push", false):
+		return
 	_knockback = (global_position - from).normalized() * force
 	if _state == State.CHARGING or _state == State.LAUNCHING:
 		if _state == State.CHARGING:
 			slime_audio.stop_charge()
 		_begin_recovery(RECOVERY_TIME)
+
+# Estados que los experimentos aplican al slime (red del Arácnido, esporas).
+func apply_status(status: String, duration: float) -> void:
+	if duration <= 0.0:
+		return
+	_status[status] = max(float(_status.get(status, 0.0)), duration)
+	if status == PartsDB.STATUS_ROOT and _state == State.CHARGING:
+		slime_audio.stop_charge()
+		_begin_recovery(RECOVERY_TIME)
+
+func has_status(status: String) -> bool:
+	return _status.has(status)
+
+func is_floor_immune() -> bool:
+	return _buff_flags.get("immune_floor", false)
 
 # --- Impulso cargado ---
 
@@ -136,10 +254,21 @@ func _has_direction_held() -> bool:
 		or Input.is_action_pressed("move_down")
 	)
 
+# Tiempo real que cuesta llegar a carga plena. La Pierna de Pálido y el
+# Robovigilante lo alargan; el Corazón lo acorta cuando queda un corazón.
+func _max_charge_time() -> float:
+	var time := MAX_CHARGE_TIME * Inventory.mod_product("charge_time_mult")
+	if GameState.is_low_health():
+		time *= Inventory.mod_product("low_health_charge_mult")
+	return max(0.05, time)
+
 func _charge_power() -> float:
-	return clampf(_charge_time / MAX_CHARGE_TIME, 0.0, 1.0)
+	return clampf(_charge_time / _max_charge_time(), 0.0, 1.0)
 
 func _begin_charge(direction: Vector2) -> void:
+	# Inmovilizado no se puede cargar: la red del Arácnido te deja vendido.
+	if has_status(PartsDB.STATUS_ROOT) or _whiff_lock > 0.0:
+		return
 	_state = State.CHARGING
 	_charge_time = 0.0
 	_charge_dir = direction.normalized()
@@ -147,7 +276,7 @@ func _begin_charge(direction: Vector2) -> void:
 	slime_audio.begin_charge()
 
 func _update_charge(delta: float) -> void:
-	_charge_time = min(_charge_time + delta, MAX_CHARGE_TIME)
+	_charge_time = min(_charge_time + delta, _max_charge_time())
 	slime_audio.update_charge(_charge_power())
 	# Con dos direcciones opuestas el vector es cero: la carga sigue corriendo
 	# y se conserva la última dirección válida.
@@ -161,15 +290,17 @@ func _release_charge() -> void:
 		slime_audio.fizzle()
 		_begin_recovery(FIZZLE_RECOVERY_TIME)
 		return
-	_remaining = lerpf(MIN_DISTANCE, MAX_DISTANCE, _charge_power())
+	_launch_power = _charge_power()
+	_remaining = lerpf(MIN_DISTANCE, MAX_DISTANCE, _launch_power)
 	_launch_distance = _remaining
 	_state = State.LAUNCHING
 	slime_audio.launch()
 
 func _advance_launch(delta: float) -> void:
+	var peak := LAUNCH_PEAK_SPEED * _speed_multiplier()
 	var ratio: float = clampf(_remaining / _launch_distance, 0.0, 1.0)
-	var speed := _eased_speed(ratio, LAUNCH_PEAK_SPEED, LAUNCH_END_SPEED, LAUNCH_EASE, LAUNCH_RAMP, LAUNCH_START)
-	_speed_ratio = speed / LAUNCH_PEAK_SPEED
+	var speed := _eased_speed(ratio, peak, LAUNCH_END_SPEED, LAUNCH_EASE, LAUNCH_RAMP, LAUNCH_START)
+	_speed_ratio = speed / peak
 	velocity = _charge_dir * speed
 
 	var step: float = min(speed * delta, _remaining)
@@ -181,7 +312,7 @@ func _advance_launch(delta: float) -> void:
 		slime_audio.impact()
 		var deflected := _deflect(collision, _charge_dir)
 		if deflected == Vector2.ZERO:
-			_begin_recovery(WALL_RECOVERY_TIME)
+			_begin_recovery(_wall_recovery_time())
 			return
 		_charge_dir = deflected
 		_facing = deflected
@@ -190,6 +321,19 @@ func _advance_launch(delta: float) -> void:
 		if not collided:
 			slime_audio.recover()
 		_begin_recovery(RECOVERY_TIME)
+
+# Las Garras Silenciosas multiplican la velocidad base mientras duran; las
+# esporas del Cuerpo Fúngico tiran para el otro lado.
+func _speed_multiplier() -> float:
+	var multiplier := float(_buff_flags.get("speed_mult", 1.0))
+	if has_status(PartsDB.STATUS_SLOW):
+		multiplier *= 0.6
+	return multiplier
+
+# El Caparazón del Ariete alarga el aturdimiento contra pared, y la Garra de Oso
+# la recuperación de todos los remates.
+func _wall_recovery_time() -> float:
+	return (WALL_RECOVERY_TIME + Inventory.mod_sum("wall_stun_add")) * Inventory.mod_best("recovery_mult")
 
 # Golpe rasante: se desliza por la superficie y el recorrido continúa en la
 # dirección desviada. Golpe frontal: devuelve ZERO y el llamador aturde.
@@ -222,6 +366,10 @@ func _eased_speed(
 	return speed * lerpf(start, 1.0, smoothstep(0.0, 1.0, ramp_t))
 
 func _begin_recovery(time: float) -> void:
+	# El Caparazón del Ariete cobra su peaje solo tras un remate, no al desinflar
+	# una carga corta.
+	if _state == State.LAUNCHING or _state == State.DASHING or _state == State.PART_DASH:
+		time += Inventory.mod_sum("recovery_add")
 	_state = State.RECOVERING
 	_recovery = time
 	_remaining = 0.0
@@ -239,12 +387,39 @@ func _advance_recovery(delta: float) -> void:
 func _try_dash() -> bool:
 	if not Input.is_action_just_pressed("dash"):
 		return false
-	if not GameState.has_ability("dash") or _dash_cd > 0.0:
+	if not GameState.has_ability("dash"):
 		return false
 	if _state == State.LAUNCHING or _state == State.RECOVERING:
 		return false
+	if has_status(PartsDB.STATUS_ROOT):
+		return false
+	# Con la Pierna de Zorro el DASH deja de tener recarga por tiempo y pasa a
+	# tener cargas que solo se reponen al cambiar de sala.
+	if _dash_charges >= 0:
+		if _dash_charges <= 0:
+			return false
+		_dash_charges -= 1
+	elif _dash_cd > 0.0:
+		return false
 	_start_dash()
 	return true
+
+func _refresh_dash_charges() -> void:
+	var charges := Inventory.mod_max_int("dash_charges", 0)
+	if charges <= 0:
+		_dash_charges = -1
+		return
+	# Al equiparla arranca con el depósito lleno.
+	if _dash_charges < 0:
+		_dash_charges = charges
+
+func dash_charges_left() -> int:
+	return _dash_charges
+
+func _on_room_changed(_room_id: String) -> void:
+	var charges := Inventory.mod_max_int("dash_charges", 0)
+	_dash_charges = charges if charges > 0 else -1
+	_status.clear()
 
 func _start_dash() -> void:
 	_state = State.DASHING
@@ -282,6 +457,200 @@ func _end_dash(collided: bool) -> void:
 	set_collision_mask_value(Layers.GAP_BIT, true)
 	_begin_recovery(WALL_RECOVERY_TIME if collided else RECOVERY_TIME)
 
+# --- Partes: DASH, buffs y estados ---
+
+# La llama el `ability_runner` para los efectos de tipo DASH. Devuelve false si
+# la parte no se puede ejecutar ahora, para que no se le cobre la recarga.
+func begin_part_dash(effect: Dictionary) -> bool:
+	if _state == State.PART_DASH or has_status(PartsDB.STATUS_ROOT) or _whiff_lock > 0.0:
+		return false
+
+	var direction := _facing
+	if effect.get("to_wall", false) and effect.get("aim", "") != "facing":
+		direction = _nearest_wall_direction()
+	if direction == Vector2.ZERO:
+		return false
+
+	# Ráfaga trasera del Escape de Vapor: quema lo que dejas atrás al salir.
+	var backblast: Dictionary = effect.get("backblast", {})
+	if not backblast.is_empty():
+		var blast: Node2D = RadialPulseScene.instantiate()
+		blast.radius = backblast.get("radius", 200.0)
+		blast.damage = backblast.get("damage", 1)
+		blast.status = backblast.get("status", "")
+		blast.status_time = backblast.get("status_time", 0.0)
+		blast.color = Palette.WARM_LIGHT
+		blast.position = global_position
+		_effect_parent().add_child(blast)
+
+	_part_dash = effect
+	_part_dir = direction
+	_part_remaining = effect.get("distance", 320.0)
+	_part_trail = 0.0
+	_rammed.clear()
+	_facing = direction
+	_charge_time = 0.0
+	_invuln = max(_invuln, effect.get("invuln", 0.0))
+	# El planeo y el garfio pasan por encima de los huecos del suelo.
+	if effect.get("glide", false) or effect.get("to_wall", false):
+		set_collision_mask_value(Layers.GAP_BIT, false)
+	_state = State.PART_DASH
+	slime_audio.dash()
+	return true
+
+func _advance_part_dash(delta: float) -> void:
+	var speed: float = _part_dash.get("speed", 1800.0) * _speed_multiplier()
+	_speed_ratio = clampf(speed / DASH_PEAK_SPEED, 0.0, 1.0)
+	velocity = _part_dir * speed
+
+	var step: float = min(speed * delta, _part_remaining)
+	var collision := move_and_collide(_part_dir * step)
+	_part_remaining -= step
+
+	_drop_trail(step)
+	if _part_dash.get("pierce", false):
+		_hit_pierced_enemies()
+
+	if collision != null:
+		# Ventosas y garfio TERMINAN en la pared: llegar es el objetivo, no un
+		# accidente, así que no cuenta como choque frontal.
+		if _part_dash.get("to_wall", false):
+			_end_part_dash(_part_dash.get("stick", 0.0))
+			return
+		var deflected := _deflect(collision, _part_dir)
+		if deflected == Vector2.ZERO:
+			_end_part_dash(_wall_recovery_time())
+			return
+		_part_dir = deflected
+		_facing = deflected
+
+	if _part_remaining <= 0.001:
+		_end_part_dash(RECOVERY_TIME)
+
+func _drop_trail(step: float) -> void:
+	var trail: Dictionary = _part_dash.get("trail", {})
+	if trail.is_empty():
+		return
+	_part_trail += step
+	if _part_trail < TRAIL_STEP:
+		return
+	_part_trail = 0.0
+	var zone: Node2D = ZoneScene.instantiate()
+	zone.affects = zone.AFFECT_ENEMIES
+	zone.duration = trail.get("duration", 2.0)
+	zone.radius = trail.get("radius", 60.0)
+	zone.dps = trail.get("dps", 3.0)
+	zone.color = Palette.SLIME_CORE
+	zone.position = global_position
+	_effect_parent().add_child(zone)
+
+# Las Patas Hidráulicas y la Pila Voltaica atraviesan: hay que golpear a mano
+# porque el cuerpo del slime no colisiona con la capa de enemigos.
+func _hit_pierced_enemies() -> void:
+	var damage: int = _part_dash.get("damage", 0)
+	var push: float = _part_dash.get("push", 0.0)
+	if damage <= 0 and push <= 0.0:
+		return
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy):
+			continue
+		if _rammed.has(enemy.get_instance_id()):
+			continue
+		if enemy.global_position.distance_to(global_position) > 90.0:
+			continue
+		_rammed[enemy.get_instance_id()] = true
+		if damage > 0:
+			enemy.take_damage(damage, global_position, push)
+		elif push > 0.0:
+			enemy.push_away(global_position, push)
+
+func _end_part_dash(recovery: float) -> void:
+	set_collision_mask_value(Layers.GAP_BIT, true)
+	_part_dash = {}
+	_rammed.clear()
+	_begin_recovery(max(recovery, RECOVERY_TIME))
+
+# Sondea en abanico y devuelve la dirección de la pared más próxima.
+func _nearest_wall_direction() -> Vector2:
+	var space := get_world_2d().direct_space_state
+	var best := Vector2.ZERO
+	var best_distance := INF
+	for i in range(WALL_PROBE_DIRECTIONS):
+		var direction := Vector2.RIGHT.rotated(TAU * float(i) / float(WALL_PROBE_DIRECTIONS))
+		var query := PhysicsRayQueryParameters2D.create(
+			global_position,
+			global_position + direction * WALL_PROBE_LENGTH,
+			Layers.WORLD_MASK,
+			[get_rid()]
+		)
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var distance: float = global_position.distance_to(hit["position"])
+		if distance < best_distance:
+			best_distance = distance
+			best = direction
+	return best
+
+func apply_part_buff(effect: Dictionary) -> bool:
+	var flags: Dictionary = effect.get("flags", {})
+	_buff_flags = flags.duplicate()
+	_buff_time = effect.get("duration", 1.0)
+	_shield = int(flags.get("shield", 0))
+	if flags.get("scan", false):
+		_scan_room()
+	return true
+
+# El escaneo del Robovigilante: marca todo lo vivo de la sala durante la ventana.
+func _scan_room() -> void:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("apply_status"):
+			enemy.apply_status(PartsDB.STATUS_MARK, _buff_time)
+
+func _tick_buff(delta: float) -> void:
+	if _buff_time <= 0.0:
+		return
+	_buff_time -= delta
+	if _buff_time > 0.0:
+		return
+	_buff_flags.clear()
+	# El escudo sobrevive a su buff: se gasta con el golpe, no con el reloj.
+
+func _tick_status(delta: float) -> void:
+	if _status.is_empty():
+		return
+	var expired: Array[String] = []
+	for status in _status:
+		_status[status] = float(_status[status]) - delta
+		if float(_status[status]) <= 0.0:
+			expired.append(status)
+	for status in expired:
+		_status.erase(status)
+
+# La llama el runner tras un golpe cuerpo a cuerpo: la Garra de Oso castiga
+# fallar dejando al slime clavado un momento.
+func notify_melee_swing(arc: Node2D) -> void:
+	var lock := Inventory.mod_sum("whiff_lock")
+	if lock <= 0.0:
+		return
+	# Se comprueba al frame siguiente, cuando el arco ya resolvió sus impactos.
+	await get_tree().process_frame
+	if not is_instance_valid(arc):
+		return
+	if _nearest_enemy_distance() > arc.range_px:
+		_whiff_lock = lock
+
+func _nearest_enemy_distance() -> float:
+	var best := INF
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy):
+			best = min(best, enemy.global_position.distance_to(global_position))
+	return best
+
+func _effect_parent() -> Node:
+	var room := get_tree().get_first_node_in_group("room")
+	return room if room != null else get_parent()
+
 # --- Empuje ---
 
 func _apply_knockback(delta: float) -> void:
@@ -306,7 +675,7 @@ func _update_visual(delta: float) -> void:
 			target_scale = Vector2(1.0 - power * 0.22, 1.0 + power * 0.16)
 			target_offset = -_charge_dir * power * 14.0
 			body.rotation = lerp_angle(body.rotation, _charge_dir.angle(), 1.0 - exp(-14.0 * delta))
-		State.LAUNCHING, State.DASHING:
+		State.LAUNCHING, State.DASHING, State.PART_DASH:
 			# El estiramiento sigue la velocidad real: se afila al salir y se
 			# redondea solo mientras frena, en vez de un valor fijo todo el vuelo.
 			target_scale = Vector2(1.0 + _speed_ratio * 0.36, 1.0 - _speed_ratio * 0.26)
@@ -347,7 +716,7 @@ func _draw() -> void:
 	draw_rect(Rect2(origin, Vector2(BAR_WIDTH * power, BAR_HEIGHT)), fill, true)
 
 	# Marca del mínimo: soltar antes de esta línea no lanza nada.
-	var threshold_x: float = origin.x + BAR_WIDTH * (MIN_CHARGE_TIME / MAX_CHARGE_TIME)
+	var threshold_x: float = origin.x + BAR_WIDTH * (MIN_CHARGE_TIME / _max_charge_time())
 	draw_line(
 		Vector2(threshold_x, origin.y),
 		Vector2(threshold_x, origin.y + BAR_HEIGHT),
@@ -355,6 +724,30 @@ func _draw() -> void:
 		2.0
 	)
 
+	# Escalones de daño: son la razón para aguantar la carga, así que tienen que
+	# verse mientras se carga y no descubrirse por accidente.
+	for tier in RAM_TIERS:
+		var tier_power: float = tier["power"]
+		if tier_power <= 0.0:
+			continue
+		var tier_x: float = origin.x + BAR_WIDTH * tier_power
+		var reached: bool = power >= tier_power
+		draw_line(
+			Vector2(tier_x, origin.y - 3.0),
+			Vector2(tier_x, origin.y + BAR_HEIGHT + 3.0),
+			Palette.WARM_LIGHT if reached else Palette.WALL,
+			3.0 if reached else 2.0
+		)
+
 	draw_rect(Rect2(origin, size), Palette.WALL, false, 2.0)
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(origin.x, origin.y - 8.0),
+		"x%d" % _tier_damage(power),
+		HORIZONTAL_ALIGNMENT_CENTER,
+		BAR_WIDTH,
+		20,
+		Palette.WARM_LIGHT if power >= RAM_TIERS[0]["power"] else Palette.SLIME_CORE
+	)
 	if power >= 1.0:
 		draw_rect(Rect2(origin - Vector2(4, 4), size + Vector2(8, 8)), Palette.WARM_LIGHT, false, 2.0)

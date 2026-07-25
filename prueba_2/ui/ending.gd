@@ -1,6 +1,6 @@
 extends Control
 
-const END_ROOM := "L2_ESCLUSA"
+const END_ROOM := "L0_SALIDA"
 const DELAY := 0.9
 
 @onready var stats: Label = $Stats

@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://actors/player/slime.gd" id="1"]
 [ext_resource type="Script" path="res://actors/player/slime_audio.gd" id="2_audio"]
+[ext_resource type="Script" path="res://actors/player/abilities/ability_runner.gd" id="3_abilities"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 45.0
@@ -37,6 +38,9 @@ texture = SubResource("3")
 color = Color(0.45098, 0.937255, 0.909804, 1)
 energy = 0.8
 texture_scale = 1.5
+
+[node name="AbilityRunner" type="Node2D" parent="."]
+script = ExtResource("3_abilities")
 
 [node name="SlimeAudio" type="Node2D" parent="."]
 script = ExtResource("2_audio")

@@ -1,0 +1,34 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://actors/enemies/exp01_centipede.gd" id="1"]
+
+[sub_resource type="CircleShape2D" id="1"]
+radius = 40
+
+[sub_resource type="CircleShape2D" id="2"]
+radius = 48
+
+[node name="Exp01Centipede" type="CharacterBody2D" groups=["enemies"]]
+collision_layer = 8
+collision_mask = 1
+script = ExtResource("1")
+max_health = 2
+contact_damage = 1
+move_speed = 170.0
+detect_range = 1100.0
+drop_parts = Array[String](["acid_stinger", "serrated_jaw"])
+drop_rate = 0.40
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("1")
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.62, 0.68, 0.72, 1)
+polygon = PackedVector2Array(52, 0, 30, 20, -10, 26, -46, 16, -52, 0, -46, -16, -10, -26, 30, -20)
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("2")
