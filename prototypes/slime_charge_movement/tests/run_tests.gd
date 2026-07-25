@@ -194,17 +194,31 @@ func _test_audio_component() -> bool:
 	if audio == null or not _has_required_audio_contract(audio):
 		player.free()
 		return false
+	var charge_loop := audio.get_node_or_null("ChargeLoop") as AudioStreamPlayer2D
+	_assert_true(charge_loop != null, "SlimeAudio contains ChargeLoop")
 
 	audio.begin_charge()
-	audio.update_charge(0.5)
 	_assert_true(audio.is_charge_playing(), "charge loop starts")
-	_assert_close(audio.get_charge_pitch(), 1.015, "charge pitch follows power")
+	_assert_close(audio.get_charge_pitch(), 0.85, "new charge starts at minimum pitch")
+	if charge_loop != null:
+		_assert_close(
+			charge_loop.volume_db,
+			-20.0,
+			"new charge starts at minimum volume"
+		)
 	var effect_a := audio.get_node_or_null("EffectA") as AudioStreamPlayer2D
 	var effect_b := audio.get_node_or_null("EffectB") as AudioStreamPlayer2D
 	_assert_true(effect_a != null, "full charge uses EffectA")
 	_assert_true(effect_b != null, "full charge preserves EffectB")
 	audio.update_charge(1.0)
 	_assert_equal(audio.last_event, &"charge_full", "full charge fires from power update")
+	_assert_close(audio.get_charge_pitch(), 1.18, "full charge reaches maximum pitch")
+	if charge_loop != null:
+		_assert_close(
+			charge_loop.volume_db,
+			-8.0,
+			"full charge reaches maximum volume"
+		)
 	if effect_a != null and effect_b != null:
 		_assert_true(effect_a.playing, "full charge plays the first effect")
 		audio.update_charge(1.0)
@@ -214,11 +228,40 @@ func _test_audio_component() -> bool:
 		)
 	audio.stop_charge()
 	_assert_true(not audio.is_charge_playing(), "charge loop stops")
+	audio.begin_charge()
+	_assert_close(audio.get_charge_pitch(), 0.85, "restarted charge resets minimum pitch")
+	if charge_loop != null:
+		_assert_close(
+			charge_loop.volume_db,
+			-20.0,
+			"restarted charge resets minimum volume"
+		)
+	audio.stop_charge()
 	player.begin_charge(Vector2.RIGHT)
 	player.update_charge(Vector2.RIGHT, 0.5)
 	_assert_equal(audio.last_event, &"charge", "charging updates audio")
 	player.release_charge()
 	_assert_equal(audio.last_event, &"launch", "release plays launch")
+	_assert_equal(
+		player.current_state,
+		player.MovementState.LAUNCHING,
+		"release keeps controller in launching state"
+	)
+	_assert_true(
+		not audio.is_charge_playing(),
+		"prototype launch stops the charge loop"
+	)
+	player._advance_launch(1.0)
+	_assert_equal(
+		player.current_state,
+		player.MovementState.RECOVERING,
+		"clean launch completion enters recovery"
+	)
+	_assert_equal(audio.last_event, &"recover", "clean launch completion plays recover")
+	_assert_true(
+		not audio.is_charge_playing(),
+		"prototype clean completion leaves the charge loop stopped"
+	)
 	player.free()
 	return true
 
@@ -261,10 +304,17 @@ func _test_main_scene() -> void:
 	)
 	var player: CharacterBody2D = main_instance.get_node("Player")
 	player.set_physics_process(false)
+	var audio := player.get_node_or_null("SlimeAudio")
+	_assert_true(audio != null, "main scene player contains SlimeAudio")
 	player.position = Vector2(1650.0, 540.0)
 	player.begin_charge(Vector2.RIGHT)
 	player.update_charge(Vector2.RIGHT, ChargeMotion.MAX_CHARGE_TIME)
 	player.release_charge()
+	if audio != null:
+		_assert_true(
+			not audio.is_charge_playing(),
+			"prototype collision launch stops the charge loop"
+		)
 	var launch_steps := 0
 	while (
 		player.current_state == player.MovementState.LAUNCHING
@@ -280,6 +330,17 @@ func _test_main_scene() -> void:
 		player.position.x <= 1748.5,
 		"player collision radius remains inside the right wall"
 	)
+	_assert_equal(
+		player.current_state,
+		player.MovementState.RECOVERING,
+		"wall collision enters recovery"
+	)
+	if audio != null:
+		_assert_equal(audio.last_event, &"impact", "wall collision plays impact")
+		_assert_true(
+			not audio.is_charge_playing(),
+			"prototype collision completion leaves the charge loop stopped"
+		)
 	main_instance.free()
 
 

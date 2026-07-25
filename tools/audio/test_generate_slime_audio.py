@@ -11,6 +11,31 @@ import generate_slime_audio as generator
 
 
 class SlimeAudioGenerationTests(unittest.TestCase):
+    def test_same_seed_is_byte_identical_across_runs_and_destinations(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            first_output = Path(temp) / "first"
+            second_output = Path(temp) / "second"
+            seed = 19_847
+
+            generator.generate_assets([first_output], seed=seed)
+            generator.generate_assets([second_output], seed=seed)
+            first_render = {
+                name: (first_output / name).read_bytes()
+                for name in generator.ASSET_DURATIONS
+            }
+
+            for name, first_bytes in first_render.items():
+                self.assertEqual(first_bytes, (second_output / name).read_bytes(), name)
+
+            generator.generate_assets([first_output], seed=seed)
+            generator.generate_assets([second_output], seed=seed)
+            for name, first_bytes in first_render.items():
+                regenerated_first = (first_output / name).read_bytes()
+                regenerated_second = (second_output / name).read_bytes()
+                self.assertEqual(first_bytes, regenerated_first, name)
+                self.assertEqual(first_bytes, regenerated_second, name)
+                self.assertEqual(regenerated_first, regenerated_second, name)
+
     def test_generates_expected_pcm_pack(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)

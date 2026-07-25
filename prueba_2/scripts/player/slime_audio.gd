@@ -42,6 +42,8 @@ func _ready() -> void:
 func begin_charge() -> void:
 	_full_played = false
 	if not charge_loop.playing:
+		charge_loop.pitch_scale = 0.85
+		charge_loop.volume_db = -20.0
 		charge_loop.play()
 	last_event = &"charge"
 
