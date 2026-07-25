@@ -116,8 +116,22 @@ inspector, y los números en `core/layers.gd` para no dejar constantes mágicas 
 
 ## 3. Paleta IcyWitch
 
-Centralizada en `core/palette.gd`. **No es autoload** — es una clase con
-constantes; se usa con `const Palette := preload("res://core/palette.gd")`.
+Centralizada en `core/palette.gd`. **No es autoload y no declara `class_name`**: es un
+script de constantes que se consume siempre con
+
+```gdscript
+const Palette := preload("res://core/palette.gd")
+```
+
+`core/layers.gd` sigue exactamente la misma regla. El motivo es que el registro global de
+clases de Godot vive en `.godot/`, que no se versiona: en un clon nuevo el nombre global
+no existe hasta abrir el editor, y un script que dependa de él falla al arrancar. El
+`preload` funciona siempre. Declarar además `class_name` no aportaba nada y provocaba el
+warning `The constant "X" has the same name as a global class`.
+
+Las subclases **no** necesitan repetir el `preload`: GDScript hereda las constantes de la
+clase base, y por eso los experimentos de `actors/enemies/` acceden a `Palette` y `Layers`
+a través de `enemy_base.gd`.
 
 | Constante | Hex | Uso |
 |---|---|---|

@@ -62,17 +62,42 @@ los `.tscn` y `.gd` se escriben a disco como texto y el MCP solo ejecuta y verif
   (se conecta desde otros scripts, GDScript no lo detecta).
 - Un `Debugger Break` **siempre** es un fallo, aunque el proceso siga vivo.
 
+### Tras un `git pull` que traiga assets
+
+Los `.import` se versionan, pero los binarios importados viven en `.godot/`, que **no**.
+Si el pull trae `.wav`, `.png` o similares, hay que reimportar una vez:
+
+```bash
+godot --headless --path prueba_2 --import
+```
+
+Sin esto los recursos fallan con `Could not preload resource file`. Ojo: **el juego puede
+arrancar igual y romper después**, porque empieza en el título y el slime —que es quien
+hace el `preload` del audio— no se carga hasta empezar la partida. Las suites de tests sí
+lo detectan al instante.
+
 ---
 
 ## 3. Reglas duras (romper esto rompe el juego)
 
-1. **`Palette` no es autoload.** Es `scripts/core/palette.gd` con `class_name Palette`.
-   Un autoload con ese nombre choca con el `class_name`. Además el cache de `class_name`
-   no existe si nunca se abrió el editor, así que **siempre** usar:
+1. **Lo de `core/` se consume con `preload`, nunca por nombre global.** `palette.gd` y
+   `layers.gd` **no** declaran `class_name` y **no** son autoloads. Siempre:
    ```gdscript
-   const Palette := preload("res://scripts/core/palette.gd")
+   const Palette := preload("res://core/palette.gd")
+   const Layers := preload("res://core/layers.gd")
    ```
-   Nunca referenciar `Palette` "a pelo" desde un script.
+   Tres motivos, todos aprendidos rompiendo algo:
+   - Un autoload con el mismo nombre que un `class_name` **impide arrancar**.
+   - El registro global de clases vive en `.godot/`, que no se versiona: en un clon
+     nuevo el nombre global no existe hasta abrir el editor, y el script falla con
+     `Identifier "Palette" not declared`.
+   - Con el registro presente, declarar además `class_name` provoca el warning
+     `The constant "X" has the same name as a global class`.
+
+   **No hace falta repetir el `preload` en una subclase:** GDScript hereda las
+   constantes de la clase base. Los experimentos de `actors/enemies/` usan `Palette` y
+   `Layers` a través de `enemy_base.gd`. Si se añade un script que las use **sin**
+   heredar de una base que ya las tenga, hay que declararle su propio `preload`.
 
 2. **Warnings tratados como errores.** `var x := clamp(...)` y cualquier inferencia desde
    `Variant` rompe el arranque. Tipar explícito: `var x: float = clamp(...)`.
