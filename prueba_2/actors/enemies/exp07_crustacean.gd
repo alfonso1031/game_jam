@@ -24,6 +24,22 @@ var _strafe_sign := 1.0
 func _on_ready() -> void:
 	_strafe_sign = 1.0 if randf() < 0.5 else -1.0
 
+# Es el primer experimento con arte. Los tres fotogramas de
+# `exp07_crustacean_frames.tres` son la misma postura a tres alturas —agachado,
+# medio, encabritado—, así que la máquina de estados se lee entera en la altura
+# del bicho: sube durante el aviso, se queda arriba en el instante del pellizco y
+# baja mientras se recupera. La velocidad de cada animación está calculada para
+# esas duraciones, así que si se tocan PINCH_WINDUP o RECOVER_TIME hay que
+# ajustar el `speed` correspondiente en el .tres o el aviso deja de coincidir.
+func _visual_state() -> StringName:
+	match _state:
+		State.PINCH_WINDUP:
+			return &"pinch_windup"
+		State.RECOVER:
+			return &"recover"
+		_:
+			return &"advance"
+
 func _tick_ai(delta: float) -> void:
 	_timer -= delta
 	_pinch_cd = max(0.0, _pinch_cd - delta)

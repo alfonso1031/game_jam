@@ -2,6 +2,7 @@ extends Node2D
 
 const Palette := preload("res://core/palette.gd")
 const EnemyDB := preload("res://core/enemy_db.gd")
+const RoomBackgrounds := preload("res://core/room_backgrounds.gd")
 
 const LampScene := preload("res://world/props/lamp.tscn")
 const TankScene := preload("res://world/props/tank.tscn")
@@ -48,6 +49,8 @@ func _ready() -> void:
 	# el árbol, así que `name` es la fuente fiable para buscar en las tablas.
 	add_to_group("room")
 
+	_spawn_background()
+
 	# Orden de abajo hacia arriba: manchas, escombros, tanques.
 	_spawn_at(PuddleScene, puddles)
 	_spawn_at(DebrisScene, debris)
@@ -66,6 +69,29 @@ func _ready() -> void:
 		_spawn_sign()
 
 	_spawn_enemies()
+
+# El fondo reemplaza los ColorRect de suelo y muro que dibujaba el prototipo:
+# son los únicos ColorRect que trae una sala, así que se pueden barrer todos
+# sin tener que tocar los 13 archivos .tscn uno por uno.
+func _spawn_background() -> void:
+	for child in get_children():
+		if child is ColorRect:
+			child.queue_free()
+
+	var doors: Dictionary = RoomDB.ROOMS.get(name, {}).get("doors", {})
+	var texture := RoomBackgrounds.texture_for(name, doors)
+	if texture == null:
+		return
+
+	var background := Sprite2D.new()
+	background.name = "Background"
+	background.texture = texture
+	# El arte cubre la pantalla completa (0..1920, 0..1080); la sala en código
+	# reserva 60 px de margen a los lados que quedaban vacíos en el prototipo.
+	background.position = Vector2(960, 540)
+	background.z_index = -10
+	add_child(background)
+	move_child(background, 0)
 
 func cell_center(cell: Vector2i) -> Vector2:
 	return INTERIOR_ORIGIN + Vector2(cell.x, cell.y) * CELL + Vector2(CELL, CELL) * 0.5

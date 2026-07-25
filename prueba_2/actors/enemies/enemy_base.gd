@@ -50,7 +50,11 @@ var _dead := false
 var _status: Dictionary = {}
 var _burn_tick := 0.0
 
-@onready var body: Polygon2D = $Body
+# Presentación: cada experimento trae `Body` (polígono de bloque) o `Sprite`
+# (arte animado), nunca los dos. El arte entra enemigo a enemigo y los que
+# todavía no lo tienen no se enteran.
+@onready var body: Polygon2D = get_node_or_null("Body")
+@onready var sprite: AnimatedSprite2D = get_node_or_null("Sprite")
 @onready var hitbox: Area2D = $Hitbox
 
 func _ready() -> void:
@@ -98,6 +102,13 @@ func _blocks_from(_attack_position: Vector2) -> bool:
 # El Gólem lo sobrescribe: su embestida no se puede interrumpir con aturdimiento.
 func _ignores_stun() -> bool:
 	return false
+
+# Nombre de la animación que corresponde al estado actual de la máquina. Solo lo
+# sobrescriben los experimentos que ya tienen arte; si devuelve un nombre que el
+# SpriteFrames no trae, se cae al `autoplay` de la escena en vez de romper. Eso
+# permite entregar el arte estado a estado sin que falte nada por el camino.
+func _visual_state() -> StringName:
+	return &""
 
 # --- Movimiento asistido ---
 
@@ -325,3 +336,24 @@ func _update_visual(_delta: float) -> void:
 	modulate = tint
 	if body != null:
 		body.rotation = lerp_angle(body.rotation, facing.angle(), 0.2)
+	if sprite != null:
+		_update_sprite()
+
+func _update_sprite() -> void:
+	# El arte va de perfil, no cenital como los polígonos: rotarlo con
+	# `facing.angle()` lo dejaría boca abajo al perseguir hacia la izquierda. Se
+	# voltea, que es lo que lee bien en una vista lateral. El umbral evita que
+	# parpadee cuando la dirección pasa por la vertical.
+	if absf(facing.x) > 0.05:
+		sprite.flip_h = facing.x < 0.0
+
+	var frames := sprite.sprite_frames
+	if frames == null:
+		return
+	var wanted := _visual_state()
+	if wanted == &"" or not frames.has_animation(wanted):
+		wanted = StringName(sprite.autoplay)
+	# Solo al cambiar: si se relanzara cada frame, un `windup` sin bucle no
+	# llegaría nunca a su último fotograma, que es justo el aviso del ataque.
+	if wanted != &"" and sprite.animation != wanted:
+		sprite.play(wanted)

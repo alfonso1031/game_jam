@@ -90,8 +90,24 @@ const SPAWNS := {
 	# L0_SALIDA no aparece: se llega, se sale, se acabó.
 }
 
+const DISPLAY_NAMES := {
+	"exp01": "Ciempiés de Agujas",
+	"exp02": "Arácnido Blindado",
+	"exp03": "Saurio Escamado",
+	"exp04": "Anguila Voltaica",
+	"exp05": "Quimera Alada",
+	"exp06": "Bestia Térmica",
+	"exp07": "Crustáceo Escudo",
+	"exp08": "Cuerpo Fúngico",
+	"exp09": "Gólem de Metal Sólido",
+	"exp10": "Mutante Parásito",
+}
+
 static func spawns_for(room_id: String) -> Array:
 	return SPAWNS.get(room_id, [])
 
 static func scene_for(type_id: String) -> PackedScene:
 	return SCENES.get(type_id, null)
+
+static func display_name(type_id: String) -> String:
+	return DISPLAY_NAMES.get(type_id, type_id)

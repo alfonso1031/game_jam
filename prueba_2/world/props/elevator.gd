@@ -1,7 +1,5 @@
 extends Area2D
 
-const Palette := preload("res://core/palette.gd")
-
 const OUTWARD_ROTATION := {"E": 0.0, "O": PI, "N": -PI / 2.0, "S": PI / 2.0}
 
 @export var direction: String = "N"
@@ -25,11 +23,13 @@ func set_sealed(value: bool) -> void:
 	_sealed = value
 	_apply_seal_visual()
 
+# El arte de fondo ya dibuja el hueco del ascensor. Abierto no muestra nada —
+# sellado, una línea blanca cruzando el paso.
 func _apply_seal_visual() -> void:
 	# set_sealed() puede llegar desde el boss antes de que corra este _ready.
 	if plate == null:
 		return
-	plate.color = Color(Palette.VOID, 0.8) if _sealed else Color(Palette.WARM_LIGHT, 0.6)
+	plate.visible = _sealed
 
 func _on_body_exited(_body: Node) -> void:
 	_armed = true

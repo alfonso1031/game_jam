@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://actors/enemies/exp07_crustacean.gd" id="1"]
+[ext_resource type="SpriteFrames" path="res://actors/enemies/exp07_crustacean_frames.tres" id="2"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 50
@@ -22,9 +23,10 @@ drop_rate = 0.30
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("1")
 
-[node name="Body" type="Polygon2D" parent="."]
-color = Color(0.55, 0.6, 0.66, 1)
-polygon = PackedVector2Array(54, 22, 20, 44, -34, 40, -50, 12, -50, -12, -34, -40, 20, -44, 54, -22)
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2")
+animation = &"advance"
+autoplay = "advance"
 
 [node name="Hitbox" type="Area2D" parent="."]
 collision_layer = 0

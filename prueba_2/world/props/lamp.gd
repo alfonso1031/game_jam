@@ -1,6 +1,6 @@
 extends Node2D
 
-const BASE_ENERGY := 1.1
+const BASE_ENERGY := 1.6
 
 @export var dead: bool = false
 

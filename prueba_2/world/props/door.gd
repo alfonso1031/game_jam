@@ -1,7 +1,5 @@
 extends Area2D
 
-const Palette := preload("res://core/palette.gd")
-
 # Las jambas en embudo están dibujadas mirando al este; la escena se rota para
 # que apunten hacia afuera del lado que corresponda.
 const OUTWARD_ROTATION := {"E": 0.0, "O": PI, "N": -PI / 2.0, "S": PI / 2.0}
@@ -29,11 +27,14 @@ func set_sealed(value: bool) -> void:
 	_sealed = value
 	_apply_seal_visual()
 
+# El arte de fondo ya dibuja el hueco de la puerta; acá solo se marca el
+# bloqueo. Abierta no muestra nada — sellada, una línea blanca cruzando el
+# paso. El diseño final del bloqueo lo define el arte más adelante.
 func _apply_seal_visual() -> void:
 	# set_sealed() puede llegar desde el boss antes de que corra este _ready.
 	if plate == null:
 		return
-	plate.color = Color(Palette.WARM_LIGHT, 0.55) if _sealed else Color(Palette.SLIME_CORE, 0.5)
+	plate.visible = _sealed
 
 func _on_body_exited(_body: Node) -> void:
 	_armed = true

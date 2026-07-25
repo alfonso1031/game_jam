@@ -15,9 +15,9 @@ mouse_filter = 2
 
 [node name="Panel" type="ColorRect" parent="."]
 offset_left = 710.0
-offset_top = 330.0
+offset_top = 300.0
 offset_right = 1210.0
-offset_bottom = 750.0
+offset_bottom = 800.0
 color = Color(0.192157, 0.211765, 0.219608, 0.95)
 mouse_filter = 2
 
@@ -35,7 +35,7 @@ text = "PAUSA"
 offset_left = 110.0
 offset_top = 150.0
 offset_right = 390.0
-offset_bottom = 380.0
+offset_bottom = 460.0
 theme_override_constants/separation = 20
 
 [node name="Resume" type="Button" parent="Panel/Box"]
@@ -52,3 +52,8 @@ text = "REINICIAR"
 custom_minimum_size = Vector2(280, 60)
 theme_override_font_sizes/font_size = 26
 text = "TÍTULO"
+
+[node name="Quit" type="Button" parent="Panel/Box"]
+custom_minimum_size = Vector2(280, 60)
+theme_override_font_sizes/font_size = 26
+text = "SALIR DEL JUEGO"
