@@ -9,8 +9,8 @@ var current_room: String = ""
 var visited: Dictionary = {}
 var abilities: Dictionary = {}
 var bosses_defeated: Dictionary = {}
-var max_health: int = 3
-var health: int = 3
+var max_health: int = 5
+var health: int = 5
 
 func has_ability(id: String) -> bool:
 	return abilities.has(id)

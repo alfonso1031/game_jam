@@ -4,6 +4,9 @@ Juego 2D cenital hecho en **Godot 4.7.1**. Un slime recién liberado escapa de u
 laboratorio abandonado subiendo de nivel en nivel. Implementación del plan descrito en
 [PLAN.md](PLAN.md).
 
+> Si sos un agente de IA trabajando en este repo, leé primero [AGENTS.md](AGENTS.md):
+> tiene las reglas duras, los comandos de verificación y los errores ya cometidos.
+
 - **Proyecto activo:** `prueba_2/`
 - **Escena principal:** `res://scenes/main.tscn`
 - **Renderer:** `gl_compatibility` · **Resolución:** 1920 × 1080, pantalla completa
@@ -221,25 +224,35 @@ también es un `CharacterBody2D`).
 El slime no tiene ataque, así que el daño se hace por posicionamiento:
 
 ```
-PERSIGUE  →  DISPARA (ráfaga radial)  →  VULNERABLE  →  PERSIGUE …
+PERSIGUE  →  DISPARA (ráfaga radial)  →  VULNERABLE  →  [RECOIL si lo golpeás]  →  PERSIGUE …
 ```
 
 - **PERSIGUE:** avanza lento hacia el jugador, coraza cerrada. Tocarlo **te hace daño**.
 - **DISPARA:** se frena, se pone `#ecf3b0` y lanza una ráfaga radial de proyectiles.
 - **VULNERABLE:** núcleo `#73efe8` abierto y pulsando. Tocarlo **le hace daño** y te empuja.
+- **RECOIL:** tras recibir un golpe sale despedido y **no hace daño por contacto** durante
+  0.9 s. Sin este estado el jugador seguía solapado con la hitbox y comía daño en el frame
+  siguiente al golpe — era el bug de "le pego y igual me lastima".
 
-3 fases según vida (6 golpes): cada fase acelera la persecución, acorta la ventana
+3 fases según vida (4 golpes): cada fase acelera la persecución, acorta la ventana
 vulnerable y suma proyectiles por ráfaga.
 
 | Fase | Vida | Velocidad | Proyectiles | Ventana vulnerable |
 |---|---|---|---|---|
-| 1 | 6–5 | 55 | 8 | 1.9 s |
-| 2 | 4–3 | 85 | 10 | 1.6 s |
-| 3 | 2–1 | 120 | 12 | 1.3 s |
+| 1 | 4–3 | 45 | 6 | 3.4 s |
+| 2 | 2 | 65 | 8 | 3.0 s |
+| 3 | 1 | 85 | 10 | 2.6 s |
 
-Al entrar en la sala el boss **sella las salidas** (`set_sealed(true)` en cualquier hijo
-de la sala que tenga ese método → puerta y ascensor). Al morir las abre y suelta el
-pickup de **DASH**. `GameState.bosses_defeated` evita que reaparezca.
+El jugador tiene **5 de vida**. Los proyectiles van a 250 px/s.
+
+El estado se telegrafía en pantalla: barra de vida sobre el boss y cartel de estado
+(`NÚCLEO SELLADO` / `¡CUIDADO!` / `¡NÚCLEO EXPUESTO — CHOCALO!`), más un cartel en la sala.
+
+Al entrar, el boss **sella solo las salidas listadas en `sealed_directions`** (por defecto
+`["N"]`, el ascensor de progresión). **La puerta de vuelta queda abierta a propósito**: si
+se sellan todas y el jugador todavía no entendió la mecánica, queda encerrado sin salida.
+Al morir, abre lo sellado y suelta el pickup de **DASH**. `GameState.bosses_defeated` evita
+que reaparezca.
 
 ### DASH
 

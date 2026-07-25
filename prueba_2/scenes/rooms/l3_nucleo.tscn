@@ -23,7 +23,7 @@ lamps = Array[Vector2i]([Vector2i(2, 5), Vector2i(10, 5)])
 dead_lamps = Array[Vector2i]([Vector2i(2, 1), Vector2i(10, 1)])
 tanks = Array[Vector2i]([Vector2i(1, 1), Vector2i(11, 1), Vector2i(1, 5), Vector2i(11, 5)])
 puddles = Array[Vector2i]([Vector2i(5, 2), Vector2i(6, 4), Vector2i(7, 4)])
-sign_text = "NÚCLEO DE CONTENCIÓN"
+sign_text = "CHOCA EL NÚCLEO CUANDO SE ABRA"
 sign_cell = Vector2i(9, 0)
 
 [node name="Floor" type="ColorRect" parent="."]
