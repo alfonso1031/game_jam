@@ -5,6 +5,7 @@ operativa mínima: dónde trabajar, cómo verificar y qué no romper. Se lee **p
 
 | Documento | Para qué |
 |---|---|
+| [`docs/CONVENCIONES.md`](docs/CONVENCIONES.md) | **Las reglas del proyecto**: arquitectura por feature, dirección de las dependencias, nombres, estilo. Son obligatorias |
 | [`docs/agents/REFERENCIA.md`](docs/agents/REFERENCIA.md) | Medidas de sala, recetas (añadir sala/prop/habilidad), estilo, formato `.tscn` |
 | [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) | Cómo está construido el juego y por qué |
 | [`docs/PLAN.md`](docs/PLAN.md) | Diseño original del MVP |
