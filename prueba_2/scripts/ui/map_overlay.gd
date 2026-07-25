@@ -13,6 +13,9 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("map"):
+		# Si ya está pausado por otro overlay (pausa, final), no abrir el mapa encima.
+		if not visible and get_tree().paused:
+			return
 		_toggle()
 		get_viewport().set_input_as_handled()
 	elif visible and event.is_action_pressed("pause"):

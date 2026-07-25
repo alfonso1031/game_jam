@@ -12,6 +12,9 @@ func setup(room_host: Node, player: Node, fade_rect: ColorRect) -> void:
 	_room_host = room_host
 	_player = player
 	_fade_rect = fade_rect
+	# Al reiniciar la escena el guard podría haber quedado trabado a mitad de un fade.
+	_busy = false
+	_fade_rect.modulate.a = 0.0
 
 func load_initial(room_id: String) -> void:
 	_swap_room(room_id, "")

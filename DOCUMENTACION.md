@@ -8,7 +8,7 @@ laboratorio abandonado subiendo de nivel en nivel. Implementación del plan desc
 > tiene las reglas duras, los comandos de verificación y los errores ya cometidos.
 
 - **Proyecto activo:** `prueba_2/`
-- **Escena principal:** `res://scenes/main.tscn`
+- **Escena de arranque:** `res://scenes/ui/title.tscn` (la partida vive en `main.tscn`)
 - **Renderer:** `gl_compatibility` · **Resolución:** 1920 × 1080, pantalla completa
 
 ---
@@ -284,7 +284,34 @@ El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 
 ---
 
-## 11. Estado del plan
+## 11. Flujo de pantallas y pausa
+
+```
+title.tscn ──cualquier tecla──▶ main.tscn ──llegar a L2_ESCLUSA──▶ ending (CONTINUARÁ…)
+     ▲                             │                                      │
+     └──────── TÍTULO ─────────────┴──── pausa (Esc) ─── REINICIAR ───────┘
+```
+
+- **Título** (`ui/title.gd`): llama a `GameState.reset_run()` al entrar, así que volver al
+  título siempre limpia la partida. Ignora la acción `fullscreen` para que `F11` no
+  arranque el juego.
+- **Pausa** (`ui/pause_menu.gd`, `Esc`): CONTINUAR / REINICIAR / TÍTULO.
+- **Final** (`ui/ending.gd`): escucha `room_changed`; al entrar en `L2_ESCLUSA` espera 0.9 s
+  y muestra `CONTINUARÁ…` con las estadísticas de la partida.
+
+**Tres overlays comparten `get_tree().paused`**, así que cada uno comprueba el estado
+antes de abrirse: el mapa no se abre si algo ya pausó, y la pausa no se abre si el mapa
+está encima. Todos usan `PROCESS_MODE_ALWAYS` para poder cerrarse con el juego pausado.
+
+`F11` lo maneja `GameState._unhandled_input` — es autoload, así que funciona en todas las
+escenas y también en pausa.
+
+`Transition.setup()` resetea el guard `_busy` y el alfa del fade: al reiniciar la escena
+podrían haber quedado trabados a mitad de una transición.
+
+---
+
+## 12. Estado del plan
 
 | # | Paso | Estado |
 |---|---|---|
@@ -295,11 +322,14 @@ El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 | 5 | HUD + overlay de mapa | ✅ |
 | 6 | Ambientación: oscuridad, lámparas, props, carteles | ✅ |
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
-| 8 | Pulido: pausa, título, "CONTINUARÁ" | ⬜ pendiente |
+| 8 | Pulido: pausa, título, "CONTINUARÁ" | ✅ |
+
+**MVP completo.** Partida jugable de principio a fin: título → 7 salas en 2 niveles →
+boss → DASH → hueco de Biolab → esclusa → "CONTINUARÁ…".
 
 ---
 
-## 12. Notas de mantenimiento
+## 13. Notas de mantenimiento
 
 - **Añadir una sala:** entrada en `RoomDB.ROOMS` + `.tscn` con muros partidos donde vayan
   las puertas + `Marker2D` `SpawnN/S/E/O`. El HUD y el mapa se actualizan solos.

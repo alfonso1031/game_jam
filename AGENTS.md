@@ -13,7 +13,11 @@ operativa: qué tocar, qué no romper y cómo verificar. Para el diseño complet
 | `prueba_2/` | **Proyecto activo.** Todo el trabajo va acá. |
 | `prueba/` | Legacy abandonado. **No modificar.** Se conserva solo por historial. |
 
-Escena principal: `prueba_2/scenes/main.tscn`. Godot: `C:\Godot\Godot_v4.7.1-stable_win64.exe`.
+Escena de arranque: `prueba_2/scenes/ui/title.tscn`. La partida vive en
+`prueba_2/scenes/main.tscn`. Godot: `C:\Godot\Godot_v4.7.1-stable_win64.exe`.
+
+Para probar la partida directo sin pasar por el título, correr con la escena como
+argumento en vez de cambiar `run/main_scene`.
 
 ---
 
@@ -77,6 +81,14 @@ los `.tscn` y `.gd` se escriben a disco como texto y el MCP solo ejecuta y verif
 
 7. **Rutas con espacio.** El proyecto vive en `C:\ALFONSO\projects\Game Jam\` — siempre
    entre comillas en cualquier comando.
+
+8. **Los overlays comparten `get_tree().paused`** (mapa, pausa, final). Cualquier overlay
+   nuevo debe comprobar el estado antes de abrirse y usar `PROCESS_MODE_ALWAYS`, o queda
+   uno encima de otro y sin forma de cerrarse.
+
+9. **`GameState` sobrevive a los cambios de escena.** Al volver al título o reiniciar hay
+   que llamar a `GameState.reset_run()`, o la partida nueva arranca con las salas visitadas
+   y las habilidades de la anterior.
 
 ---
 

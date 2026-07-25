@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/slime.tscn" id="1"]
 [ext_resource type="Script" path="res://scripts/main.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ui/map_overlay.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ending.tscn" id="6"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("2")
@@ -28,6 +30,16 @@ enabled = true
 layer = 5
 
 [node name="MapOverlay" parent="MapLayer" instance=ExtResource("4")]
+
+[node name="PauseLayer" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="PauseMenu" parent="PauseLayer" instance=ExtResource("5")]
+
+[node name="EndingLayer" type="CanvasLayer" parent="."]
+layer = 30
+
+[node name="Ending" parent="EndingLayer" instance=ExtResource("6")]
 
 [node name="FadeLayer" type="CanvasLayer" parent="."]
 layer = 10
