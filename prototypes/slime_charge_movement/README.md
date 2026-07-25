@@ -160,7 +160,7 @@ de scripts, pero ignorar `.godot/`. Antes de ejecutar pruebas de scripts, pedir
 siempre la importación headless del editor para cada proyecto:
 
 ```powershell
-& "C:\Users\jcbla\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless --editor --path prototypes/slime_charge_movement --quit
 ```
 

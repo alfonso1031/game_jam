@@ -4,7 +4,7 @@
 
 **Goal:** Generar once efectos WAV originales, viscosos y biológicos, conectarlos al prototipo del impulso cargado y portar la integración al juego activo.
 
-**Architecture:** Un generador Python determinista crea el mismo paquete de audio dentro de las dos raíces Godot. Cada proyecto contiene un componente `SlimeAudio` idéntico que encapsula tres reproductores 2D; los controladores del jugador solo notifican las transiciones de su máquina de estados.
+**Architecture:** Un generador Python determinista crea el mismo paquete de audio dentro de las dos raíces Godot. Cada proyecto contiene un componente `SlimeAudio` con la misma API y rutas de recursos propias que encapsula tres reproductores 2D; los controladores del jugador solo notifican las transiciones de su máquina de estados.
 
 **Tech Stack:** Python 3 estándar (`wave`, `math`, `random`, `struct`, `unittest`), Godot 4.7.1, GDScript con tipado estático, WAV PCM mono de 16 bits a 48 kHz.
 
@@ -37,7 +37,7 @@
 **Generated output**
 
 - Create: `prototypes/slime_charge_movement/audio/slime/*.wav` — eleven generated files.
-- Create: `prueba_2/audio/slime/*.wav` — identical copies for the active Godot project.
+- Create: `prueba_2/assets/audio/slime/*.wav` — identical copies for the active Godot project.
 
 **Prototype**
 
@@ -50,16 +50,16 @@
 
 **Active game**
 
-- Create: `prueba_2/scripts/player/slime_audio.gd` — byte-for-byte functional copy of the component.
-- Create: `prueba_2/scripts/player/slime_audio.gd.uid` and `prueba_2/audio/slime/*.wav.import` — tracked Godot metadata after the active-project import scan.
-- Modify: `prueba_2/scenes/player/slime.tscn` — `SlimeAudio` node and audio players.
-- Modify: `prueba_2/scripts/player/slime.gd` — notifications for charge, fizzle, launch, DASH, impact, recovery, and knockback.
+- Create: `prueba_2/actors/player/slime_audio.gd` — functional copy of the component with active-project resource paths.
+- Create: `prueba_2/actors/player/slime_audio.gd.uid` and `prueba_2/assets/audio/slime/*.wav.import` — tracked Godot metadata after the active-project import scan.
+- Modify: `prueba_2/actors/player/slime.tscn` — `SlimeAudio` node and audio players.
+- Modify: `prueba_2/actors/player/slime.gd` — notifications for charge, fizzle, launch, DASH, impact, recovery, and knockback.
 - Create: `prueba_2/tests/run_slime_audio_tests.gd` — headless audio integration smoke test.
 
 **Documentation**
 
 - Modify: `prototypes/slime_charge_movement/README.md` — generated assets and test commands.
-- Modify: `DOCUMENTACION.md` — active-game audio behavior and reproducibility.
+- Modify: `docs/ARQUITECTURA.md` — active-game audio behavior and reproducibility.
 
 ---
 
@@ -71,7 +71,7 @@
 - Create: `tools/audio/generate_slime_audio.py`
 - Create: `tools/audio/README.md`
 - Create: `prototypes/slime_charge_movement/audio/slime/*.wav`
-- Create: `prueba_2/audio/slime/*.wav`
+- Create: `prueba_2/assets/audio/slime/*.wav`
 
 **Interfaces:**
 
@@ -218,7 +218,7 @@ write to:
 
 ```python
 repo / "prototypes/slime_charge_movement/audio/slime"
-repo / "prueba_2/audio/slime"
+repo / "prueba_2/assets/audio/slime"
 ```
 
 - [ ] **Step 4: Generate and test the two output copies**
@@ -237,7 +237,7 @@ Verify identical copies:
 ```powershell
 $prototype = Get-ChildItem prototypes/slime_charge_movement/audio/slime/*.wav
 foreach ($file in $prototype) {
-    $active = Join-Path "prueba_2/audio/slime" $file.Name
+    $active = Join-Path "prueba_2/assets/audio/slime" $file.Name
     if ((Get-FileHash $file.FullName).Hash -ne (Get-FileHash $active).Hash) {
         throw "Audio distinto: $($file.Name)"
     }
@@ -258,7 +258,7 @@ Create `tools/audio/README.md` stating:
 - [ ] **Step 6: Commit the generator and audio pack**
 
 ```powershell
-git add tools/audio prototypes/slime_charge_movement/audio/slime prueba_2/audio/slime
+git add tools/audio prototypes/slime_charge_movement/audio/slime prueba_2/assets/audio/slime
 git commit -m "feat: generate original slime audio pack"
 ```
 
@@ -293,7 +293,7 @@ git commit -m "feat: generate original slime audio pack"
 **Fresh-checkout prerequisite for every Task 2 script test:**
 
 ```powershell
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --editor `
   --path prototypes/slime_charge_movement `
@@ -336,13 +336,13 @@ func _test_audio_component() -> void:
 - [ ] **Step 2: Run the prototype tests and verify failure**
 
 ```powershell
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --editor `
   --path prototypes/slime_charge_movement `
   --quit
 
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --path prototypes/slime_charge_movement `
   --script res://tests/run_tests.gd
@@ -423,13 +423,13 @@ _assert_equal(audio.last_event, &"launch", "release plays launch")
 - [ ] **Step 7: Run the complete prototype suite**
 
 ```powershell
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --editor `
   --path prototypes/slime_charge_movement `
   --quit
 
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --path prototypes/slime_charge_movement `
   --script res://tests/run_tests.gd
@@ -455,9 +455,9 @@ git commit -m "feat: add biological audio to slime prototype"
 
 **Files:**
 
-- Create: `prueba_2/scripts/player/slime_audio.gd`
-- Modify: `prueba_2/scenes/player/slime.tscn`
-- Modify: `prueba_2/scripts/player/slime.gd`
+- Create: `prueba_2/actors/player/slime_audio.gd`
+- Modify: `prueba_2/actors/player/slime.tscn`
+- Modify: `prueba_2/actors/player/slime.gd`
 - Create: `prueba_2/tests/run_slime_audio_tests.gd`
 
 **Interfaces:**
@@ -471,7 +471,7 @@ git commit -m "feat: add biological audio to slime prototype"
 component exists:**
 
 ```powershell
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --editor `
   --path prueba_2 `
@@ -494,7 +494,7 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
-	var scene := load("res://scenes/player/slime.tscn") as PackedScene
+	var scene := load("res://actors/player/slime.tscn") as PackedScene
 	_assert_true(scene != null, "active slime scene loads")
 	if scene == null:
 		quit(1)
@@ -548,7 +548,7 @@ func _assert_equal(actual: Variant, expected: Variant, label: String) -> void:
 - [ ] **Step 2: Run the smoke test and verify failure**
 
 ```powershell
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --path prueba_2 `
   --script res://tests/run_slime_audio_tests.gd
@@ -558,15 +558,15 @@ Expected: failure because the active scene lacks `SlimeAudio`.
 
 - [ ] **Step 3: Copy the component and add the active scene nodes**
 
-Copy the Task 2 component to `prueba_2/scripts/player/slime_audio.gd`. Add the
-same four-child `SlimeAudio` tree to `prueba_2/scenes/player/slime.tscn`, and
+Copy the Task 2 component to `prueba_2/actors/player/slime_audio.gd`. Add the
+same four-child `SlimeAudio` tree to `prueba_2/actors/player/slime.tscn`, and
 increase `load_steps` from `5` to `6`.
 
 Verify the functional scripts remain identical:
 
 ```powershell
 $prototype = Get-Content -Raw prototypes/slime_charge_movement/scripts/slime_audio.gd
-$active = Get-Content -Raw prueba_2/scripts/player/slime_audio.gd
+$active = Get-Content -Raw prueba_2/actors/player/slime_audio.gd
 if ($prototype -ne $active) { throw "Los componentes de audio divergieron" }
 ```
 
@@ -597,13 +597,13 @@ body settling.
 - [ ] **Step 5: Run the active audio test**
 
 ```powershell
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --editor `
   --path prueba_2 `
   --quit
 
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --path prueba_2 `
   --script res://tests/run_slime_audio_tests.gd
@@ -616,7 +616,7 @@ Expected: `PASS: active slime audio tests` and exit code `0`.
 Launch the gameplay scene directly without changing `run/main_scene`:
 
 ```powershell
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --path prueba_2 `
   res://scenes/main.tscn
 ```
@@ -636,11 +636,11 @@ audio loop remaining after release, and no `Debugger Break`.
 - [ ] **Step 7: Commit the active-game port**
 
 ```powershell
-git add prueba_2/scripts/player/slime_audio.gd `
-  prueba_2/scripts/player/slime_audio.gd.uid `
-  prueba_2/audio/slime/*.wav.import `
-  prueba_2/scenes/player/slime.tscn `
-  prueba_2/scripts/player/slime.gd `
+git add prueba_2/actors/player/slime_audio.gd `
+  prueba_2/actors/player/slime_audio.gd.uid `
+  prueba_2/assets/audio/slime/*.wav.import `
+  prueba_2/actors/player/slime.tscn `
+  prueba_2/actors/player/slime.gd `
   prueba_2/tests/run_slime_audio_tests.gd
 git commit -m "feat: integrate slime audio in active game"
 ```
@@ -652,7 +652,7 @@ git commit -m "feat: integrate slime audio in active game"
 **Files:**
 
 - Modify: `prototypes/slime_charge_movement/README.md`
-- Modify: `DOCUMENTACION.md`
+- Modify: `docs/ARQUITECTURA.md`
 
 **Interfaces:**
 
@@ -671,7 +671,7 @@ Add an `## Audio original` section to the prototype README covering:
 
 - [ ] **Step 2: Document the active integration**
 
-In `DOCUMENTACION.md` section 7, add:
+In `docs/ARQUITECTURA.md` section 7, add:
 
 - The event mapping for charge, full charge, fizzle, launch, DASH, wall impact,
   and clean recovery.
@@ -684,24 +684,24 @@ In `DOCUMENTACION.md` section 7, add:
 ```powershell
 python tools/audio/test_generate_slime_audio.py
 
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --editor `
   --path prototypes/slime_charge_movement `
   --quit
 
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --path prototypes/slime_charge_movement `
   --script res://tests/run_tests.gd
 
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --editor `
   --path prueba_2 `
   --quit
 
-& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+& "<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --path prueba_2 `
   --script res://tests/run_slime_audio_tests.gd
@@ -713,7 +713,7 @@ game `PASS: active slime audio tests`.
 - [ ] **Step 4: Verify no movement constants changed**
 
 ```powershell
-git diff b14a08d -- prueba_2/scripts/player/slime.gd |
+git diff b14a08d -- prueba_2/actors/player/slime.gd |
   Select-String -Pattern '^[+-]const (MAX_CHARGE|MIN_CHARGE|MIN_DISTANCE|MAX_DISTANCE|LAUNCH_|RECOVERY_TIME|WALL_RECOVERY_TIME|FIZZLE_RECOVERY_TIME|DASH_)'
 ```
 
@@ -732,7 +732,7 @@ change remains outside the task commits; no whitespace errors.
 - [ ] **Step 6: Commit documentation**
 
 ```powershell
-git add prototypes/slime_charge_movement/README.md DOCUMENTACION.md
+git add prototypes/slime_charge_movement/README.md docs/ARQUITECTURA.md
 git commit -m "docs: explain slime audio generation and events"
 ```
 

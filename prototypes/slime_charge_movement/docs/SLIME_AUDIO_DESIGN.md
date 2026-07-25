@@ -111,7 +111,7 @@ Producirá copias idénticas dentro de cada proyecto Godot:
 
 ```text
 prototypes/slime_charge_movement/audio/slime/
-prueba_2/audio/slime/
+prueba_2/assets/audio/slime/
 ```
 
 Cada proyecto tendrá su propia versión del componente porque Godot no puede

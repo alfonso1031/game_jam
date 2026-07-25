@@ -5,7 +5,7 @@ Este documento define la movilidad del **slime base** desarrollada en
 las escenas y el controlador principal.
 
 > **Estado: integrado.** El impulso cargado ya es el movimiento base de
-> `prueba_2/scripts/player/slime.gd`. La integración añadió dos reglas que **no**
+> `prueba_2/actors/player/slime.gd`. La integración añadió dos reglas que **no**
 > están en este prototipo (ver §5.1). Este proyecto sigue siendo el banco de
 > pruebas: se itera acá y después se porta.
 
@@ -16,7 +16,7 @@ En el repositorio existen dos mecánicas diferentes:
 | Mecánica | Ubicación | Propósito |
 |---|---|---|
 | **Impulso cargado** | `prototypes/slime_charge_movement/` | Movimiento base del slime antes de obtener piernas |
-| **DASH de habilidad** | `prueba_2/scripts/player/slime.gd` | Recompensa del boss para cruzar huecos |
+| **DASH de habilidad** | `prueba_2/actors/player/slime.gd` | Recompensa del boss para cruzar huecos |
 
 Para evitar confusiones:
 
@@ -131,19 +131,25 @@ toscos:
 
 ```
 velocidad = fin + (pico − fin) · restante^ease
-          · lerp(0.45, 1.0, smoothstep(arranque))
+          · lerp(START, 1.0, smoothstep(arranque))
 ```
 
 | Constante | Impulso | DASH |
 |---|---:|---:|
-| Pico | `1500 px/s` | `2000 px/s` |
-| Final | `240 px/s` | `300 px/s` |
+| Pico | `2100 px/s` | `2200 px/s` |
+| Final | `120 px/s` | `300 px/s` |
 | `ease` | `0.7` | `0.8` |
-| Rampa de salida | `14 %` | `15 %` |
+| Arranque (`START`) | `18 %` del pico | `30 %` del pico |
+| Rampa de salida | `28 %` | `22 %` |
+
+El arranque bajo y la rampa larga hacen que el despegue se sienta pesado; la
+amplitud alta (`2100 → 120`, casi 18×) hace que la llegada se lea como un frenado
+y no como un corte.
 
 La distancia del impulso **no** cambia: la sigue fijando `_remaining`, la curva
-solo reparte el tiempo. En el DASH sí, porque su duración es fija: el alcance
-pasa a ser la integral de la curva (`326 px`).
+solo reparte el tiempo — con estas constantes, `0.14 s` con carga mínima y
+`0.65 s` con carga completa. En el DASH sí cambia, porque su duración es fija: el
+alcance pasa a ser la integral de la curva (`382 px`).
 
 En la UI, la barra de carga dibuja una marca en el umbral mínimo y mantiene el
 relleno en color de muro hasta superarlo, para que el costo sea legible.

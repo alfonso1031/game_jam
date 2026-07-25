@@ -23,7 +23,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var temporary_trees: Array[Node] = []
-	var audio_script := load("res://scripts/player/slime_audio.gd") as Script
+	var audio_script := load("res://actors/player/slime_audio.gd") as Script
 	var audio_script_loads: bool = audio_script != null and audio_script.can_instantiate()
 	_assert_true(audio_script_loads, "SlimeAudio script loads")
 	if not audio_script_loads:
@@ -32,7 +32,7 @@ func _run() -> void:
 		call_deferred("_finish")
 		return
 
-	var scene := load("res://scenes/player/slime.tscn") as PackedScene
+	var scene := load("res://actors/player/slime.tscn") as PackedScene
 	_assert_true(scene != null, "active slime scene loads")
 	if scene == null:
 		await _complete_run(temporary_trees)
@@ -101,7 +101,7 @@ func _test_clean_completion_and_charge_reset(
 	_assert_equal(player._state, player.State.LAUNCHING, "active release enters launch")
 	_assert_equal(audio.last_event, &"launch", "active launch is audible")
 	_assert_true(not audio.is_charge_playing(), "active launch stops the charge loop")
-	player._advance_launch(1.0)
+	_advance_launch_until_recovery(player)
 	_assert_equal(
 		player._state,
 		player.State.RECOVERING,
@@ -208,7 +208,7 @@ func _test_collision_completion(
 		not audio.is_charge_playing(),
 		"active collision launch stops the charge loop"
 	)
-	player._advance_launch(1.0)
+	_advance_launch_until_recovery(player)
 	_assert_equal(
 		player._state,
 		player.State.RECOVERING,
@@ -228,6 +228,13 @@ func _spawn_player(scene: PackedScene, temporary_trees: Array[Node]) -> Node:
 	await process_frame
 	player.set_physics_process(false)
 	return player
+
+
+func _advance_launch_until_recovery(player: Node) -> void:
+	var launch_frames := 0
+	while player._state == player.State.LAUNCHING and launch_frames < 240:
+		player._advance_launch(1.0 / 60.0)
+		launch_frames += 1
 
 
 func _get_audio(player: Node, label: String) -> Node:

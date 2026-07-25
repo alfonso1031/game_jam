@@ -228,6 +228,6 @@ if __name__ == "__main__":
     generate_assets(
         [
             repository / "prototypes/slime_charge_movement/audio/slime",
-            repository / "prueba_2/audio/slime",
+            repository / "prueba_2/assets/audio/slime",
         ]
     )
