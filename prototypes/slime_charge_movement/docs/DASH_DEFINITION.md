@@ -4,6 +4,11 @@ Este documento define la movilidad del **slime base** desarrollada en
 `prototypes/slime_charge_movement/`. Está dirigido al compañero que trabaja en
 las escenas y el controlador principal.
 
+> **Estado: integrado.** El impulso cargado ya es el movimiento base de
+> `prueba_2/scripts/player/slime.gd`. La integración añadió dos reglas que **no**
+> están en este prototipo (ver §5.1). Este proyecto sigue siendo el banco de
+> pruebas: se itera acá y después se porta.
+
 ## 1. Distinción de nombres
 
 En el repositorio existen dos mecánicas diferentes:
@@ -18,7 +23,9 @@ Para evitar confusiones:
 - En diseño y UI, esta propuesta se llama **impulso cargado**.
 - El nombre **DASH** sin calificativo se reserva para la habilidad actual de
   `prueba_2`.
-- El prototipo no modifica `prueba_2`, sus escenas ni su dash.
+- Ambas mecánicas conviven en `prueba_2`: el impulso cargado es el movimiento
+  base y el DASH sigue siendo la recompensa del boss, con sus propias reglas de
+  invulnerabilidad y máscara de huecos.
 
 ## 2. Fantasía y costo jugable
 
@@ -103,6 +110,25 @@ más largo:
 
 La entrada diagonal se normaliza, por lo que no obtiene más velocidad ni
 distancia.
+
+## 5.1 Reglas añadidas en la integración a `prueba_2`
+
+El prototipo permite soltar la dirección en cualquier momento y trata todas las
+recuperaciones por igual. Al integrarlo se añadieron dos costos que el prototipo
+todavía no tiene:
+
+| Constante | Valor | Motivo |
+|---|---:|---|
+| `MIN_CHARGE_TIME` | `0.18 s` | Soltar antes no lanza nada. Sin esto, machacar teclas de dirección produce lanzamientos mínimos encadenados y equivale a caminar — y caminar es una **habilidad futura** (piernas), no algo que la mecánica base deba permitir. |
+| `WALL_RECOVERY_TIME` | `0.45 s` | Chocar contra una pared aturde casi cuatro veces más que terminar el recorrido limpio. Sin esto, estrellarse no tenía costo y lanzarse a ciegas era gratis. |
+
+Soltar antes del mínimo entra en `FIZZLE_RECOVERY_TIME` (`0.28 s`) sin desplazarse.
+
+En la UI, la barra de carga dibuja una marca en el umbral mínimo y mantiene el
+relleno en color de muro hasta superarlo, para que el costo sea legible.
+
+Estas reglas también aplican al DASH de habilidad al chocar: comparten
+`WALL_RECOVERY_TIME`.
 
 ## 6. Colisiones
 

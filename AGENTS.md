@@ -11,6 +11,7 @@ operativa: qué tocar, qué no romper y cómo verificar. Para el diseño complet
 | Carpeta | Estado |
 |---|---|
 | `prueba_2/` | **Proyecto activo.** Todo el trabajo va acá. |
+| `prototypes/slime_charge_movement/` | Banco de pruebas del impulso cargado, proyecto Godot aparte con tests propios. Se itera acá antes de tocar `prueba_2`. |
 | `prueba/` | Legacy abandonado. **No modificar.** Se conserva solo por historial. |
 
 Escena de arranque: `prueba_2/scenes/ui/title.tscn`. La partida vive en
@@ -89,6 +90,20 @@ los `.tscn` y `.gd` se escriben a disco como texto y el MCP solo ejecuta y verif
 9. **`GameState` sobrevive a los cambios de escena.** Al volver al título o reiniciar hay
    que llamar a `GameState.reset_run()`, o la partida nueva arranca con las salas visitadas
    y las habilidades de la anterior.
+
+10. **El slime se mueve con `move_and_collide()`, no con `move_and_slide()`.** El motor
+    ya no usa `velocity` para desplazarlo, así que **asignar `player.velocity` no empuja
+    nada**. Para empujar al jugador hay que llamar a `apply_knockback(from, force)`.
+
+11. **Impulso cargado y DASH son dos mecánicas distintas.** El impulso cargado es el
+    movimiento base (mantener dirección y soltar); el DASH es la recompensa del boss
+    (`Shift`/`Espacio`). Solo el DASH da invulnerabilidad y apaga el bit 3 para cruzar
+    huecos. No unificarlos ni copiar las reglas de uno al otro.
+
+12. **No aflojar el anti-machaque.** Soltar la dirección antes de `MIN_CHARGE_TIME` no
+    lanza y penaliza con `FIZZLE_RECOVERY_TIME`. Es deliberado: golpear teclas no puede
+    equivaler a caminar, porque el movimiento continuo es una habilidad futura (piernas).
+    Igual de deliberado es `WALL_RECOVERY_TIME`: chocar tiene que doler.
 
 ---
 

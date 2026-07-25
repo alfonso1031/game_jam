@@ -157,7 +157,7 @@ func _take_damage(player_node: Node2D) -> void:
 	_hit_cd = HIT_COOLDOWN
 	_refresh_health_bar()
 	var away := (player_node.global_position - global_position).normalized()
-	player_node.velocity = away * 700.0
+	player_node.apply_knockback(global_position, 700.0)
 	if health <= 0:
 		_die()
 		return

@@ -9,6 +9,9 @@ laboratorio abandonado subiendo de nivel en nivel. Implementación del plan desc
 
 - **Proyecto activo:** `prueba_2/`
 - **Escena de arranque:** `res://scenes/ui/title.tscn` (la partida vive en `main.tscn`)
+- **Prototipo aparte:** `prototypes/slime_charge_movement/` — banco de pruebas del impulso
+  cargado, con sus propios tests. Ya está portado a `prueba_2` (§7), pero sigue siendo el
+  lugar para iterar la sensación de movimiento sin tocar el juego.
 - **Renderer:** `gl_compatibility` · **Resolución:** 1920 × 1080, pantalla completa
 
 ---
@@ -28,7 +31,7 @@ para leer la salida de debug, `stop_project` para cerrarlo.
 
 | Acción | Tecla |
 |---|---|
-| Mover | `WASD` / flechas |
+| Cargar impulso / lanzarse | mantener `WASD` / flechas y **soltar** |
 | Mapa completo | `TAB` |
 | Interactuar | `E` |
 | Dash (tras vencer al boss) | `Shift` / `Espacio` |
@@ -173,14 +176,63 @@ que tocar** si el juego se ve muy oscuro o muy claro.
 
 ## 7. El slime (`slime.gd`)
 
-- `CharacterBody2D`, 8 direcciones, `SPEED = 220`, aceleración/fricción por `lerp`
-  exponencial → sensación viscosa.
-- **Squash & stretch procedural:** el `Polygon2D` se estira en la dirección del
-  movimiento; quieto, respira con un `sin(t)`. Sin arte, solo geometría.
+### Impulso cargado — movimiento base
+
+El slime **no tiene piernas**: no camina, acumula energía y se lanza. Portado desde
+`prototypes/slime_charge_movement/` (ver su [DASH_DEFINITION.md](prototypes/slime_charge_movement/docs/DASH_DEFINITION.md)).
+
+```
+IDLE ──mantener dirección──▶ CHARGING ──soltar──▶ LAUNCHING ──▶ RECOVERING ──▶ IDLE
+```
+
+1. Mantener `WASD`/flechas carga el impulso; la dirección se corrige mientras se mantiene.
+2. Una barra sobre el slime muestra la potencia.
+3. Al soltar **todas** las direcciones, se lanza. En vuelo no se gira ni se cancela.
+4. El recorrido termina al consumir su distancia **o al chocar con una pared**.
+
+| Constante | Valor | Significado |
+|---|---:|---|
+| `MAX_CHARGE_TIME` | 1.0 s | Carga completa |
+| `MIN_CHARGE_TIME` | 0.18 s | **Mínimo para que haya impulso** |
+| `MIN_DISTANCE` | 112 px | Distancia con carga mínima |
+| `MAX_DISTANCE` | 520 px | Distancia con carga completa |
+| `LAUNCH_SPEED` | 1040 px/s | Velocidad constante (la carga alarga, no acelera) |
+| `RECOVERY_TIME` | 0.12 s | Pausa tras un recorrido limpio |
+| `WALL_RECOVERY_TIME` | 0.45 s | **Aturdimiento al chocar contra una pared** |
+| `FIZZLE_RECOVERY_TIME` | 0.28 s | Penalización por soltar antes del mínimo |
+
+`distancia = lerp(112, 520, carga / 1.0)`. Las diagonales se normalizan: no dan ventaja.
+
+**Anti-machaque.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
+0.28 s inmóvil. Golpear teclas de dirección repetidamente no produce desplazamiento —
+el movimiento continuo es una **habilidad futura** (piernas), no algo que se pueda
+improvisar con la mecánica base. La barra dibuja una marca en el umbral mínimo y el
+relleno se queda en color de muro hasta superarlo.
+
+**Castigo por chocar.** Estrellarse contra una pared corta el recorrido en seco y cuesta
+0.45 s de aturdimiento, casi cuatro veces la recuperación normal. Lanzarse a ciegas sale
+caro. Aplica igual al DASH de habilidad.
+
+> El impulso cargado usa `move_and_collide()`, **no** desliza por las paredes y **no**
+> atraviesa huecos ni da invulnerabilidad. Cruzar huecos sigue siendo exclusivo del DASH.
+
+### DASH de habilidad
+
+Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 1200 px/s durante 0.22 s,
+invulnerable, cooldown 0.8 s, atraviesa huecos. Se lanza en la última dirección cargada
+y no se puede usar en pleno impulso ni en recuperación.
+
+### Presentación
+
+- **Squash & stretch procedural:** se comprime en el eje del lanzamiento mientras carga y
+  retrocede como un resorte; se estira en vuelo; queda aplastado en la recuperación;
+  quieto, respira con un `sin(t)`. Solo geometría, sin arte.
 - Núcleo `#73efe8` con opacidad pulsante y `PointLight2D` propia → el slime es la
   fuente de luz principal.
 - Las habilidades se consultan con `GameState.has_ability("dash")`, nunca se guardan en
   el propio script → sobreviven al cambio de sala.
+- **El empuje va por `apply_knockback(from, force)`**, no por `velocity`: con
+  `move_and_collide()` el motor ya no usa `velocity` para desplazar al cuerpo.
 
 ---
 
