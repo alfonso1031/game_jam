@@ -90,8 +90,9 @@ func _run_tests() -> void:
 	)
 	_test_player_state_machine()
 	_test_feedback_nodes()
-	await _test_audio_component()
-	await _test_main_scene()
+	var audio_component_ready := await _test_audio_component()
+	if audio_component_ready:
+		await _test_main_scene()
 
 	if failures == 0:
 		print("PASS: all slime movement tests")
@@ -173,25 +174,26 @@ func _test_feedback_nodes() -> void:
 		visual.free()
 
 
-func _test_audio_component() -> void:
+func _test_audio_component() -> bool:
 	var audio_script := load("res://scripts/slime_audio.gd") as Script
-	_assert_true(audio_script != null, "SlimeAudio script loads")
-	if audio_script == null:
-		return
+	var audio_script_loads := audio_script != null and audio_script.can_instantiate()
+	_assert_true(audio_script_loads, "SlimeAudio script loads")
+	if not audio_script_loads:
+		return false
 
 	var player_scene := load("res://scenes/player.tscn") as PackedScene
 	_assert_true(player_scene != null, "player scene with audio loads")
 	if player_scene == null:
-		return
+		return false
 
 	var player = player_scene.instantiate()
 	root.add_child(player)
 	await process_frame
 	var audio := player.get_node_or_null("SlimeAudio")
 	_assert_true(audio != null, "player contains SlimeAudio")
-	if audio == null or not _has_required_audio_methods(audio):
+	if audio == null or not _has_required_audio_contract(audio):
 		player.free()
-		return
+		return false
 
 	audio.begin_charge()
 	audio.update_charge(0.5)
@@ -218,15 +220,26 @@ func _test_audio_component() -> void:
 	player.release_charge()
 	_assert_equal(audio.last_event, &"launch", "release plays launch")
 	player.free()
+	return true
 
 
-func _has_required_audio_methods(audio: Node) -> bool:
-	var has_all_methods := true
+func _has_required_audio_contract(audio: Node) -> bool:
+	var has_contract := true
 	for method in REQUIRED_AUDIO_METHODS:
 		if not audio.has_method(method):
-			has_all_methods = false
+			has_contract = false
 			_assert_true(false, "SlimeAudio exposes %s" % method)
-	return has_all_methods
+	if not _has_property(audio, &"last_event"):
+		has_contract = false
+		_assert_true(false, "SlimeAudio exposes last_event")
+	return has_contract
+
+
+func _has_property(object: Object, property_name: StringName) -> bool:
+	for property: Dictionary in object.get_property_list():
+		if property.name == property_name:
+			return true
+	return false
 
 
 func _test_main_scene() -> void:
