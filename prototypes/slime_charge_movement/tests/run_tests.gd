@@ -77,6 +77,7 @@ func _run_tests() -> void:
 	)
 	_test_player_state_machine()
 	_test_feedback_nodes()
+	await _test_audio_component()
 	await _test_main_scene()
 
 	if failures == 0:
@@ -159,6 +160,34 @@ func _test_feedback_nodes() -> void:
 		visual.free()
 
 
+func _test_audio_component() -> void:
+	var player_scene := load("res://scenes/player.tscn") as PackedScene
+	_assert_true(player_scene != null, "player scene with audio loads")
+	if player_scene == null:
+		return
+
+	var player = player_scene.instantiate()
+	root.add_child(player)
+	await process_frame
+	var audio := player.get_node_or_null("SlimeAudio")
+	_assert_true(audio != null, "player contains SlimeAudio")
+	if audio != null:
+		audio.begin_charge()
+		audio.update_charge(0.5)
+		_assert_true(audio.is_charge_playing(), "charge loop starts")
+		_assert_close(audio.get_charge_pitch(), 1.015, "charge pitch follows power")
+		audio.charge_full()
+		_assert_equal(audio.last_event, &"charge_full", "full charge fires once")
+		audio.stop_charge()
+		_assert_true(not audio.is_charge_playing(), "charge loop stops")
+		player.begin_charge(Vector2.RIGHT)
+		player.update_charge(Vector2.RIGHT, 0.5)
+		_assert_equal(audio.last_event, &"charge", "charging updates audio")
+		player.release_charge()
+		_assert_equal(audio.last_event, &"launch", "release plays launch")
+	player.free()
+
+
 func _test_main_scene() -> void:
 	var main_scene := load("res://scenes/main.tscn")
 	_assert_true(main_scene != null, "main scene loads")
@@ -176,7 +205,7 @@ func _test_main_scene() -> void:
 		main_instance.get_node_or_null("Arena") != null,
 		"main scene contains the collision arena"
 	)
-	var player := main_instance.get_node("Player") as SlimePlayer
+	var player: CharacterBody2D = main_instance.get_node("Player")
 	player.set_physics_process(false)
 	player.position = Vector2(1650.0, 540.0)
 	player.begin_charge(Vector2.RIGHT)

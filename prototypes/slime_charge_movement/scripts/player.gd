@@ -27,6 +27,7 @@ var recovery_remaining := 0.0
 
 @onready var visual: Node2D = get_node_or_null("Visual")
 @onready var charge_bar: Node2D = get_node_or_null("ChargeBar")
+@onready var slime_audio: Node = get_node_or_null("SlimeAudio")
 
 
 func _physics_process(delta: float) -> void:
@@ -60,6 +61,8 @@ func begin_charge(direction: Vector2) -> void:
 	current_state = MovementState.CHARGING
 	charge_time = 0.0
 	charge_direction = safe_direction
+	if slime_audio != null:
+		slime_audio.begin_charge()
 	_sync_feedback()
 
 
@@ -73,6 +76,8 @@ func update_charge(direction: Vector2, delta: float) -> void:
 
 	charge_direction = safe_direction
 	charge_time = minf(charge_time + delta, max_charge_time)
+	if slime_audio != null:
+		slime_audio.update_charge(get_charge_power())
 	_sync_feedback()
 
 
@@ -86,6 +91,8 @@ func release_charge() -> void:
 		maximum_distance
 	)
 	current_state = MovementState.LAUNCHING
+	if slime_audio != null:
+		slime_audio.launch()
 	_sync_feedback()
 
 
@@ -110,6 +117,11 @@ func _begin_recovery(collided: bool) -> void:
 	current_state = MovementState.RECOVERING
 
 	_sync_feedback()
+	if slime_audio != null:
+		if collided:
+			slime_audio.impact()
+		else:
+			slime_audio.recover()
 	if visual != null and visual.has_method("play_impact"):
 		visual.play_impact(charge_direction, collided)
 
