@@ -2,6 +2,8 @@ extends Area2D
 
 const Palette := preload("res://core/palette.gd")
 
+const OUTWARD_ROTATION := {"E": 0.0, "O": PI, "N": -PI / 2.0, "S": PI / 2.0}
+
 @export var direction: String = "N"
 
 var _armed := false
@@ -10,6 +12,7 @@ var _sealed := false
 @onready var plate: ColorRect = $Plate
 
 func _ready() -> void:
+	rotation = OUTWARD_ROTATION.get(direction, 0.0)
 	body_exited.connect(_on_body_exited)
 	_apply_seal_visual()
 	await get_tree().physics_frame

@@ -9,7 +9,7 @@ const Layers := preload("res://core/layers.gd")
 const MAX_CHARGE_TIME := 1.0
 # Por debajo de este tiempo no hay impulso: machacar teclas no es movimiento.
 # El desplazamiento continuo es una habilidad futura (piernas).
-const MIN_CHARGE_TIME := 0.18
+const MIN_CHARGE_TIME := 0.12
 const MIN_DISTANCE := 112.0
 const MAX_DISTANCE := 520.0
 
@@ -41,6 +41,11 @@ const DASH_START := 0.30
 const DASH_RAMP := 0.22
 const DASH_TIME := 0.32
 const DASH_COOLDOWN := 0.8
+
+# Un impacto rasante desvía en vez de cortar el recorrido: es lo que hace que
+# las jambas en embudo de las puertas guíen hacia adentro. Por encima de este
+# coseno el golpe se considera frontal y sí aturde.
+const GRAZE_DOT := 0.85
 
 const INVULN_TIME := 1.0
 const KNOCKBACK := 620.0
@@ -163,10 +168,31 @@ func _advance_launch(delta: float) -> void:
 	var step: float = min(speed * delta, _remaining)
 	var collision := move_and_collide(_charge_dir * step)
 	_remaining -= step
+
 	if collision != null:
-		_begin_recovery(WALL_RECOVERY_TIME)
-	elif _remaining <= 0.001:
+		var deflected := _deflect(collision, _charge_dir)
+		if deflected == Vector2.ZERO:
+			_begin_recovery(WALL_RECOVERY_TIME)
+			return
+		_charge_dir = deflected
+		_facing = deflected
+
+	if _remaining <= 0.001:
 		_begin_recovery(RECOVERY_TIME)
+
+# Golpe rasante: se desliza por la superficie y el recorrido continúa en la
+# dirección desviada. Golpe frontal: devuelve ZERO y el llamador aturde.
+func _deflect(collision: KinematicCollision2D, dir: Vector2) -> Vector2:
+	var normal := collision.get_normal()
+	if -dir.dot(normal) >= GRAZE_DOT:
+		return Vector2.ZERO
+
+	var slide := collision.get_remainder().slide(normal)
+	if slide.is_zero_approx():
+		return Vector2.ZERO
+
+	move_and_collide(slide)
+	return slide.normalized()
 
 # Perfil compartido por el impulso y el DASH: arranca acelerando desde una
 # fracción del pico y cae exponencialmente hasta una velocidad final finita
@@ -225,9 +251,15 @@ func _advance_dash(delta: float) -> void:
 
 	var collision := move_and_collide(_facing * speed * delta)
 	_dash_time -= delta
+
 	if collision != null:
-		_end_dash(true)
-	elif _dash_time <= 0.0:
+		var deflected := _deflect(collision, _facing)
+		if deflected == Vector2.ZERO:
+			_end_dash(true)
+			return
+		_facing = deflected
+
+	if _dash_time <= 0.0:
 		_end_dash(false)
 
 func _end_dash(collided: bool) -> void:

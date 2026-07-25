@@ -27,4 +27,20 @@ offset_bottom = -50.0
 color = Color(0.92549, 0.952941, 0.690196, 1)
 mouse_filter = 2
 
+[node name="Jambs" type="StaticBody2D" parent="."]
+
+[node name="ShapeUpper" type="CollisionPolygon2D" parent="Jambs"]
+polygon = PackedVector2Array(-60, -120, 0, -60, 60, -60, 60, -120)
+
+[node name="ShapeLower" type="CollisionPolygon2D" parent="Jambs"]
+polygon = PackedVector2Array(-60, 120, 0, 60, 60, 60, 60, 120)
+
+[node name="VisualUpper" type="Polygon2D" parent="Jambs"]
+color = Color(0.039216, 0.466667, 0.478431, 1)
+polygon = PackedVector2Array(-60, -120, 0, -60, 60, -60, 60, -120)
+
+[node name="VisualLower" type="Polygon2D" parent="Jambs"]
+color = Color(0.039216, 0.466667, 0.478431, 1)
+polygon = PackedVector2Array(-60, 120, 0, 60, 60, 60, 60, 120)
+
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]

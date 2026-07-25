@@ -45,8 +45,12 @@ Preguntas para ubicar algo nuevo:
 
 - `cell_center(c) = Vector2(180, 120) + c * 120 + Vector2(60, 60)`
 - **Carriles de puerta libres:** columna `x = 6` y fila `y = 3` no llevan props sólidos.
-- Una puerta por lado como máximo, centrada, de 1 celda. El muro se parte en **dos**
-  `ColorRect` + **dos** `CollisionShape2D` y el `Area2D` de la puerta va en el medio.
+- Una puerta por lado como máximo, centrada. El muro se parte en **dos** `ColorRect` +
+  **dos** `CollisionShape2D` y el `Area2D` de la puerta va en el medio.
+- **El hueco del muro mide 240 px, no 120.** Las jambas en embudo de `door.tscn` lo
+  estrechan hasta el paso útil de 120 px. Para un lado N/S el hueco va de `x` 840 a 1080;
+  para E/O, de `y` 420 a 660. Si se deja el hueco en 120 px, las jambas se solapan con el
+  muro y la puerta queda tapiada.
 - Al partir un muro, el `CollisionShape2D` debe quedar centrado en su tramo. Un tramo que
   va de 1020 a 1860 tiene centro en **1440**, no en 1380. Este error ya se cometió y dejó
   huecos invisibles de 60 px.
@@ -75,14 +79,23 @@ inexistente o si la vuelta no es simétrica (`A.doors.E == B` exige `B.doors.O =
 No se toca el árbol de nodos. En la raíz del `.tscn` de la sala:
 
 ```
-lamps = Array[Vector2i]([Vector2i(2, 1)])
-dead_lamps = Array[Vector2i]([Vector2i(9, 1)])
 tanks = Array[Vector2i]([Vector2i(1, 1)])
 debris = Array[Vector2i]([Vector2i(4, 5)])
 puddles = Array[Vector2i]([Vector2i(3, 2)])
 sign_text = "SECTOR C-3"
 sign_cell = Vector2i(3, 0)
 ```
+
+Las lámparas van **empotradas en el muro**, nunca en el suelo: se declaran por lado y por
+índice de celda a lo largo de ese muro (`0..12` en N/S, `0..6` en E/O).
+
+```
+lamps_n = Array[int]([3, 9])
+lamps_o = Array[int]([3])
+dead_lamps_s = Array[int]([6])
+```
+
+Evitar el índice del carril de puerta (`6` en N/S, `3` en E/O) del lado que tenga puerta.
 
 `room.gd` los instancia en `_ready()`. Para un prop nuevo: escena en `world/props/`,
 `preload` y un `@export var ... : Array[Vector2i]` en `world/rooms/room.gd`.

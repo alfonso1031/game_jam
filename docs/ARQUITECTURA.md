@@ -184,8 +184,27 @@ El jugador vive en `main.tscn`, **no** dentro de la sala — sobrevive a los cam
 | Muro | banda de 120 px alrededor |
 | Cámara | fija por sala, centrada, `zoom = 1.0`, sin scroll |
 
-Las puertas van centradas en cada lado (1 celda), con **hueco físico real**: el muro se
-parte en dos `ColorRect` + dos `CollisionShape2D` y el `Area2D` de la puerta ocupa el medio.
+Las puertas van centradas en cada lado, con **hueco físico real**: el muro se parte en dos
+`ColorRect` + dos `CollisionShape2D` y el `Area2D` de la puerta ocupa el medio.
+
+### Puertas en embudo
+
+El hueco del muro mide **240 px** (2 celdas), pero las jambas de la escena de puerta lo
+estrechan en diagonal hasta un paso útil de **120 px**:
+
+```
+ \                 /     ← boca de 240 px, hacia la sala
+  |               |
+  |               |      ← paso de 120 px
+```
+
+Entrar deja de exigir puntería: llegar torcido roza la diagonal y la **deflexión rasante**
+(§7) desvía al slime hacia adentro en vez de frenarlo en seco. Sin esa deflexión el embudo
+no serviría de nada — tocar la diagonal contaría como choque frontal.
+
+Las jambas viven en `door.tscn` / `elevator.tscn`, dibujadas mirando al este, y la escena
+se rota según `direction`. La geometría se escribe **una vez** y vale para las cuatro
+orientaciones.
 
 **Carriles de puerta:** la columna `x = 6` y la fila `y = 3` se dejan libres de props
 sólidos para no bloquear las entradas.
@@ -197,8 +216,6 @@ sólidos para no bloquear las entradas.
 Cada sala declara sus props por **coordenada de celda**, no por píxel:
 
 ```gdscript
-lamps = Array[Vector2i]([Vector2i(2, 1), Vector2i(10, 5)])
-dead_lamps = Array[Vector2i]([Vector2i(9, 1)])
 tanks = Array[Vector2i]([Vector2i(1, 1)])
 debris = Array[Vector2i]([Vector2i(4, 5)])
 puddles = Array[Vector2i]([Vector2i(3, 2)])
@@ -206,12 +223,27 @@ sign_text = "CELDA C-3 · BIOMATERIAL"
 sign_cell = Vector2i(3, 0)
 ```
 
-`room.gd` los instancia en `_ready()` y `cell_center()` traduce celda → píxeles. Añadir
-props a una sala **no requiere tocar el árbol de nodos** ni los `ext_resource` del `.tscn`.
+Las **lámparas son aparte**, porque van empotradas en el muro y no en el suelo. Se declaran
+por lado y por índice de celda a lo largo de ese muro (0..12 en N/S, 0..6 en E/O):
+
+```gdscript
+lamps_n = Array[int]([3, 9])
+lamps_o = Array[int]([3])
+dead_lamps_s = Array[int]([6])
+```
+
+Puestas en el suelo se leían como objetos que se pueden recoger; empotradas en la banda de
+muro se leen como instalación del laboratorio. En los muros laterales el aplique se rota
+90° para quedar vertical. Al no ocupar celdas del suelo, además dejaron de competir con
+tanques y escombros por el espacio.
+
+`room.gd` los instancia en `_ready()`; `cell_center()` traduce celda → píxeles y
+`wall_lamp_position()` hace lo propio con los apliques. Añadir props a una sala **no
+requiere tocar el árbol de nodos** ni los `ext_resource` del `.tscn`.
 
 | Prop | Colisión | Qué es |
 |---|---|---|
-| `lamp` | no | `PointLight2D` cálida con parpadeo irregular por `Timer`; `dead = true` la deja apagada |
+| `lamp` | no | Aplique **empotrado en el muro** con `PointLight2D` cálida y parpadeo irregular por `Timer`; `dead = true` la deja apagada |
 | `tank` | sí | Tanque de contención roto con biomasa derramada |
 | `debris` | sí | Escombro geométrico |
 | `puddle` | no | Mancha de biomasa en el suelo |
@@ -242,7 +274,7 @@ IDLE ──mantener dirección──▶ CHARGING ──soltar──▶ LAUNCHING
 | Constante | Valor | Significado |
 |---|---:|---|
 | `MAX_CHARGE_TIME` | 1.0 s | Carga completa |
-| `MIN_CHARGE_TIME` | 0.18 s | **Mínimo para que haya impulso** |
+| `MIN_CHARGE_TIME` | 0.12 s | **Mínimo para que haya impulso** |
 | `MIN_DISTANCE` | 112 px | Distancia con carga mínima |
 | `MAX_DISTANCE` | 520 px | Distancia con carga completa |
 | `LAUNCH_PEAK_SPEED` | 2100 px/s | Velocidad de crucero |
@@ -287,7 +319,8 @@ se afila al salir y se redondea solo mientras frena. Todo el suavizado visual us
 `1 − exp(−k·delta)`, así que es independiente del framerate.
 
 **Anti-machaque.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
-0.28 s inmóvil. Golpear teclas de dirección repetidamente no produce desplazamiento —
+0.28 s inmóvil. El umbral es corto a propósito — castiga el machaque sin volver torpe un
+toque rápido intencionado. Golpear teclas de dirección repetidamente no produce desplazamiento —
 el movimiento continuo es una **habilidad futura** (piernas), no algo que se pueda
 improvisar con la mecánica base. La barra dibuja una marca en el umbral mínimo y el
 relleno se queda en color de muro hasta superarlo.
@@ -296,8 +329,18 @@ relleno se queda en color de muro hasta superarlo.
 0.45 s de aturdimiento, casi cuatro veces la recuperación normal. Lanzarse a ciegas sale
 caro. Aplica igual al DASH de habilidad.
 
-> El impulso cargado usa `move_and_collide()`, **no** desliza por las paredes y **no**
-> atraviesa huecos ni da invulnerabilidad. Cruzar huecos sigue siendo exclusivo del DASH.
+**Deflexión en impactos rasantes.** No todo choque corta el recorrido. Se compara la
+dirección con la normal de la superficie:
+
+- **Frontal** (`-dir · normal >= GRAZE_DOT`, hoy `0.85`) → se corta y aturde 0.45 s.
+- **Rasante** → el slime se desliza por la superficie y **el recorrido continúa en la
+  dirección desviada**.
+
+Sin esto, rozar cualquier esquina mataba el impulso y las jambas en embudo de las puertas
+no servirían de nada: golpearlas contaría como choque. Aplica igual al DASH.
+
+> El impulso cargado **no** atraviesa huecos ni da invulnerabilidad: cruzar huecos sigue
+> siendo exclusivo del DASH. Un hueco golpeado de frente sigue frenando en seco.
 
 ### DASH de habilidad
 
