@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[node name="Puddle" type="Node2D"]
+
+[node name="Stain" type="Polygon2D" parent="."]
+color = Color(0.290196, 0.658824, 0.505882, 0.3)
+polygon = PackedVector2Array(-56, 6, -38, -30, 6, -42, 48, -22, 58, 12, 30, 42, -20, 44, -50, 30)
+
+[node name="Core" type="Polygon2D" parent="."]
+color = Color(0.290196, 0.658824, 0.505882, 0.45)
+polygon = PackedVector2Array(-26, 4, -14, -16, 14, -20, 30, 2, 16, 22, -12, 24)

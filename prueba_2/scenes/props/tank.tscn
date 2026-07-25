@@ -1,0 +1,25 @@
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="RectangleShape2D" id="1"]
+size = Vector2(104, 104)
+
+[node name="Tank" type="StaticBody2D"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("1")
+
+[node name="Shell" type="Polygon2D" parent="."]
+color = Color(0.039216, 0.466667, 0.478431, 1)
+polygon = PackedVector2Array(-52, -52, 52, -52, 52, 52, -52, 52)
+
+[node name="Glass" type="Polygon2D" parent="."]
+color = Color(0.290196, 0.658824, 0.505882, 0.85)
+polygon = PackedVector2Array(-36, -40, 36, -40, 36, 34, -36, 34)
+
+[node name="Crack" type="Polygon2D" parent="."]
+color = Color(0.192157, 0.211765, 0.219608, 1)
+polygon = PackedVector2Array(-6, -40, 8, -8, -4, 6, 10, 34, 2, 34, -12, 6, -2, -8, -14, -40)
+
+[node name="Spill" type="Polygon2D" parent="."]
+color = Color(0.290196, 0.658824, 0.505882, 0.45)
+polygon = PackedVector2Array(-60, 52, 64, 52, 78, 66, 44, 76, -34, 74, -66, 62)

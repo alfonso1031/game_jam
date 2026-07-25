@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="RectangleShape2D" id="1"]
+size = Vector2(88, 72)
+
+[node name="Debris" type="StaticBody2D"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("1")
+
+[node name="Chunk" type="Polygon2D" parent="."]
+color = Color(0.039216, 0.466667, 0.478431, 1)
+polygon = PackedVector2Array(-44, 6, -28, -36, 14, -34, 44, -6, 40, 30, -18, 36)
+
+[node name="Shade" type="Polygon2D" parent="."]
+color = Color(0.192157, 0.211765, 0.219608, 0.55)
+polygon = PackedVector2Array(-18, 36, 40, 30, 44, -6, 20, 14)
