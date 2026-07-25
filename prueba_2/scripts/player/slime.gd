@@ -52,6 +52,7 @@ enum State {IDLE, CHARGING, LAUNCHING, RECOVERING, DASHING}
 
 @onready var body: Polygon2D = $Body
 @onready var core: Polygon2D = $Body/Core
+@onready var slime_audio: Node = $SlimeAudio
 
 var _state: int = State.IDLE
 var _charge_time := 0.0
@@ -111,6 +112,8 @@ func take_damage(amount: int = 1, from: Vector2 = Vector2.ZERO) -> void:
 func apply_knockback(from: Vector2, force: float) -> void:
 	_knockback = (global_position - from).normalized() * force
 	if _state == State.CHARGING or _state == State.LAUNCHING:
+		if _state == State.CHARGING:
+			slime_audio.stop_charge()
 		_begin_recovery(RECOVERY_TIME)
 
 # --- Impulso cargado ---
@@ -134,9 +137,11 @@ func _begin_charge(direction: Vector2) -> void:
 	_charge_time = 0.0
 	_charge_dir = direction.normalized()
 	_facing = _charge_dir
+	slime_audio.begin_charge()
 
 func _update_charge(delta: float) -> void:
 	_charge_time = min(_charge_time + delta, MAX_CHARGE_TIME)
+	slime_audio.update_charge(_charge_power())
 	# Con dos direcciones opuestas el vector es cero: la carga sigue corriendo
 	# y se conserva la última dirección válida.
 	var input_dir := _input_direction()
@@ -146,11 +151,13 @@ func _update_charge(delta: float) -> void:
 
 func _release_charge() -> void:
 	if _charge_time < MIN_CHARGE_TIME:
+		slime_audio.fizzle()
 		_begin_recovery(FIZZLE_RECOVERY_TIME)
 		return
 	_remaining = lerpf(MIN_DISTANCE, MAX_DISTANCE, _charge_power())
 	_launch_distance = _remaining
 	_state = State.LAUNCHING
+	slime_audio.launch()
 
 func _advance_launch(delta: float) -> void:
 	var ratio: float = clampf(_remaining / _launch_distance, 0.0, 1.0)
@@ -162,8 +169,10 @@ func _advance_launch(delta: float) -> void:
 	var collision := move_and_collide(_charge_dir * step)
 	_remaining -= step
 	if collision != null:
+		slime_audio.impact()
 		_begin_recovery(WALL_RECOVERY_TIME)
 	elif _remaining <= 0.001:
+		slime_audio.recover()
 		_begin_recovery(RECOVERY_TIME)
 
 # Perfil compartido por el impulso y el DASH: arranca acelerando desde una
@@ -207,6 +216,7 @@ func _start_dash() -> void:
 	_invuln = max(_invuln, DASH_TIME)
 	_charge_time = 0.0
 	set_collision_mask_value(GAP_MASK_BIT, false)
+	slime_audio.dash()
 
 func _advance_dash(delta: float) -> void:
 	var ratio: float = clampf(_dash_time / DASH_TIME, 0.0, 1.0)
@@ -217,8 +227,10 @@ func _advance_dash(delta: float) -> void:
 	var collision := move_and_collide(_facing * speed * delta)
 	_dash_time -= delta
 	if collision != null:
+		slime_audio.impact()
 		_end_dash(true)
 	elif _dash_time <= 0.0:
+		slime_audio.recover()
 		_end_dash(false)
 
 func _end_dash(collided: bool) -> void:

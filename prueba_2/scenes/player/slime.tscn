@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/slime.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/player/slime_audio.gd" id="2_audio"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 45.0
@@ -36,3 +37,23 @@ texture = SubResource("3")
 color = Color(0.45098, 0.937255, 0.909804, 1)
 energy = 0.8
 texture_scale = 1.5
+
+[node name="SlimeAudio" type="Node2D" parent="."]
+script = ExtResource("2_audio")
+
+[node name="ChargeLoop" type="AudioStreamPlayer2D" parent="SlimeAudio"]
+max_distance = 1400.0
+attenuation = 1.0
+
+[node name="EffectA" type="AudioStreamPlayer2D" parent="SlimeAudio"]
+max_distance = 1400.0
+attenuation = 1.0
+
+[node name="EffectB" type="AudioStreamPlayer2D" parent="SlimeAudio"]
+max_distance = 1400.0
+attenuation = 1.0
+
+[node name="Idle" type="AudioStreamPlayer2D" parent="SlimeAudio"]
+max_distance = 1400.0
+attenuation = 1.0
+autoplay = false
