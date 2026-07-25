@@ -13,8 +13,24 @@ const INTERIOR_ORIGIN := Vector2(180, 120)
 
 const BOUNDS := Rect2(60, 0, 1800, 1080)
 
-@export var lamps: Array[Vector2i] = []
-@export var dead_lamps: Array[Vector2i] = []
+# Centro de cada banda de muro: las lámparas van empotradas ahí, no sueltas en
+# el suelo — así se leen como parte del laboratorio y no como objetos que
+# se puedan recoger.
+const WALL_N_Y := 60.0
+const WALL_S_Y := 1020.0
+const WALL_O_X := 120.0
+const WALL_E_X := 1800.0
+
+# Índice de celda a lo largo del muro: 0..12 en N/S, 0..6 en E/O.
+@export var lamps_n: Array[int] = []
+@export var lamps_s: Array[int] = []
+@export var lamps_e: Array[int] = []
+@export var lamps_o: Array[int] = []
+@export var dead_lamps_n: Array[int] = []
+@export var dead_lamps_s: Array[int] = []
+@export var dead_lamps_e: Array[int] = []
+@export var dead_lamps_o: Array[int] = []
+
 @export var tanks: Array[Vector2i] = []
 @export var debris: Array[Vector2i] = []
 @export var puddles: Array[Vector2i] = []
@@ -22,17 +38,19 @@ const BOUNDS := Rect2(60, 0, 1800, 1080)
 @export var sign_cell: Vector2i = Vector2i(6, 0)
 
 func _ready() -> void:
-	# Orden de abajo hacia arriba: manchas, escombros, tanques, luces.
+	# Orden de abajo hacia arriba: manchas, escombros, tanques.
 	_spawn_at(PuddleScene, puddles)
 	_spawn_at(DebrisScene, debris)
 	_spawn_at(TankScene, tanks)
-	_spawn_at(LampScene, lamps)
 
-	for cell in dead_lamps:
-		var lamp: Node2D = LampScene.instantiate()
-		lamp.dead = true
-		lamp.position = cell_center(cell)
-		add_child(lamp)
+	_spawn_wall_lamps("N", lamps_n, false)
+	_spawn_wall_lamps("S", lamps_s, false)
+	_spawn_wall_lamps("E", lamps_e, false)
+	_spawn_wall_lamps("O", lamps_o, false)
+	_spawn_wall_lamps("N", dead_lamps_n, true)
+	_spawn_wall_lamps("S", dead_lamps_s, true)
+	_spawn_wall_lamps("E", dead_lamps_e, true)
+	_spawn_wall_lamps("O", dead_lamps_o, true)
 
 	if sign_text != "":
 		_spawn_sign()
@@ -45,6 +63,27 @@ func _spawn_at(scene: PackedScene, cells: Array[Vector2i]) -> void:
 		var node: Node2D = scene.instantiate()
 		node.position = cell_center(cell)
 		add_child(node)
+
+func _spawn_wall_lamps(side: String, indices: Array[int], dead: bool) -> void:
+	for index in indices:
+		var lamp: Node2D = LampScene.instantiate()
+		lamp.dead = dead
+		lamp.position = wall_lamp_position(side, index)
+		# En los muros laterales el aplique va vertical.
+		lamp.rotation = PI / 2.0 if side == "E" or side == "O" else 0.0
+		add_child(lamp)
+
+func wall_lamp_position(side: String, index: int) -> Vector2:
+	var along: float = INTERIOR_ORIGIN.x + index * CELL + CELL * 0.5
+	match side:
+		"N":
+			return Vector2(along, WALL_N_Y)
+		"S":
+			return Vector2(along, WALL_S_Y)
+		"O":
+			return Vector2(WALL_O_X, INTERIOR_ORIGIN.y + index * CELL + CELL * 0.5)
+		_:
+			return Vector2(WALL_E_X, INTERIOR_ORIGIN.y + index * CELL + CELL * 0.5)
 
 func _spawn_sign() -> void:
 	var label := Label.new()

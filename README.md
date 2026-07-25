@@ -5,20 +5,24 @@ escapa de un laboratorio abandonado subiendo de nivel en nivel.
 
 El slime todavía no tiene piernas: no camina, **carga un impulso y se lanza**.
 
+## Requisitos
+
+**Godot 4.7.1**, sin dependencias ni plugins. Se descarga de
+[godotengine.org](https://godotengine.org/download).
+
 ## Cómo jugar
 
-Desde la raíz del repositorio, con Godot 4.7.1:
+**Desde el editor:** abrir Godot, *Importar* en el gestor de proyectos, elegir la carpeta
+`prueba_2/` y darle a *Ejecutar*.
+
+**Desde consola**, en la raíz del repositorio:
 
 ```bash
 godot --path prueba_2
 ```
 
-En Windows, si el binario no está en el `PATH`, se invoca con su ruta y conviene usar la
-variante `_console.exe` para ver la salida:
-
-```bash
-"<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" --path prueba_2
-```
+Si el comando `godot` no está en el `PATH`, se invoca con la ruta al ejecutable. En
+Windows conviene la variante `_console.exe`, que muestra la salida de depuración.
 
 | Acción | Control |
 |---|---|

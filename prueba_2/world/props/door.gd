@@ -2,6 +2,10 @@ extends Area2D
 
 const Palette := preload("res://core/palette.gd")
 
+# Las jambas en embudo están dibujadas mirando al este; la escena se rota para
+# que apunten hacia afuera del lado que corresponda.
+const OUTWARD_ROTATION := {"E": 0.0, "O": PI, "N": -PI / 2.0, "S": PI / 2.0}
+
 @export var direction: String = "E"
 
 # Empieza desarmada: si la sala carga con el jugador encima de la puerta
@@ -12,6 +16,7 @@ var _sealed := false
 @onready var plate: ColorRect = $Plate
 
 func _ready() -> void:
+	rotation = OUTWARD_ROTATION.get(direction, 0.0)
 	body_exited.connect(_on_body_exited)
 	_apply_seal_visual()
 	await get_tree().physics_frame

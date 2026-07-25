@@ -11,15 +11,16 @@ size = Vector2(1800, 120)
 size = Vector2(120, 840)
 
 [sub_resource type="RectangleShape2D" id="3"]
-size = Vector2(840, 120)
+size = Vector2(780, 120)
 
 [sub_resource type="RectangleShape2D" id="4"]
-size = Vector2(120, 360)
+size = Vector2(120, 300)
 
 [node name="L2Ascensor" type="Node2D"]
 script = ExtResource("1")
-lamps = Array[Vector2i]([Vector2i(2, 1), Vector2i(10, 4)])
-dead_lamps = Array[Vector2i]([Vector2i(5, 1)])
+lamps_n = Array[int]([3, 9])
+lamps_o = Array[int]([3])
+dead_lamps_n = Array[int]([6])
 tanks = Array[Vector2i]([Vector2i(1, 4)])
 debris = Array[Vector2i]([Vector2i(3, 5), Vector2i(9, 1)])
 puddles = Array[Vector2i]([Vector2i(4, 4)])
@@ -50,12 +51,12 @@ color = Color(0.039216, 0.466667, 0.478431, 1)
 [node name="WallBottomLeft" type="ColorRect" parent="."]
 offset_left = 60.0
 offset_top = 960.0
-offset_right = 900.0
+offset_right = 840.0
 offset_bottom = 1080.0
 color = Color(0.039216, 0.466667, 0.478431, 1)
 
 [node name="WallBottomRight" type="ColorRect" parent="."]
-offset_left = 1020.0
+offset_left = 1080.0
 offset_top = 960.0
 offset_right = 1860.0
 offset_bottom = 1080.0
@@ -65,12 +66,12 @@ color = Color(0.039216, 0.466667, 0.478431, 1)
 offset_left = 1740.0
 offset_top = 120.0
 offset_right = 1860.0
-offset_bottom = 480.0
+offset_bottom = 420.0
 color = Color(0.039216, 0.466667, 0.478431, 1)
 
 [node name="WallRightLower" type="ColorRect" parent="."]
 offset_left = 1740.0
-offset_top = 600.0
+offset_top = 660.0
 offset_right = 1860.0
 offset_bottom = 960.0
 color = Color(0.039216, 0.466667, 0.478431, 1)
@@ -86,19 +87,19 @@ position = Vector2(120, 540)
 shape = SubResource("2")
 
 [node name="BottomLeft" type="CollisionShape2D" parent="Walls"]
-position = Vector2(480, 1020)
+position = Vector2(450, 1020)
 shape = SubResource("3")
 
 [node name="BottomRight" type="CollisionShape2D" parent="Walls"]
-position = Vector2(1440, 1020)
+position = Vector2(1470, 1020)
 shape = SubResource("3")
 
 [node name="RightUpper" type="CollisionShape2D" parent="Walls"]
-position = Vector2(1800, 300)
+position = Vector2(1800, 270)
 shape = SubResource("4")
 
 [node name="RightLower" type="CollisionShape2D" parent="Walls"]
-position = Vector2(1800, 780)
+position = Vector2(1800, 810)
 shape = SubResource("4")
 
 [node name="ElevatorS" parent="." instance=ExtResource("3")]
