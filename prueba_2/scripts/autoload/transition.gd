@@ -40,6 +40,27 @@ func go_to(target_id: String, from_dir: String) -> void:
 
 	_busy = false
 
+func respawn(room_id: String) -> void:
+	if _busy:
+		return
+	_busy = true
+
+	var fade_out := create_tween()
+	fade_out.tween_property(_fade_rect, "modulate:a", 1.0, FADE_DURATION)
+	await fade_out.finished
+
+	_swap_room(room_id, "")
+
+	GameState.current_room = room_id
+	GameState.visited[room_id] = true
+	GameState.room_changed.emit(room_id)
+
+	var fade_in := create_tween()
+	fade_in.tween_property(_fade_rect, "modulate:a", 0.0, FADE_DURATION)
+	await fade_in.finished
+
+	_busy = false
+
 func _swap_room(room_id: String, spawn_name: String) -> Node:
 	for child in _room_host.get_children():
 		_room_host.remove_child(child)

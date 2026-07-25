@@ -28,7 +28,7 @@ para leer la salida de debug, `stop_project` para cerrarlo.
 | Mover | `WASD` / flechas |
 | Mapa completo | `TAB` |
 | Interactuar | `E` |
-| Dash (pendiente) | `Shift` / `Espacio` |
+| Dash (tras vencer al boss) | `Shift` / `Espacio` |
 | Pausa / cerrar mapa | `Esc` |
 | Ventana / pantalla completa | `F11` |
 
@@ -202,7 +202,63 @@ Todo se dibuja desde `RoomDB` + `GameState.visited` → cero mantenimiento al a�
 
 ---
 
-## 9. Bugs encontrados y resueltos
+## 9. Boss 1, DASH y progresión
+
+### Capas de colisión
+
+| Capa | Valor | Quién |
+|---|---|---|
+| 1 | 1 | Mundo (muros, props sólidos) y jugador |
+| 2 | 2 | Boss — no empuja físicamente al jugador, el contacto lo resuelve su `Area2D` |
+| 3 | 4 | **Huecos** — el jugador solo los atraviesa durante el dash |
+
+El jugador tiene `collision_mask = 5` (mundo + huecos) y está en el grupo `player`.
+Puertas, proyectiles y pickups filtran por ese grupo, **no** por tipo de nodo (el boss
+también es un `CharacterBody2D`).
+
+### Ciclo del boss (`boss_core.gd`)
+
+El slime no tiene ataque, así que el daño se hace por posicionamiento:
+
+```
+PERSIGUE  →  DISPARA (ráfaga radial)  →  VULNERABLE  →  PERSIGUE …
+```
+
+- **PERSIGUE:** avanza lento hacia el jugador, coraza cerrada. Tocarlo **te hace daño**.
+- **DISPARA:** se frena, se pone `#ecf3b0` y lanza una ráfaga radial de proyectiles.
+- **VULNERABLE:** núcleo `#73efe8` abierto y pulsando. Tocarlo **le hace daño** y te empuja.
+
+3 fases según vida (6 golpes): cada fase acelera la persecución, acorta la ventana
+vulnerable y suma proyectiles por ráfaga.
+
+| Fase | Vida | Velocidad | Proyectiles | Ventana vulnerable |
+|---|---|---|---|---|
+| 1 | 6–5 | 55 | 8 | 1.9 s |
+| 2 | 4–3 | 85 | 10 | 1.6 s |
+| 3 | 2–1 | 120 | 12 | 1.3 s |
+
+Al entrar en la sala el boss **sella las salidas** (`set_sealed(true)` en cualquier hijo
+de la sala que tenga ese método → puerta y ascensor). Al morir las abre y suelta el
+pickup de **DASH**. `GameState.bosses_defeated` evita que reaparezca.
+
+### DASH
+
+`Shift` / `Espacio`. Impulso de 1200 px/s durante 0.22 s, cooldown 0.8 s, invulnerable
+mientras dura. Durante el dash el jugador apaga el bit 3 de su máscara → **atraviesa los
+huecos**.
+
+`L2_BIOLAB` tiene un hueco vertical de una celda que parte la sala en dos: sin dash no se
+llega a la esclusa. La habilidad abre progresión real, no es decorado.
+
+### Daño y muerte
+
+`GameState.damage()` emite `health_changed` (el HUD se redibuja) y `died` al llegar a 0.
+`main.gd` escucha `died` → restaura la vida y `Transition.respawn("L3_CELDA")`.
+El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
+
+---
+
+## 10. Bugs encontrados y resueltos
 
 | Bug | Causa | Solución |
 |---|---|---|
@@ -215,7 +271,7 @@ Todo se dibuja desde `RoomDB` + `GameState.visited` → cero mantenimiento al a�
 
 ---
 
-## 10. Estado del plan
+## 11. Estado del plan
 
 | # | Paso | Estado |
 |---|---|---|
@@ -225,12 +281,12 @@ Todo se dibuja desde `RoomDB` + `GameState.visited` → cero mantenimiento al a�
 | 4 | Las 7 salas + ascensor + validador | ✅ |
 | 5 | HUD + overlay de mapa | ✅ |
 | 6 | Ambientación: oscuridad, lámparas, props, carteles | ✅ |
-| 7 | Boss 1 + pickup + DASH | ⬜ pendiente |
+| 7 | Boss 1 + pickup + DASH + hueco | ✅ |
 | 8 | Pulido: pausa, título, "CONTINUARÁ" | ⬜ pendiente |
 
 ---
 
-## 11. Notas de mantenimiento
+## 12. Notas de mantenimiento
 
 - **Añadir una sala:** entrada en `RoomDB.ROOMS` + `.tscn` con muros partidos donde vayan
   las puertas + `Marker2D` `SpawnN/S/E/O`. El HUD y el mapa se actualizan solos.

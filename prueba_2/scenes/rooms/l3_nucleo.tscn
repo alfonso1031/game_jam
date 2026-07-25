@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/rooms/room.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/props/door.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/props/elevator.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/boss/boss_core.tscn" id="4"]
 
 [sub_resource type="RectangleShape2D" id="1"]
 size = Vector2(840, 120)
@@ -107,6 +108,11 @@ direction = "O"
 [node name="ElevatorN" parent="." instance=ExtResource("3")]
 position = Vector2(960, 60)
 direction = "N"
+
+[node name="Boss" parent="." instance=ExtResource("4")]
+position = Vector2(1100, 540)
+room_id = "L3_NUCLEO"
+ability_id = "dash"
 
 [node name="SpawnO" type="Marker2D" parent="."]
 position = Vector2(280, 540)

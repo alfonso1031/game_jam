@@ -20,6 +20,10 @@ const ABILITY_IDS := ["dash"]
 func _ready() -> void:
 	GameState.room_changed.connect(_on_room_changed)
 	GameState.ability_gained.connect(_on_ability_gained)
+	GameState.health_changed.connect(_on_health_changed)
+	queue_redraw()
+
+func _on_health_changed(_health: int) -> void:
 	queue_redraw()
 
 func _on_room_changed(_room_id: String) -> void:
