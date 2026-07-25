@@ -249,6 +249,41 @@ Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 0.28 s con la
 > `DASH_RAMP` o `DASH_TIME` **cambia el alcance** y puede volver el hueco infranqueable,
 > dejando el juego sin final. Recalcular antes de tocarlos.
 
+### Audio del slime
+
+`prueba_2/audio/slime/` contiene los once WAV originales generados por
+`tools/audio/generate_slime_audio.py`; el mismo generador actualiza también la
+copia del prototipo. Todos se sintetizan desde cero, sin samples de terceros.
+`SlimeAudio` (`scripts/player/slime_audio.gd`) reproduce y varía esos recursos,
+pero **no** posee ni cambia el estado de movimiento: `slime.gd` decide los eventos.
+
+| Evento de juego | Evento de `SlimeAudio` | Resultado |
+|---|---|---|
+| Empieza a cargar | `begin_charge()` / `update_charge(power)` | Inicia el loop y adapta tono y volumen a la barra. |
+| Carga completa | `charge_full()` | Confirma el máximo una vez por carga. |
+| Soltar antes del mínimo | `fizzle()` | Detiene el loop y reproduce el fallo. |
+| Lanzamiento del impulso | `launch()` | Detiene el loop y alterna variaciones de lanzamiento. |
+| DASH de habilidad | `dash()` | Detiene el loop y reproduce el DASH. |
+| Impacto contra pared | `impact()` | Alterna variaciones de impacto. |
+| Recuperación limpia | `recover()` | Alterna variaciones de recuperación. |
+
+El loop de carga cambia de tono de `0.85` a `1.18` y de `-20` a `-8 dB` según la
+potencia. Existe un recurso idle, pero permanece apagado por defecto.
+
+### Importación reproducible de Godot
+
+En un checkout nuevo se versionan los sidecars `.import` de los WAV y los `.uid`
+de scripts; `.godot/` se ignora. Tras regenerar audio o antes de cualquier suite
+de scripts, ejecutar primero el editor en modo headless para importar cada
+proyecto, y solo después sus pruebas:
+
+```powershell
+& "C:\Users\jcbla\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless --editor --path prototypes/slime_charge_movement --quit
+& "C:\Users\jcbla\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless --editor --path prueba_2 --quit
+```
+
 ### Presentación
 
 - **Squash & stretch procedural:** se comprime en el eje del lanzamiento mientras carga y
@@ -335,9 +370,9 @@ que reaparezca.
 
 ### DASH
 
-`Shift` / `Espacio`. Impulso de 1200 px/s durante 0.22 s, cooldown 0.8 s, invulnerable
-mientras dura. Durante el dash el jugador apaga el bit 3 de su máscara → **atraviesa los
-huecos**.
+`Shift` / `Espacio`. DASH con curva eased durante `0.28 s`: pico de `2000 px/s`, final
+de `300 px/s` y alcance integrado de `326 px`; cooldown 0.8 s e invulnerable mientras
+dura. Durante el dash el jugador apaga el bit 3 de su máscara → **atraviesa los huecos**.
 
 `L2_BIOLAB` tiene un hueco vertical de una celda que parte la sala en dos: sin dash no se
 llega a la esclusa. La habilidad abre progresión real, no es decorado.

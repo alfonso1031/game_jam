@@ -1,5 +1,10 @@
 # PLAN — MVP "SLIME ESCAPE" (Godot 4.7.1)
 
+> **Documento histórico/superado para la implementación actual.** Las reglas
+> vinculantes están en [AGENTS.md](AGENTS.md) y el estado de la implementación
+> vive en [DOCUMENTACION.md](DOCUMENTACION.md). El proyecto activo es `prueba_2`;
+> este plan se conserva como historial y no debe guiar cambios nuevos.
+
 Juego 2D cenital. Slime recién liberado escapa de un laboratorio abandonado subiendo
 de nivel en nivel. Salas grandes conectadas por puertas, mapa/HUD que indica nivel y
 sala, bosses que otorgan habilidades.

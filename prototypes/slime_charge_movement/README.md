@@ -8,6 +8,23 @@ las escenas, scripts ni la configuración de `prueba_2`.
 
 ![Vista del prototipo con 75 % de carga](artifacts/slime_charge_preview.png)
 
+## Audio original
+
+`audio/slime/` contiene once archivos WAV generados. `scripts/slime_audio.gd`
+posee la reproducción, las dos voces de efectos y la variación alternada de los
+impactos, lanzamientos y recuperaciones; no modifica el estado de movimiento.
+
+Todos los sonidos se sintetizan desde cero, sin muestras de terceros. Para
+regenerar las copias del prototipo y de `prueba_2`, desde la raíz del repositorio:
+
+```powershell
+python tools/audio/generate_slime_audio.py
+```
+
+Durante la carga, el loop cambia de tono (`0.85` a `1.18`) y volumen (`-20` a
+`-8 dB`) con la barra. El audio idle está preparado, pero permanece apagado por
+defecto.
+
 ## Estado actual
 
 - Resolución lógica: **1920 × 1080**.
@@ -137,6 +154,15 @@ No deben mezclarse las reglas de invulnerabilidad, cooldown o máscara de huecos
 del DASH existente con este movimiento base.
 
 ## Pruebas
+
+En un checkout nuevo, versionar los sidecars `.import` de los WAV y los `.uid`
+de scripts, pero ignorar `.godot/`. Antes de ejecutar pruebas de scripts, pedir
+siempre la importación headless del editor para cada proyecto:
+
+```powershell
+& "C:\Users\jcbla\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless --editor --path prototypes/slime_charge_movement --quit
+```
 
 ```powershell
 godot --headless `

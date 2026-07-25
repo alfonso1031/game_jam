@@ -188,8 +188,8 @@ El slime:
 |---|---|---|
 | Activación | Mantener y soltar dirección | `Shift` o `Espacio` |
 | Disponibilidad | Movimiento base | Requiere `GameState.has_ability("dash")` |
-| Velocidad | `1040 px/s` | `1200 px/s` |
-| Duración | Depende de la carga, `~0.108–0.5 s` | Fija, `0.22 s` |
+| Velocidad | `1040 px/s` | Curva eased: pico `2000 px/s`, final `300 px/s` |
+| Duración | Depende de la carga, `~0.108–0.5 s` | Fija, `0.28 s`; alcance integrado `326 px` |
 | Cooldown | No | `0.8 s` más la duración |
 | Dirección | Se elige durante la carga | Última dirección `_facing` |
 | Control durante el recorrido | Ninguno | Ninguno |
