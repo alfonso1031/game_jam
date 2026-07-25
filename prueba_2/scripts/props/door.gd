@@ -13,6 +13,7 @@ var _sealed := false
 
 func _ready() -> void:
 	body_exited.connect(_on_body_exited)
+	_apply_seal_visual()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_inside_tree():
@@ -21,7 +22,13 @@ func _ready() -> void:
 
 func set_sealed(value: bool) -> void:
 	_sealed = value
-	plate.color = Color(Palette.WARM_LIGHT, 0.55) if value else Color(Palette.SLIME_CORE, 0.5)
+	_apply_seal_visual()
+
+func _apply_seal_visual() -> void:
+	# set_sealed() puede llegar desde el boss antes de que corra este _ready.
+	if plate == null:
+		return
+	plate.color = Color(Palette.WARM_LIGHT, 0.55) if _sealed else Color(Palette.SLIME_CORE, 0.5)
 
 func _on_body_exited(_body: Node) -> void:
 	_armed = true

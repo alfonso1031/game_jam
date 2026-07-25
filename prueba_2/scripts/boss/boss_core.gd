@@ -18,6 +18,9 @@ enum State {CHASE, SHOOT, VULNERABLE, DEAD}
 
 @export var room_id: String = "L3_NUCLEO"
 @export var ability_id: String = "dash"
+# Solo se sellan estas salidas. La puerta de vuelta queda abierta para no
+# encerrar al jugador si todavía no entendió la mecánica.
+@export var sealed_directions: Array[String] = ["N"]
 
 var health := MAX_HEALTH
 
@@ -31,6 +34,10 @@ var _player: Node2D
 @onready var core: Polygon2D = $Core
 @onready var light: PointLight2D = $Light
 @onready var hitbox: Area2D = $Hitbox
+@onready var state_label: Label = $StateLabel
+@onready var health_fill: ColorRect = $HealthBar/Fill
+
+const HEALTH_BAR_WIDTH := 200.0
 
 func _ready() -> void:
 	if GameState.bosses_defeated.get(room_id, false):
@@ -38,6 +45,7 @@ func _ready() -> void:
 		return
 	_player = get_tree().get_first_node_in_group("player")
 	_seal_doors(true)
+	_refresh_health_bar()
 	_enter_chase()
 
 func _physics_process(delta: float) -> void:
@@ -88,11 +96,13 @@ func _enter_chase() -> void:
 	core.color = Palette.WALL.lightened(0.1)
 	light.energy = 0.5
 	shell.color = Palette.WALL
+	_set_label("NÚCLEO SELLADO", Palette.WALL.lightened(0.4))
 
 func _enter_shoot() -> void:
 	_state = State.SHOOT
 	_timer = 0.45
 	shell.color = Palette.WARM_LIGHT
+	_set_label("¡CUIDADO!", Palette.WARM_LIGHT)
 	_fire_burst()
 
 func _enter_vulnerable() -> void:
@@ -101,6 +111,14 @@ func _enter_vulnerable() -> void:
 	shell.color = Palette.WALL.darkened(0.3)
 	core.color = Palette.SLIME_CORE
 	light.energy = 1.4
+	_set_label("¡NÚCLEO EXPUESTO — CHOCALO!", Palette.SLIME_CORE)
+
+func _set_label(text: String, color: Color) -> void:
+	state_label.text = text
+	state_label.add_theme_color_override("font_color", color)
+
+func _refresh_health_bar() -> void:
+	health_fill.size.x = HEALTH_BAR_WIDTH * float(health) / float(MAX_HEALTH)
 
 func _fire_burst() -> void:
 	var count: int = BURST_COUNT[_phase() - 1]
@@ -127,6 +145,7 @@ func _resolve_contact() -> void:
 func _take_damage(player_node: Node2D) -> void:
 	health -= 1
 	_hit_cd = HIT_COOLDOWN
+	_refresh_health_bar()
 	player_node.velocity = (player_node.global_position - global_position).normalized() * 700.0
 	if health <= 0:
 		_die()
@@ -147,5 +166,5 @@ func _die() -> void:
 
 func _seal_doors(value: bool) -> void:
 	for node in get_parent().get_children():
-		if node.has_method("set_sealed"):
+		if node.has_method("set_sealed") and node.get("direction") in sealed_directions:
 			node.set_sealed(value)

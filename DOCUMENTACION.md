@@ -4,6 +4,9 @@ Juego 2D cenital hecho en **Godot 4.7.1**. Un slime recién liberado escapa de u
 laboratorio abandonado subiendo de nivel en nivel. Implementación del plan descrito en
 [PLAN.md](PLAN.md).
 
+> Si sos un agente de IA trabajando en este repo, leé primero [AGENTS.md](AGENTS.md):
+> tiene las reglas duras, los comandos de verificación y los errores ya cometidos.
+
 - **Proyecto activo:** `prueba_2/`
 - **Escena principal:** `res://scenes/main.tscn`
 - **Renderer:** `gl_compatibility` · **Resolución:** 1920 × 1080, pantalla completa
@@ -237,9 +240,14 @@ vulnerable y suma proyectiles por ráfaga.
 | 2 | 4–3 | 85 | 10 | 1.6 s |
 | 3 | 2–1 | 120 | 12 | 1.3 s |
 
-Al entrar en la sala el boss **sella las salidas** (`set_sealed(true)` en cualquier hijo
-de la sala que tenga ese método → puerta y ascensor). Al morir las abre y suelta el
-pickup de **DASH**. `GameState.bosses_defeated` evita que reaparezca.
+El estado se telegrafía en pantalla: barra de vida sobre el boss y cartel de estado
+(`NÚCLEO SELLADO` / `¡CUIDADO!` / `¡NÚCLEO EXPUESTO — CHOCALO!`), más un cartel en la sala.
+
+Al entrar, el boss **sella solo las salidas listadas en `sealed_directions`** (por defecto
+`["N"]`, el ascensor de progresión). **La puerta de vuelta queda abierta a propósito**: si
+se sellan todas y el jugador todavía no entendió la mecánica, queda encerrado sin salida.
+Al morir, abre lo sellado y suelta el pickup de **DASH**. `GameState.bosses_defeated` evita
+que reaparezca.
 
 ### DASH
 
