@@ -36,14 +36,18 @@ class SlimeAudioGenerationTests(unittest.TestCase):
                 self.assertLessEqual(peak, generator.MAX_PCM_PEAK, name)
                 self.assertGreater(peak, 2048, name)
 
-    def test_charge_loop_has_matching_boundaries(self) -> None:
+    def test_looped_assets_have_continuous_seams(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)
             generator.generate_assets([output])
-            with wave.open(str(output / "slime_charge_loop.wav"), "rb") as source:
-                frames = source.readframes(source.getnframes())
-            samples = struct.unpack(f"<{len(frames) // 2}h", frames)
-            self.assertLessEqual(abs(samples[0] - samples[-1]), 256)
+            for name in ("slime_charge_loop.wav", "slime_idle.wav"):
+                with self.subTest(name=name):
+                    with wave.open(str(output / name), "rb") as source:
+                        frames = source.readframes(source.getnframes())
+                    samples = struct.unpack(f"<{len(frames) // 2}h", frames)
+                    self.assertLessEqual(abs(samples[-1] - samples[0]), 256, name)
+                    self.assertLessEqual(abs(samples[-2] - samples[-1]), 1_024, name)
+                    self.assertLessEqual(abs(samples[0] - samples[1]), 1_024, name)
 
 
 if __name__ == "__main__":

@@ -81,11 +81,16 @@ def make_loopable(samples: list[float], crossfade_seconds: float = 0.04) -> list
     tail = samples[-crossfade:]
     for index in range(crossfade):
         progress = index / (crossfade - 1)
-        from_tail = math.cos(progress * math.pi / 2.0)
-        from_head = math.sin(progress * math.pi / 2.0)
-        result[index] = head[index] * from_head + tail[index] * from_tail
-        result[-crossfade + index] = tail[index] * from_tail + head[index] * from_head
-    result[-1] = result[0]
+        tail_angle = progress * math.pi / 4.0
+        head_angle = math.pi / 4.0 + tail_angle
+        result[-crossfade + index] = (
+            tail[index] * math.cos(tail_angle)
+            + head[crossfade - 1 - index] * math.sin(tail_angle)
+        )
+        result[index] = (
+            tail[crossfade - 1 - index] * math.cos(head_angle)
+            + head[index] * math.sin(head_angle)
+        )
     return result
 
 
