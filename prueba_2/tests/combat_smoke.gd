@@ -33,6 +33,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	await _test_health_halves()
+	await _test_checkpoints()
 	await _test_inventory_rules()
 	await _test_every_part()
 	await _test_every_enemy()
@@ -60,6 +61,45 @@ func _test_health_halves() -> void:
 	GameState.damage(99)
 	_check(GameState.health_halves == 0, "el daño no baja de cero")
 	await get_tree().process_frame
+
+func _test_checkpoints() -> void:
+	GameState.reset_run()
+	var reached_events: Array = []
+	var on_reached := func(room_id: String, healed_halves: int) -> void:
+		reached_events.append([room_id, healed_halves])
+	GameState.checkpoint_reached.connect(on_reached)
+
+	GameState.set_initial_checkpoint("L3_CELDA", -3, "")
+	_check(GameState.checkpoint_room == "L3_CELDA", "la celda inicia el checkpoint de la partida")
+	_check(GameState.health_halves == GameState.max_health_halves, "el checkpoint inicial no cura")
+	_check(reached_events.is_empty(), "el checkpoint inicial no muestra recompensa")
+
+	GameState.damage(2)
+	var advanced: bool = GameState.try_reach_checkpoint("L2_ASCENSOR", -2, "SpawnS")
+	_check(advanced, "subir al piso -2 avanza el checkpoint")
+	_check(GameState.checkpoint_room == "L2_ASCENSOR", "se guarda la sala del piso alcanzado")
+	_check(GameState.checkpoint_spawn == "SpawnS", "se guarda la entrada segura del checkpoint")
+	_check(GameState.health_halves == 8, "un checkpoint nuevo cura un corazón")
+	_check(reached_events.size() == 1 and reached_events[0] == ["L2_ASCENSOR", 2], "el checkpoint informa la cura aplicada")
+
+	GameState.damage_halves(1)
+	_check(not GameState.try_reach_checkpoint("L2_ASCENSOR", -2, "SpawnS"), "reentrar al mismo piso no reactiva el checkpoint")
+	_check(GameState.health_halves == 7, "reentrar al mismo piso no vuelve a curar")
+	_check(not GameState.try_reach_checkpoint("L3_CELDA", -3, ""), "volver a un piso inferior no mueve el checkpoint")
+	_check(GameState.checkpoint_room == "L2_ASCENSOR", "el checkpoint nunca retrocede")
+
+	GameState.health_halves = GameState.max_health_halves - 1
+	_check(GameState.try_reach_checkpoint("L1_ASCENSOR", -1, "SpawnS"), "subir al piso -1 avanza el checkpoint")
+	_check(GameState.health_halves == GameState.max_health_halves, "la cura del checkpoint respeta la vida máxima")
+	_check(reached_events[-1] == ["L1_ASCENSOR", 1], "el aviso informa medio corazón si solo faltaba medio")
+
+	for room_id in ["L3_CELDA", "L2_ASCENSOR", "L1_ASCENSOR", "L0_VESTIBULO"]:
+		_check(RoomDB.ROOMS[room_id].get("is_checkpoint", false), "%s está marcado como checkpoint" % room_id)
+
+	GameState.reset_run()
+	_check(GameState.checkpoint_room == "", "reiniciar la partida borra el checkpoint")
+	_check(GameState.checkpoint_spawn == "", "reiniciar la partida borra la entrada del checkpoint")
+	GameState.checkpoint_reached.disconnect(on_reached)
 
 func _test_inventory_rules() -> void:
 	Inventory.reset_run()

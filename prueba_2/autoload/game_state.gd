@@ -7,11 +7,14 @@ signal ability_gained(id: String)
 signal health_changed(halves: int)
 signal died
 signal death_saved
+signal checkpoint_reached(room_id: String, healed_halves: int)
 
 # La vida se contabiliza en MEDIOS corazones, porque consumir una parte cura
 # exactamente medio. `max_health` / `health` siguen expuestos en corazones para
 # no romper a quien solo quiera leer el número redondo.
 const HALVES_PER_HEART := 2
+const CHECKPOINT_HEAL_HALVES := HALVES_PER_HEART
+const NO_CHECKPOINT_LEVEL := -999
 
 # Cada parte de jefe distinta consumida da +0,5% de daño base, hasta 6 partes.
 const BOSS_PART_DAMAGE_BONUS := 0.005
@@ -25,6 +28,9 @@ var bosses_defeated: Dictionary = {}
 var rooms_cleared: Dictionary = {}
 # Partes de jefe distintas ya consumidas: la bonificación es permanente y única.
 var boss_parts_consumed: Dictionary = {}
+var checkpoint_room: String = ""
+var checkpoint_level: int = NO_CHECKPOINT_LEVEL
+var checkpoint_spawn: String = ""
 
 var max_health_halves: int = 5 * HALVES_PER_HEART
 var health_halves: int = 5 * HALVES_PER_HEART
@@ -65,6 +71,9 @@ func reset_run() -> void:
 	bosses_defeated.clear()
 	rooms_cleared.clear()
 	boss_parts_consumed.clear()
+	checkpoint_room = ""
+	checkpoint_level = NO_CHECKPOINT_LEVEL
+	checkpoint_spawn = ""
 	_max_health_mod = 0
 	max_health_halves = _base_max_halves
 	health_halves = max_health_halves
@@ -108,6 +117,25 @@ func heal_half_heart() -> void:
 func reset_health() -> void:
 	health_halves = max_health_halves
 	health_changed.emit(health_halves)
+
+# El checkpoint pertenece solo a la partida actual. La celda inicial se registra
+# sin cura ni aviso para que la primera recompensa ocurra al alcanzar otro piso.
+func set_initial_checkpoint(room_id: String, level: int, spawn_name: String = "") -> void:
+	checkpoint_room = room_id
+	checkpoint_level = level
+	checkpoint_spawn = spawn_name
+
+func try_reach_checkpoint(room_id: String, level: int, spawn_name: String = "") -> bool:
+	if level <= checkpoint_level:
+		return false
+	checkpoint_room = room_id
+	checkpoint_level = level
+	checkpoint_spawn = spawn_name
+	var healed_halves: int = min(CHECKPOINT_HEAL_HALVES, max_health_halves - health_halves)
+	if healed_halves > 0:
+		heal_halves(healed_halves)
+	checkpoint_reached.emit(room_id, healed_halves)
+	return true
 
 func is_low_health() -> bool:
 	return health_halves <= HALVES_PER_HEART
