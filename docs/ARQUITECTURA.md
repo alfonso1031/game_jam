@@ -8,7 +8,7 @@ laboratorio abandonado subiendo de nivel en nivel. Implementación del plan desc
 > tiene las reglas duras, los comandos de verificación y los errores ya cometidos.
 
 - **Proyecto activo:** `prueba_2/`
-- **Escena de arranque:** `res://scenes/ui/title.tscn` (la partida vive en `main.tscn`)
+- **Escena de arranque:** `res://ui/title.tscn` (la partida vive en `res://game/main.tscn`)
 - **Prototipo aparte:** `prototypes/slime_charge_movement/` — banco de pruebas del impulso
   cargado, con sus propios tests. Ya está portado a `prueba_2` (§7), pero sigue siendo el
   lugar para iterar la sensación de movimiento sin tocar el juego.
@@ -20,8 +20,17 @@ laboratorio abandonado subiendo de nivel en nivel. Implementación del plan desc
 
 Desde consola:
 
+Desde la raíz del repositorio:
+
 ```bash
-"C:/Godot/Godot_v4.7.1-stable_win64_console.exe" --path "C:/ALFONSO/projects/Game Jam/prueba_2"
+godot --path prueba_2
+```
+
+En Windows, con el binario fuera del `PATH`, usar la variante `_console.exe` para ver la
+salida y **entrecomillar la ruta** (puede contener espacios):
+
+```bash
+"<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" --path prueba_2
 ```
 
 O por el MCP de Godot (`@coding-solo/godot-mcp`): `run_project` + `get_debug_output`
@@ -40,36 +49,75 @@ para leer la salida de debug, `stop_project` para cerrarlo.
 
 ---
 
-## 2. Estructura de archivos
+## 2. Arquitectura y estructura de archivos
+
+### Qué arquitectura usa Godot
+
+Godot **no** es ECS ni MVC: es un motor de **composición de nodos**. Un nodo es a la vez
+dato y comportamiento, y una escena es un árbol de nodos reutilizable como si fuera un
+prefab. La "arquitectura" de un proyecto Godot son cuatro decisiones:
+
+| Decisión | Cómo se aplica acá |
+|---|---|
+| **Organizar por feature, no por tipo** | Cada escena vive junto a su script (`door.tscn` + `door.gd` en la misma carpeta), en vez de árboles paralelos `scenes/` y `scripts/` |
+| **Composición sobre herencia** | Un actor se arma con nodos hijos (`Area2D` de contacto, `PointLight2D`, `CollisionShape2D`) en lugar de cadenas de clases |
+| **Señales hacia arriba, llamadas hacia abajo** | Un padre llama métodos de sus hijos; un hijo avisa con `signal`. El HUD nunca consulta la sala: escucha `room_changed` |
+| **Estado global en autoloads, datos en constantes/recursos** | `GameState`, `RoomDB` y `Transition` son los únicos singletons; el grafo de salas es un diccionario, no código |
+
+La convención de carpetas es la que recomienda la propia documentación de Godot:
+**agrupar por contexto del juego** (actores, mundo, ui) y no por extensión de archivo.
+
+### Estructura
 
 ```
 prueba_2/
-├── project.godot                 # 2D, gl_compatibility, autoloads, inputs
-├── scenes/
-│   ├── main.tscn                 # raíz: Darkness + RoomHost + Player + HUD + Map + Fade
-│   ├── player/slime.tscn
-│   ├── rooms/                    # 7 salas + test_room
-│   ├── props/                    # door, elevator, lamp, tank, debris, puddle
-│   └── ui/                       # hud, map_overlay
-└── scripts/
-    ├── core/palette.gd           # colores IcyWitch (clase estática, NO autoload)
-    ├── autoload/
-    │   ├── game_state.gd         # sala actual, visitadas, habilidades, vida
-    │   ├── room_db.gd            # grafo de salas + validador
-    │   └── transition.gd         # fade, swap de sala, reposicionado
-    ├── main.gd                   # arranca en L3_CELDA
-    ├── player/slime.gd
-    ├── rooms/room.gd             # bounds + decoración data-driven
-    ├── props/                    # door.gd, elevator.gd, lamp.gd
-    └── ui/                       # hud.gd, map_overlay.gd
+├── project.godot            # 2D, gl_compatibility, autoloads, inputs, nombres de capas
+├── assets/                  # icon.svg — acá van arte y audio cuando existan
+├── autoload/                # singletons registrados en project.godot
+│   ├── game_state.gd        #   sala actual, visitadas, habilidades, vida, F11
+│   ├── room_db.gd           #   grafo de salas + validador
+│   └── transition.gd        #   fade, swap de sala, reposicionado
+├── core/                    # sin dependencias del juego, lo importa todo el mundo
+│   ├── palette.gd           #   colores IcyWitch (clase estática, NO autoload)
+│   └── layers.gd            #   capas de física por nombre en vez de números sueltos
+├── game/                    # el ensamblaje de la partida
+│   ├── main.tscn            #   Darkness + RoomHost + Player + HUD + Map + Pausa + Fade
+│   └── main.gd              #   arranca en L3_CELDA, gestiona la muerte
+├── actors/                  # cualquier cosa que se mueve y decide
+│   ├── player/              #   slime.tscn + slime.gd
+│   └── boss/                #   boss_core.tscn/gd + projectile.tscn/gd
+├── world/                   # el escenario
+│   ├── rooms/               #   room.gd + las 7 salas
+│   └── props/               #   door, elevator, lamp, tank, debris, puddle, gap, pickup
+└── ui/                      # hud, map_overlay, title, pause_menu, ending
 ```
+
+Dónde va cada cosa nueva:
+
+- ¿Se mueve y toma decisiones? → `actors/`
+- ¿Es parte del escenario, con o sin colisión? → `world/props/`
+- ¿Es una pantalla o un overlay? → `ui/`
+- ¿Lo necesitan varios sistemas y no depende de ninguno? → `core/`
+- ¿Tiene que sobrevivir al cambio de escena? → `autoload/` (y pensarlo dos veces)
+
+### Física
+
+Godot no tiene una capa de física que uno escriba: se configura declarando **capas** y
+**máscaras**. Los nombres viven en `project.godot` (`[layer_names]`), así que se leen en el
+inspector, y los números en `core/layers.gd` para no dejar constantes mágicas sueltas.
+
+| Capa | Nombre | Quién |
+|---|---|---|
+| 1 | `world` | Muros, props sólidos y el jugador |
+| 2 | `boss` | El boss — no empuja físicamente al jugador; su contacto lo resuelve un `Area2D` |
+| 3 | `gap` | Huecos del suelo; solo se atraviesan durante el DASH |
 
 ---
 
 ## 3. Paleta IcyWitch
 
-Centralizada en `scripts/core/palette.gd`. **No es autoload** — es una clase con
-constantes; se usa con `const Palette := preload("res://scripts/core/palette.gd")`.
+Centralizada en `core/palette.gd`. **No es autoload** — es una clase con
+constantes; se usa con `const Palette := preload("res://core/palette.gd")`.
 
 | Constante | Hex | Uso |
 |---|---|---|
@@ -92,7 +140,7 @@ Todo el grafo vive en `RoomDB.ROOMS`. Añadir una sala = una entrada + un `.tscn
     "level_name": "CONTENCIÓN",
     "room_name": "Pasillo de Servicio",
     "grid": Vector2i(1, 0),          # posición en el minimapa del nivel
-    "scene": "res://scenes/rooms/l3_pasillo.tscn",
+    "scene": "res://world/rooms/l3_pasillo.tscn",
     "doors": {"O": "L3_CELDA", "N": "L3_ALMACEN", "E": "L3_NUCLEO"},
 },
 ```
@@ -427,8 +475,8 @@ boss → DASH → hueco de Biolab → esclusa → "CONTINUARÁ…".
 
 - **Añadir una sala:** entrada en `RoomDB.ROOMS` + `.tscn` con muros partidos donde vayan
   las puertas + `Marker2D` `SpawnN/S/E/O`. El HUD y el mapa se actualizan solos.
-- **Añadir un prop:** escena en `scenes/props/` + `preload` y un array `@export` en
-  `room.gd`.
+- **Añadir un prop:** escena en `world/props/` + `preload` y un array `@export` en
+  `world/rooms/room.gd`.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
 - Los dos `WARNING` de señales declaradas y no usadas en `game_state.gd` son esperados

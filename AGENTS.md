@@ -19,8 +19,14 @@ operativa mínima: dónde trabajar, cómo verificar y qué no romper. Se lee **p
 | `prototypes/slime_charge_movement/` | Banco de pruebas del impulso cargado, proyecto Godot aparte con tests propios. Se itera acá antes de tocar `prueba_2`. |
 | `prueba/` | Legacy abandonado. **No modificar.** Se conserva solo por historial. |
 
-Escena de arranque: `prueba_2/scenes/ui/title.tscn`. La partida vive en
-`prueba_2/scenes/main.tscn`. Godot: `C:\Godot\Godot_v4.7.1-stable_win64.exe`.
+Escena de arranque: `prueba_2/ui/title.tscn`. La partida vive en
+`prueba_2/game/main.tscn`. Requiere **Godot 4.7.1**; si el binario no está en el `PATH`,
+su ubicación es específica de cada máquina.
+
+`prueba_2/` se organiza **por feature**, no por tipo de archivo: `assets/`, `autoload/`,
+`core/`, `game/`, `actors/`, `world/`, `ui/`. Cada `.tscn` va junto a su `.gd`. La tabla
+completa de dónde va cada cosa está en
+[`docs/agents/REFERENCIA.md`](docs/agents/REFERENCIA.md) §1.
 
 Para probar la partida directo sin pasar por el título, correr con la escena como
 argumento en vez de cambiar `run/main_scene`.
@@ -31,8 +37,17 @@ argumento en vez de cambiar `run/main_scene`.
 
 **Ningún cambio se da por bueno sin un arranque limpio.** Correr y leer la salida de debug:
 
+Desde la raíz del repositorio:
+
 ```bash
-"C:/Godot/Godot_v4.7.1-stable_win64_console.exe" --path "C:/ALFONSO/projects/Game Jam/prueba_2"
+godot --path prueba_2
+```
+
+En Windows, con el binario fuera del `PATH`, usar la variante `_console.exe` para ver la
+salida:
+
+```bash
+"<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" --path prueba_2
 ```
 
 Si hay MCP de Godot disponible (`@coding-solo/godot-mcp`): `run_project` →
@@ -75,18 +90,22 @@ los `.tscn` y `.gd` se escriben a disco como texto y el MCP solo ejecuta y verif
 5. **Filtrar por el grupo `player`, nunca por tipo de nodo.** El boss también es un
    `CharacterBody2D`. Puertas, proyectiles y pickups usan `body.is_in_group("player")`.
 
-6. **Capas de colisión** — respetarlas al añadir cualquier cosa:
+6. **Capas de colisión** — respetarlas al añadir cualquier cosa. Los nombres están en
+   `project.godot` (`[layer_names]`) y los números en `core/layers.gd`; desde código usar
+   `Layers.*`, nunca el número suelto.
 
-   | Capa | Valor | Quién |
-   |---|---|---|
-   | 1 | 1 | Mundo (muros, props sólidos) y jugador |
-   | 2 | 2 | Boss |
-   | 3 | 4 | Huecos: solo se atraviesan durante el dash |
+   | Capa | Nombre | Valor | Quién |
+   |---|---|---|---|
+   | 1 | `world` | 1 | Mundo (muros, props sólidos) y jugador |
+   | 2 | `boss` | 2 | Boss |
+   | 3 | `gap` | 4 | Huecos: solo se atraviesan durante el dash |
 
    Jugador: `collision_layer = 1`, `collision_mask = 5`, grupo `player`.
 
-7. **Rutas con espacio.** El proyecto vive en `C:\ALFONSO\projects\Game Jam\` — siempre
-   entre comillas en cualquier comando.
+7. **Rutas con espacio.** La ruta del repositorio puede contener espacios, así que
+   cualquier ruta absoluta va **entre comillas** en los comandos. Dentro de la
+   documentación usar siempre rutas relativas a la raíz del repositorio (`prueba_2/…`) o
+   rutas de recurso (`res://…`), nunca rutas absolutas de una máquina concreta.
 
 8. **Los overlays comparten `get_tree().paused`** (mapa, pausa, final). Cualquier overlay
    nuevo debe comprobar el estado antes de abrirse y usar `PROCESS_MODE_ALWAYS`, o queda

@@ -7,8 +7,17 @@ El slime todavía no tiene piernas: no camina, **carga un impulso y se lanza**.
 
 ## Cómo jugar
 
+Desde la raíz del repositorio, con Godot 4.7.1:
+
 ```bash
-"C:/Godot/Godot_v4.7.1-stable_win64_console.exe" --path "C:/ALFONSO/projects/Game Jam/prueba_2"
+godot --path prueba_2
+```
+
+En Windows, si el binario no está en el `PATH`, se invoca con su ruta y conviene usar la
+variante `_console.exe` para ver la salida:
+
+```bash
+"<ruta-a-godot>/Godot_v4.7.1-stable_win64_console.exe" --path prueba_2
 ```
 
 | Acción | Control |

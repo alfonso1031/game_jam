@@ -11,15 +11,15 @@ config_version=5
 [application]
 
 config/name="Slime Escape"
-run/main_scene="res://scenes/ui/title.tscn"
+run/main_scene="res://ui/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.svg"
+config/icon="res://assets/icon.svg"
 
 [autoload]
 
-GameState="*res://scripts/autoload/game_state.gd"
-RoomDB="*res://scripts/autoload/room_db.gd"
-Transition="*res://scripts/autoload/transition.gd"
+GameState="*res://autoload/game_state.gd"
+RoomDB="*res://autoload/room_db.gd"
+Transition="*res://autoload/transition.gd"
 
 [display]
 
@@ -81,6 +81,12 @@ fullscreen={
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194332,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 ]
 }
+
+[layer_names]
+
+2d_physics/layer_1="world"
+2d_physics/layer_2="boss"
+2d_physics/layer_3="gap"
 
 [rendering]
 

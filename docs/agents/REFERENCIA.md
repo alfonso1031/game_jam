@@ -6,7 +6,34 @@ archivo se lee primero.
 
 ---
 
-## 1. Layout de sala (no improvisar medidas)
+## 1. Dónde va cada archivo
+
+Godot es composición de nodos, no ECS ni MVC. La organización es **por feature**: la
+escena vive junto a su script, nunca en árboles paralelos `scenes/` y `scripts/`.
+
+| Carpeta | Qué va |
+|---|---|
+| `assets/` | Arte, audio, fuentes. Hoy solo `icon.svg` |
+| `autoload/` | Los tres singletons: `game_state`, `room_db`, `transition` |
+| `core/` | Sin dependencias del juego: `palette.gd`, `layers.gd` |
+| `game/` | El ensamblaje de la partida: `main.tscn` + `main.gd` |
+| `actors/` | Lo que se mueve y decide: `player/`, `boss/` |
+| `world/` | El escenario: `rooms/`, `props/` |
+| `ui/` | Pantallas y overlays |
+
+Preguntas para ubicar algo nuevo:
+
+- ¿Se mueve y toma decisiones? → `actors/`
+- ¿Es escenario, con o sin colisión? → `world/props/`
+- ¿Es una pantalla o un overlay? → `ui/`
+- ¿Lo usan varios sistemas y no depende de ninguno? → `core/`
+- ¿Tiene que sobrevivir al cambio de escena? → `autoload/`, y pensarlo dos veces
+
+**Un `.tscn` y su `.gd` van siempre en la misma carpeta y con el mismo nombre.**
+
+---
+
+## 2. Layout de sala (no improvisar medidas)
 
 | Elemento | Valor |
 |---|---|
@@ -26,13 +53,13 @@ archivo se lee primero.
 
 ---
 
-## 2. Cómo hacer cambios típicos
+## 3. Cómo hacer cambios típicos
 
 ### Añadir una sala
 
-1. Entrada en `RoomDB.ROOMS` (`scripts/autoload/room_db.gd`): `level`, `level_name`,
+1. Entrada en `RoomDB.ROOMS` (`autoload/room_db.gd`): `level`, `level_name`,
    `room_name`, `grid`, `scene`, `doors`. Opcional `is_boss`.
-2. `.tscn` en `scenes/rooms/` con `scripts/rooms/room.gd` en la raíz, muros partidos donde
+2. `.tscn` en `world/rooms/` con `world/rooms/room.gd` en la raíz, muros partidos donde
    vayan las puertas y un `Marker2D` `SpawnN` / `SpawnS` / `SpawnE` / `SpawnO` por lado.
 3. Nada más. HUD y mapa se dibujan solos desde `RoomDB` + `GameState.visited`.
 
@@ -57,18 +84,18 @@ sign_text = "SECTOR C-3"
 sign_cell = Vector2i(3, 0)
 ```
 
-`room.gd` los instancia en `_ready()`. Para un prop nuevo: escena en `scenes/props/`,
-`preload` y un `@export var ... : Array[Vector2i]` en `room.gd`.
+`room.gd` los instancia en `_ready()`. Para un prop nuevo: escena en `world/props/`,
+`preload` y un `@export var ... : Array[Vector2i]` en `world/rooms/room.gd`.
 
 ### Añadir una habilidad
 
 `GameState.gain_ability(id)` / `GameState.has_ability(id)`. Sumar el id a `ABILITY_IDS`
-en `scripts/ui/hud.gd` para que aparezca el slot. El estado vive **solo** en `GameState`,
+en `ui/hud.gd` para que aparezca el slot. El estado vive **solo** en `GameState`,
 nunca en el script del jugador — así sobrevive a los cambios de sala.
 
 ---
 
-## 3. Estilo de código
+## 4. Estilo de código
 
 - Tabs para indentar (estándar de Godot).
 - Tipado estático siempre: `func f(x: float) -> void:`, `var v: Vector2 = ...`.
@@ -86,7 +113,7 @@ nunca en el script del jugador — así sobrevive a los cambios de sala.
 
 ---
 
-## 4. Formato de los `.tscn`
+## 5. Formato de los `.tscn`
 
 Se escriben a mano como texto. Al añadir un `[ext_resource]` hay que **subir `load_steps`**
 en la cabecera: vale el número total de recursos (`ext_resource` + `sub_resource`) más 1.

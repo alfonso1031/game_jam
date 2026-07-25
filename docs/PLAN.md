@@ -1,5 +1,11 @@
 # PLAN — MVP "SLIME ESCAPE" (Godot 4.7.1)
 
+> **Documento histórico.** Es el plan original con el que se arrancó y se conserva tal
+> cual para poder contrastar lo planeado con lo construido. Varias cosas cambiaron por el
+> camino — sobre todo la estructura de carpetas (§2) y el movimiento del slime (§5), que
+> pasó a ser un impulso cargado. Para el estado real ver
+> [ARQUITECTURA.md](ARQUITECTURA.md).
+
 Juego 2D cenital. Slime recién liberado escapa de un laboratorio abandonado subiendo
 de nivel en nivel. Salas grandes conectadas por puertas, mapa/HUD que indica nivel y
 sala, bosses que otorgan habilidades.
@@ -14,20 +20,20 @@ sala, bosses que otorgan habilidades.
 | `run/main_scene` | Apunta a `res://scenes/world.tscn` — **el archivo no existe** (roto). |
 | `prueba/scenes/`, `prueba/scripts/` | Vacías. |
 | Inputs | Solo `move_left/right/up/down` (WASD + flechas). |
-| Godot binario | `C:\Godot\Godot_v4.7.1-stable_win64.exe` ✓ |
-| MCP godot | Configurado, pero con scope en `C:/ALFONSO/projects/Game Jam/prueba` |
+| Godot binario | 4.7.1 instalado ✓ |
+| MCP godot | Configurado, pero con scope solo en `prueba/` |
 
 **Decisión:** reutilizar la carpeta `prueba/` (ahí vive el scope del MCP y el proyecto ya
 está inicializado). Se reescribe `project.godot` para 2D. Nada que perder: está vacío.
 
 ### MCP de Godot — RESUELTO
 
-El servidor `godot` (`@coding-solo/godot-mcp`, `GODOT_PATH` → `C:\Godot\Godot_v4.7.1-stable_win64.exe`)
+El servidor `godot` (`@coding-solo/godot-mcp`, con `GODOT_PATH` apuntando al binario 4.7.1)
 queda registrado en **tres** scopes:
 
-- `C:/ALFONSO/projects/Game Jam` (padre)
-- `C:/ALFONSO/projects/Game Jam/prueba`
-- `C:/ALFONSO/projects/Game Jam/prueba_2`
+- la raíz del repositorio
+- `prueba/`
+- `prueba_2/`
 
 Los scopes son por directorio exacto, no heredan. Con los tres puestos, la sesión carga el
 MCP se abra donde se abra. **Las herramientas solo aparecen en sesiones nuevas** — la sesión
@@ -36,7 +42,7 @@ donde se registró el servidor no lo ve.
 **Plan B sin MCP** — el proyecto se puede correr y validar igual por consola:
 
 ```bash
-"C:/Godot/Godot_v4.7.1-stable_win64_console.exe" --path "C:/ALFONSO/projects/Game Jam/prueba"
+godot --path prueba
 ```
 
 ### Qué hace y qué NO hace el MCP de Godot
