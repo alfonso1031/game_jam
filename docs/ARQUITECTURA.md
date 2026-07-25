@@ -186,6 +186,18 @@ NIVEL -2 · BIO-LABORATORIOS
 
 El jugador vive en `main.tscn`, **no** dentro de la sala — sobrevive a los cambios.
 
+### Checkpoints por piso
+
+`RoomDB` marca `L3_CELDA`, `L2_ASCENSOR`, `L1_ASCENSOR` y `L0_VESTIBULO` con
+`is_checkpoint`. La celda registra el inicio sin premio; al alcanzar por primera vez un
+piso superior, `Transition` guarda en `GameState` la sala, su nivel y el `Spawn` por el
+que se entró. El checkpoint nunca retrocede ni vuelve a curar al reentrar.
+
+Cada checkpoint nuevo cura hasta **2 medios corazones (1 corazón)** y emite
+`checkpoint_reached`. `ui/checkpoint_notice.tscn` muestra la recompensa durante 3 s.
+Todo vive solo en memoria: `GameState.reset_run()` borra el progreso al abandonar o
+reiniciar la partida.
+
 ---
 
 ## 5. Layout de sala (rejilla tipo Isaac)
@@ -500,7 +512,8 @@ llega a la esclusa. La habilidad abre progresión real, no es decorado.
 ### Daño y muerte
 
 `GameState.damage()` emite `health_changed` (el HUD se redibuja) y `died` al llegar a 0.
-`main.gd` escucha `died` → restaura la vida y `Transition.respawn("L3_CELDA")`.
+`main.gd` escucha `died` → restaura la vida y reaparece en la sala y el `Spawn` del
+checkpoint más alto alcanzado. Si todavía no existe uno, usa `L3_CELDA`.
 El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 
 ---

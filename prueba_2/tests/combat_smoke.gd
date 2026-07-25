@@ -34,6 +34,8 @@ func _ready() -> void:
 func _run() -> void:
 	await _test_health_halves()
 	await _test_checkpoints()
+	await _test_checkpoint_notice()
+	await _test_checkpoint_transitions()
 	await _test_inventory_rules()
 	await _test_every_part()
 	await _test_every_enemy()
@@ -100,6 +102,63 @@ func _test_checkpoints() -> void:
 	_check(GameState.checkpoint_room == "", "reiniciar la partida borra el checkpoint")
 	_check(GameState.checkpoint_spawn == "", "reiniciar la partida borra la entrada del checkpoint")
 	GameState.checkpoint_reached.disconnect(on_reached)
+
+func _test_checkpoint_notice() -> void:
+	var notice_path := "res://ui/checkpoint_notice.tscn"
+	_check(ResourceLoader.exists(notice_path), "existe el aviso visual de checkpoint")
+	if not ResourceLoader.exists(notice_path):
+		return
+	var notice: Control = load(notice_path).instantiate()
+	add_child(notice)
+	GameState.checkpoint_reached.emit("L2_ASCENSOR", 2)
+	await get_tree().process_frame
+	_check(notice.visible, "el aviso aparece al alcanzar un checkpoint")
+	_check(notice.get_node("Panel/VBox/Title").text == "CHECKPOINT ALCANZADO", "el aviso identifica el checkpoint")
+	_check(notice.get_node("Panel/VBox/Heal").text == "+1 CORAZÓN", "el aviso muestra la cura de un corazón")
+	_check(is_equal_approx(notice.DISPLAY_DURATION, 3.0), "el aviso dura tres segundos")
+	await get_tree().create_timer(notice.DISPLAY_DURATION + 0.1).timeout
+	_check(not notice.visible, "el aviso se oculta al terminar los tres segundos")
+	notice.queue_free()
+	await get_tree().process_frame
+
+func _test_checkpoint_transitions() -> void:
+	var respawn_args := 0
+	for method in Transition.get_method_list():
+		if method["name"] == "respawn":
+			respawn_args = method["args"].size()
+	_check(respawn_args == 2, "respawn acepta la entrada guardada del checkpoint")
+	if respawn_args != 2:
+		return
+
+	var room_host := Node2D.new()
+	var player := Node2D.new()
+	var fade := ColorRect.new()
+	add_child(room_host)
+	add_child(player)
+	add_child(fade)
+	Transition.setup(room_host, player, fade)
+	GameState.reset_run()
+	Transition.load_initial("L3_CELDA")
+	_check(GameState.checkpoint_room == "L3_CELDA", "la transición inicial registra la celda sin recompensa")
+
+	GameState.damage(2)
+	GameState.mark_room_cleared("L2_ASCENSOR")
+	await Transition.go_to("L2_ASCENSOR", "N")
+	_check(GameState.checkpoint_room == "L2_ASCENSOR", "la transición de piso activa el checkpoint")
+	_check(GameState.checkpoint_spawn == "SpawnS", "la transición guarda la puerta por la que se entró")
+	_check(GameState.health_halves == 8, "la transición de piso aplica la cura")
+
+	GameState.reset_run()
+	GameState.set_initial_checkpoint("L2_ASCENSOR", -2, "SpawnS")
+	await Transition.callv("respawn", [GameState.checkpoint_room, GameState.checkpoint_spawn])
+	var expected_spawn: Node2D = room_host.get_child(0).get_node("SpawnS")
+	_check(player.global_position == expected_spawn.position, "la muerte reaparece en la entrada segura del checkpoint")
+	_check(GameState.checkpoint_room == "L2_ASCENSOR", "reaparecer no altera el checkpoint")
+
+	room_host.queue_free()
+	player.queue_free()
+	fade.queue_free()
+	await get_tree().process_frame
 
 func _test_inventory_rules() -> void:
 	Inventory.reset_run()

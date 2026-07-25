@@ -163,6 +163,11 @@ lo detectan al instante.
     `DASH_START` o `DASH_TIME`. En el impulso cargado esto no aplica: ahí la distancia la
     fija `_remaining` y la curva solo reparte el tiempo.
 
+14. **Los checkpoints son progreso de la partida actual, no guardado permanente.**
+    Se activan una sola vez al subir de piso, curan hasta un corazón y nunca retroceden.
+    El respawn usa la sala y el `Spawn` guardados para no aparecer encima de enemigos.
+    Cualquier ruta que empiece o abandone una partida debe pasar por `GameState.reset_run()`.
+
 ---
 
 ## 4. Antes de dar algo por terminado

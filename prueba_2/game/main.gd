@@ -9,4 +9,7 @@ func _ready() -> void:
 
 func _on_died() -> void:
 	GameState.reset_health()
-	Transition.respawn(START_ROOM)
+	var room_id := GameState.checkpoint_room
+	if room_id == "":
+		room_id = START_ROOM
+	Transition.respawn(room_id, GameState.checkpoint_spawn)

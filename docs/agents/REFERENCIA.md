@@ -106,6 +106,19 @@ Evitar el índice del carril de puerta (`6` en N/S, `3` en E/O) del lado que ten
 en `ui/hud.gd` para que aparezca el slot. El estado vive **solo** en `GameState`,
 nunca en el script del jugador — así sobrevive a los cambios de sala.
 
+### Marcar un checkpoint de piso
+
+Añadir `"is_checkpoint": true` a la sala de entrada del piso en `RoomDB.ROOMS`. La
+transición registra automáticamente el nivel y el `Spawn<opuesto>` usado al entrar; no
+se llama a `GameState.try_reach_checkpoint()` desde la sala.
+
+Reglas del contrato:
+
+- solo avanza si el `level` es mayor que el guardado;
+- cura como máximo 2 medios corazones y emite la cantidad realmente curada;
+- el respawn reutiliza el `Spawn` de entrada para no colocar al slime encima de enemigos;
+- `reset_run()` debe borrar sala, nivel y spawn: no hay persistencia entre partidas.
+
 ---
 
 ## 4. Estilo de código

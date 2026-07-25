@@ -21,6 +21,7 @@ func load_initial(room_id: String) -> void:
 	GameState.current_room = room_id
 	GameState.visited[room_id] = true
 	GameState.room_changed.emit(room_id)
+	_record_checkpoint(room_id, "", true)
 
 func go_to(target_id: String, from_dir: String) -> void:
 	if _busy:
@@ -31,7 +32,8 @@ func go_to(target_id: String, from_dir: String) -> void:
 	fade_out.tween_property(_fade_rect, "modulate:a", 1.0, FADE_DURATION)
 	await fade_out.finished
 
-	_swap_room(target_id, "Spawn%s" % OPPOSITE[from_dir])
+	var spawn_name := "Spawn%s" % OPPOSITE[from_dir]
+	_swap_room(target_id, spawn_name)
 
 	GameState.current_room = target_id
 	GameState.visited[target_id] = true
@@ -42,8 +44,9 @@ func go_to(target_id: String, from_dir: String) -> void:
 	await fade_in.finished
 
 	_busy = false
+	_record_checkpoint(target_id, spawn_name, false)
 
-func respawn(room_id: String) -> void:
+func respawn(room_id: String, spawn_name: String = "") -> void:
 	if _busy:
 		return
 	_busy = true
@@ -52,7 +55,7 @@ func respawn(room_id: String) -> void:
 	fade_out.tween_property(_fade_rect, "modulate:a", 1.0, FADE_DURATION)
 	await fade_out.finished
 
-	_swap_room(room_id, "")
+	_swap_room(room_id, spawn_name)
 
 	GameState.current_room = room_id
 	GameState.visited[room_id] = true
@@ -63,6 +66,16 @@ func respawn(room_id: String) -> void:
 	await fade_in.finished
 
 	_busy = false
+
+func _record_checkpoint(room_id: String, spawn_name: String, initial: bool) -> void:
+	var room_data: Dictionary = RoomDB.ROOMS[room_id]
+	if not room_data.get("is_checkpoint", false):
+		return
+	var level: int = room_data["level"]
+	if initial:
+		GameState.set_initial_checkpoint(room_id, level, spawn_name)
+	else:
+		GameState.try_reach_checkpoint(room_id, level, spawn_name)
 
 func _swap_room(room_id: String, spawn_name: String) -> Node:
 	for child in _room_host.get_children():

@@ -1,0 +1,55 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/checkpoint_notice.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxCheckpoint"]
+bg_color = Color(0.027451, 0.109804, 0.117647, 0.94)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.92549, 0.952941, 0.690196, 0.92)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 8
+
+[node name="CheckpointNotice" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 700.0
+offset_top = 140.0
+offset_right = 1220.0
+offset_bottom = 270.0
+theme_override_styles/panel = SubResource("StyleBoxCheckpoint")
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_font_sizes/font_size = 34
+text = "CHECKPOINT ALCANZADO"
+horizontal_alignment = 1
+
+[node name="Heal" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45098, 0.937255, 0.909804, 1)
+theme_override_font_sizes/font_size = 26
+text = "+1 CORAZÓN"
+horizontal_alignment = 1
