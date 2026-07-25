@@ -17,6 +17,10 @@
 - Mantener intactas las constantes, distancias, curva de velocidad, invulnerabilidad, cooldown y máscaras de colisión.
 - Mantener el reposo sonoro desactivado por defecto.
 - Usar tabs, tipado estático y comentarios en español en GDScript.
+- Versionar los sidecars `*.wav.import` y los archivos `*.gd.uid` generados por
+  Godot; mantener `.godot/` ignorado. En un checkout nuevo, ejecutar primero
+  un escaneo del editor en modo headless para importar los WAV antes de toda
+  prueba ejecutada con `--script`.
 - Conservar fuera de los commits el cambio local preexistente en `prototypes/slime_charge_movement/project.godot`.
 - El proyecto activo debe arrancar sin errores ni `Debugger Break`.
 
@@ -38,6 +42,8 @@
 **Prototype**
 
 - Create: `prototypes/slime_charge_movement/scripts/slime_audio.gd` — isolated audio component.
+- Create: `prototypes/slime_charge_movement/scripts/slime_audio.gd.uid` — stable Godot script identifier.
+- Create: `prototypes/slime_charge_movement/audio/slime/*.wav.import` — tracked Godot import settings for the prototype WAV files.
 - Modify: `prototypes/slime_charge_movement/scenes/player.tscn` — `SlimeAudio` node and audio players.
 - Modify: `prototypes/slime_charge_movement/scripts/player.gd` — transition notifications only.
 - Modify: `prototypes/slime_charge_movement/tests/run_tests.gd` — component and transition tests.
@@ -45,6 +51,7 @@
 **Active game**
 
 - Create: `prueba_2/scripts/player/slime_audio.gd` — byte-for-byte functional copy of the component.
+- Create: `prueba_2/scripts/player/slime_audio.gd.uid` and `prueba_2/audio/slime/*.wav.import` — tracked Godot metadata after the active-project import scan.
 - Modify: `prueba_2/scenes/player/slime.tscn` — `SlimeAudio` node and audio players.
 - Modify: `prueba_2/scripts/player/slime.gd` — notifications for charge, fizzle, launch, DASH, impact, recovery, and knockback.
 - Create: `prueba_2/tests/run_slime_audio_tests.gd` — headless audio integration smoke test.
@@ -283,6 +290,20 @@ git commit -m "feat: generate original slime audio pack"
   - `get_charge_pitch() -> float`
   - `last_event: StringName`
 
+**Fresh-checkout prerequisite for every Task 2 script test:**
+
+```powershell
+& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless `
+  --editor `
+  --path prototypes/slime_charge_movement `
+  --quit
+```
+
+Expected: Godot imports the eleven WAV assets into the ignored `.godot/`
+cache using the versioned `.wav.import` settings. Run this before the
+`--script res://tests/run_tests.gd` command in a fresh checkout.
+
 - [ ] **Step 1: Add a failing component test**
 
 In `tests/run_tests.gd`, call `await _test_audio_component()` before
@@ -315,6 +336,12 @@ func _test_audio_component() -> void:
 - [ ] **Step 2: Run the prototype tests and verify failure**
 
 ```powershell
+& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless `
+  --editor `
+  --path prototypes/slime_charge_movement `
+  --quit
+
 & "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
   --path prototypes/slime_charge_movement `
@@ -398,6 +425,12 @@ _assert_equal(audio.last_event, &"launch", "release plays launch")
 ```powershell
 & "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
+  --editor `
+  --path prototypes/slime_charge_movement `
+  --quit
+
+& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless `
   --path prototypes/slime_charge_movement `
   --script res://tests/run_tests.gd
 ```
@@ -408,6 +441,8 @@ Expected: `PASS: all slime movement tests`, exit code `0`, and no parser errors.
 
 ```powershell
 git add prototypes/slime_charge_movement/scripts/slime_audio.gd `
+  prototypes/slime_charge_movement/scripts/slime_audio.gd.uid `
+  prototypes/slime_charge_movement/audio/slime/*.wav.import `
   prototypes/slime_charge_movement/scenes/player.tscn `
   prototypes/slime_charge_movement/scripts/player.gd `
   prototypes/slime_charge_movement/tests/run_tests.gd
@@ -431,6 +466,20 @@ git commit -m "feat: add biological audio to slime prototype"
   `IDLE`, `CHARGING`, `LAUNCHING`, `RECOVERING`, `DASHING`.
 - Produces: audible events without changing the state machine's numerical
   contract.
+
+**Fresh-checkout prerequisite for every Task 3 script test after the audio
+component exists:**
+
+```powershell
+& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless `
+  --editor `
+  --path prueba_2 `
+  --quit
+```
+
+Commit the resulting active WAV `.import` sidecars and `slime_audio.gd.uid`,
+but not the generated `.godot/` cache.
 
 - [ ] **Step 1: Add a failing active-game smoke test**
 
@@ -550,6 +599,12 @@ body settling.
 ```powershell
 & "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
+  --editor `
+  --path prueba_2 `
+  --quit
+
+& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless `
   --path prueba_2 `
   --script res://tests/run_slime_audio_tests.gd
 ```
@@ -582,6 +637,8 @@ audio loop remaining after release, and no `Debugger Break`.
 
 ```powershell
 git add prueba_2/scripts/player/slime_audio.gd `
+  prueba_2/scripts/player/slime_audio.gd.uid `
+  prueba_2/audio/slime/*.wav.import `
   prueba_2/scenes/player/slime.tscn `
   prueba_2/scripts/player/slime.gd `
   prueba_2/tests/run_slime_audio_tests.gd
@@ -629,8 +686,20 @@ python tools/audio/test_generate_slime_audio.py
 
 & "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
   --headless `
+  --editor `
+  --path prototypes/slime_charge_movement `
+  --quit
+
+& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless `
   --path prototypes/slime_charge_movement `
   --script res://tests/run_tests.gd
+
+& "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
+  --headless `
+  --editor `
+  --path prueba_2 `
+  --quit
 
 & "C:\Godot\Godot_v4.7.1-stable_win64_console.exe" `
   --headless `

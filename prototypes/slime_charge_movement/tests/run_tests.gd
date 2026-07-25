@@ -1,6 +1,19 @@
 extends SceneTree
 
 const ChargeMotion = preload("res://scripts/charge_motion.gd")
+const REQUIRED_AUDIO_METHODS := [
+	&"begin_charge",
+	&"update_charge",
+	&"charge_full",
+	&"fizzle",
+	&"launch",
+	&"dash",
+	&"impact",
+	&"recover",
+	&"stop_charge",
+	&"is_charge_playing",
+	&"get_charge_pitch",
+]
 
 var failures := 0
 
@@ -161,6 +174,11 @@ func _test_feedback_nodes() -> void:
 
 
 func _test_audio_component() -> void:
+	var audio_script := load("res://scripts/slime_audio.gd") as Script
+	_assert_true(audio_script != null, "SlimeAudio script loads")
+	if audio_script == null:
+		return
+
 	var player_scene := load("res://scenes/player.tscn") as PackedScene
 	_assert_true(player_scene != null, "player scene with audio loads")
 	if player_scene == null:
@@ -171,21 +189,44 @@ func _test_audio_component() -> void:
 	await process_frame
 	var audio := player.get_node_or_null("SlimeAudio")
 	_assert_true(audio != null, "player contains SlimeAudio")
-	if audio != null:
-		audio.begin_charge()
-		audio.update_charge(0.5)
-		_assert_true(audio.is_charge_playing(), "charge loop starts")
-		_assert_close(audio.get_charge_pitch(), 1.015, "charge pitch follows power")
-		audio.charge_full()
-		_assert_equal(audio.last_event, &"charge_full", "full charge fires once")
-		audio.stop_charge()
-		_assert_true(not audio.is_charge_playing(), "charge loop stops")
-		player.begin_charge(Vector2.RIGHT)
-		player.update_charge(Vector2.RIGHT, 0.5)
-		_assert_equal(audio.last_event, &"charge", "charging updates audio")
-		player.release_charge()
-		_assert_equal(audio.last_event, &"launch", "release plays launch")
+	if audio == null or not _has_required_audio_methods(audio):
+		player.free()
+		return
+
+	audio.begin_charge()
+	audio.update_charge(0.5)
+	_assert_true(audio.is_charge_playing(), "charge loop starts")
+	_assert_close(audio.get_charge_pitch(), 1.015, "charge pitch follows power")
+	var effect_a := audio.get_node_or_null("EffectA") as AudioStreamPlayer2D
+	var effect_b := audio.get_node_or_null("EffectB") as AudioStreamPlayer2D
+	_assert_true(effect_a != null, "full charge uses EffectA")
+	_assert_true(effect_b != null, "full charge preserves EffectB")
+	audio.update_charge(1.0)
+	_assert_equal(audio.last_event, &"charge_full", "full charge fires from power update")
+	if effect_a != null and effect_b != null:
+		_assert_true(effect_a.playing, "full charge plays the first effect")
+		audio.update_charge(1.0)
+		_assert_true(
+			not effect_b.playing,
+			"second full power update does not replay the full charge cue"
+		)
+	audio.stop_charge()
+	_assert_true(not audio.is_charge_playing(), "charge loop stops")
+	player.begin_charge(Vector2.RIGHT)
+	player.update_charge(Vector2.RIGHT, 0.5)
+	_assert_equal(audio.last_event, &"charge", "charging updates audio")
+	player.release_charge()
+	_assert_equal(audio.last_event, &"launch", "release plays launch")
 	player.free()
+
+
+func _has_required_audio_methods(audio: Node) -> bool:
+	var has_all_methods := true
+	for method in REQUIRED_AUDIO_METHODS:
+		if not audio.has_method(method):
+			has_all_methods = false
+			_assert_true(false, "SlimeAudio exposes %s" % method)
+	return has_all_methods
 
 
 func _test_main_scene() -> void:
