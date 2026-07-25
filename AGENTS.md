@@ -105,6 +105,14 @@ los `.tscn` y `.gd` se escriben a disco como texto y el MCP solo ejecuta y verif
     equivaler a caminar, porque el movimiento continuo es una habilidad futura (piernas).
     Igual de deliberado es `WALL_RECOVERY_TIME`: chocar tiene que doler.
 
+13. **Tocar las constantes del DASH cambia su alcance.** La velocidad ya no es constante
+    (`_eased_speed()`), así que el alcance es la **integral de la curva**: hoy 326 px.
+    Cruzar el hueco de `L2_BIOLAB` exige 210 px. Si el alcance baja de ahí, el hueco se
+    vuelve infranqueable y **el juego se queda sin final**. Recalcular la integral antes
+    de modificar `DASH_PEAK_SPEED`, `DASH_END_SPEED`, `DASH_EASE`, `DASH_RAMP` o
+    `DASH_TIME`. En el impulso cargado esto no aplica: ahí la distancia la fija
+    `_remaining` y la curva solo reparte el tiempo.
+
 ---
 
 ## 4. Layout de sala (no improvisar medidas)

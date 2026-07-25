@@ -196,12 +196,33 @@ IDLE ──mantener dirección──▶ CHARGING ──soltar──▶ LAUNCHING
 | `MIN_CHARGE_TIME` | 0.18 s | **Mínimo para que haya impulso** |
 | `MIN_DISTANCE` | 112 px | Distancia con carga mínima |
 | `MAX_DISTANCE` | 520 px | Distancia con carga completa |
-| `LAUNCH_SPEED` | 1040 px/s | Velocidad constante (la carga alarga, no acelera) |
+| `LAUNCH_PEAK_SPEED` | 1500 px/s | Velocidad al salir |
+| `LAUNCH_END_SPEED` | 240 px/s | Velocidad al llegar |
 | `RECOVERY_TIME` | 0.12 s | Pausa tras un recorrido limpio |
 | `WALL_RECOVERY_TIME` | 0.45 s | **Aturdimiento al chocar contra una pared** |
 | `FIZZLE_RECOVERY_TIME` | 0.28 s | Penalización por soltar antes del mínimo |
 
 `distancia = lerp(112, 520, carga / 1.0)`. Las diagonales se normalizan: no dan ventaja.
+
+### Curva de velocidad
+
+El recorrido **no** va a velocidad constante — eso era lo que lo hacía sentir tosco.
+`_eased_speed()` reparte el tiempo con este perfil, compartido por el impulso y el DASH:
+
+```
+velocidad = fin + (pico − fin) · restante^ease        ← frenada exponencial
+          · lerp(0.45, 1.0, smoothstep(arranque))     ← salida acelerada
+```
+
+- Arranca al 45 % del pico y sube en el primer 14 % del recorrido: no hay salto brusco.
+- Después cae exponencialmente hacia `END_SPEED`, que es **finita a propósito**: si
+  tendiera a cero el recorrido se arrastraría sin terminar nunca.
+- **La distancia no cambia**, la controla `_remaining`. Solo cambia cómo se reparte el
+  tiempo, así que toda la calibración de alcance sigue valiendo.
+
+El cuerpo se estira en proporción a la velocidad real (`_speed_ratio`), no a un valor fijo:
+se afila al salir y se redondea solo mientras frena. Todo el suavizado visual usa
+`1 − exp(−k·delta)`, así que es independiente del framerate.
 
 **Anti-machaque.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
 0.28 s inmóvil. Golpear teclas de dirección repetidamente no produce desplazamiento —
@@ -218,9 +239,15 @@ caro. Aplica igual al DASH de habilidad.
 
 ### DASH de habilidad
 
-Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 1200 px/s durante 0.22 s,
-invulnerable, cooldown 0.8 s, atraviesa huecos. Se lanza en la última dirección cargada
-y no se puede usar en pleno impulso ni en recuperación.
+Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 0.28 s con la misma curva
+(pico 2000 px/s → 300 px/s), invulnerable, cooldown 0.8 s, atraviesa huecos. Se lanza en la
+última dirección cargada y no se puede usar en pleno impulso ni en recuperación.
+
+> **Calibración crítica:** la integral de la curva da **326 px** de alcance. Cruzar el hueco
+> de `L2_BIOLAB` exige 210 px (120 de hueco + 90 de diámetro del slime), así que el margen
+> es de 116 px. Cualquier retoque de `DASH_PEAK_SPEED`, `DASH_END_SPEED`, `DASH_EASE`,
+> `DASH_RAMP` o `DASH_TIME` **cambia el alcance** y puede volver el hueco infranqueable,
+> dejando el juego sin final. Recalcular antes de tocarlos.
 
 ### Presentación
 

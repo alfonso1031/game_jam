@@ -124,6 +124,27 @@ todavía no tiene:
 
 Soltar antes del mínimo entra en `FIZZLE_RECOVERY_TIME` (`0.28 s`) sin desplazarse.
 
+También cambió el perfil de velocidad. El prototipo usa `LAUNCH_SPEED` constante
+(`1040 px/s`); la integración lo reemplazó por una curva con salida acelerada y
+frenada exponencial, porque a velocidad fija el arranque y el frenado se sienten
+toscos:
+
+```
+velocidad = fin + (pico − fin) · restante^ease
+          · lerp(0.45, 1.0, smoothstep(arranque))
+```
+
+| Constante | Impulso | DASH |
+|---|---:|---:|
+| Pico | `1500 px/s` | `2000 px/s` |
+| Final | `240 px/s` | `300 px/s` |
+| `ease` | `0.7` | `0.8` |
+| Rampa de salida | `14 %` | `15 %` |
+
+La distancia del impulso **no** cambia: la sigue fijando `_remaining`, la curva
+solo reparte el tiempo. En el DASH sí, porque su duración es fija: el alcance
+pasa a ser la integral de la curva (`326 px`).
+
 En la UI, la barra de carga dibuja una marca en el umbral mínimo y mantiene el
 relleno en color de muro hasta superarlo, para que el costo sea legible.
 

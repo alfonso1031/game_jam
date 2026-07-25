@@ -11,7 +11,14 @@ const MAX_CHARGE_TIME := 1.0
 const MIN_CHARGE_TIME := 0.18
 const MIN_DISTANCE := 112.0
 const MAX_DISTANCE := 520.0
-const LAUNCH_SPEED := 1040.0
+
+# El recorrido no va a velocidad fija: sale acelerando y frena de forma
+# exponencial hacia el final. La distancia recorrida no cambia (la controla
+# `_remaining`), solo el reparto del tiempo — es lo que quita la sensación tosca.
+const LAUNCH_PEAK_SPEED := 1500.0
+const LAUNCH_END_SPEED := 240.0
+const LAUNCH_EASE := 0.7
+const LAUNCH_RAMP := 0.14
 
 const RECOVERY_TIME := 0.12
 # Chocar contra una pared cuesta caro: el slime queda aplastado y aturdido.
@@ -20,8 +27,14 @@ const WALL_RECOVERY_TIME := 0.45
 const FIZZLE_RECOVERY_TIME := 0.28
 
 # --- DASH de habilidad: recompensa del boss, cruza huecos ---
-const DASH_SPEED := 1200.0
-const DASH_TIME := 0.22
+# Mismo perfil de aceleración. Las constantes están calibradas para que la
+# integral de la curva supere con margen el ancho del hueco de L2_BIOLAB
+# (120 px) más el diámetro del slime (90 px).
+const DASH_PEAK_SPEED := 2000.0
+const DASH_END_SPEED := 300.0
+const DASH_EASE := 0.8
+const DASH_RAMP := 0.15
+const DASH_TIME := 0.28
 const DASH_COOLDOWN := 0.8
 
 const INVULN_TIME := 1.0
@@ -45,7 +58,10 @@ var _charge_time := 0.0
 var _charge_dir := Vector2.RIGHT
 var _facing := Vector2.RIGHT
 var _remaining := 0.0
+var _launch_distance := 1.0
 var _recovery := 0.0
+# Velocidad actual normalizada al pico: alimenta el estiramiento del cuerpo.
+var _speed_ratio := 0.0
 
 var _dash_time := 0.0
 var _dash_cd := 0.0
@@ -133,11 +149,16 @@ func _release_charge() -> void:
 		_begin_recovery(FIZZLE_RECOVERY_TIME)
 		return
 	_remaining = lerpf(MIN_DISTANCE, MAX_DISTANCE, _charge_power())
+	_launch_distance = _remaining
 	_state = State.LAUNCHING
-	velocity = _charge_dir * LAUNCH_SPEED
 
 func _advance_launch(delta: float) -> void:
-	var step: float = min(LAUNCH_SPEED * delta, _remaining)
+	var ratio: float = clampf(_remaining / _launch_distance, 0.0, 1.0)
+	var speed := _eased_speed(ratio, LAUNCH_PEAK_SPEED, LAUNCH_END_SPEED, LAUNCH_EASE, LAUNCH_RAMP)
+	_speed_ratio = speed / LAUNCH_PEAK_SPEED
+	velocity = _charge_dir * speed
+
+	var step: float = min(speed * delta, _remaining)
 	var collision := move_and_collide(_charge_dir * step)
 	_remaining -= step
 	if collision != null:
@@ -145,11 +166,21 @@ func _advance_launch(delta: float) -> void:
 	elif _remaining <= 0.001:
 		_begin_recovery(RECOVERY_TIME)
 
+# Perfil compartido por el impulso y el DASH: arranca acelerando desde una
+# fracción del pico y cae exponencialmente hasta una velocidad final finita
+# (finita para que el recorrido termine en vez de arrastrarse).
+func _eased_speed(remaining_ratio: float, peak: float, end: float, ease_exp: float, ramp: float) -> float:
+	var speed: float = end + (peak - end) * pow(remaining_ratio, ease_exp)
+	var progress := 1.0 - remaining_ratio
+	var ramp_t: float = clampf(progress / ramp, 0.0, 1.0)
+	return speed * lerpf(0.45, 1.0, smoothstep(0.0, 1.0, ramp_t))
+
 func _begin_recovery(time: float) -> void:
 	_state = State.RECOVERING
 	_recovery = time
 	_remaining = 0.0
 	_charge_time = 0.0
+	_speed_ratio = 0.0
 	velocity = Vector2.ZERO
 
 func _advance_recovery(delta: float) -> void:
@@ -175,11 +206,15 @@ func _start_dash() -> void:
 	_dash_cd = DASH_COOLDOWN + DASH_TIME
 	_invuln = max(_invuln, DASH_TIME)
 	_charge_time = 0.0
-	velocity = _facing * DASH_SPEED
 	set_collision_mask_value(GAP_MASK_BIT, false)
 
 func _advance_dash(delta: float) -> void:
-	var collision := move_and_collide(_facing * DASH_SPEED * delta)
+	var ratio: float = clampf(_dash_time / DASH_TIME, 0.0, 1.0)
+	var speed := _eased_speed(ratio, DASH_PEAK_SPEED, DASH_END_SPEED, DASH_EASE, DASH_RAMP)
+	_speed_ratio = speed / DASH_PEAK_SPEED
+	velocity = _facing * speed
+
+	var collision := move_and_collide(_facing * speed * delta)
 	_dash_time -= delta
 	if collision != null:
 		_end_dash(true)
@@ -208,24 +243,31 @@ func _update_visual(delta: float) -> void:
 
 	match _state:
 		State.CHARGING:
-			var power := _charge_power()
 			# Se comprime en el eje del lanzamiento y retrocede como un resorte.
+			# La curva hace que la compresión gane fuerza cerca de la carga plena.
+			var power: float = pow(_charge_power(), 0.75)
 			target_scale = Vector2(1.0 - power * 0.22, 1.0 + power * 0.16)
 			target_offset = -_charge_dir * power * 14.0
-			body.rotation = lerp_angle(body.rotation, _charge_dir.angle(), 0.25)
+			body.rotation = lerp_angle(body.rotation, _charge_dir.angle(), 1.0 - exp(-14.0 * delta))
 		State.LAUNCHING, State.DASHING:
-			target_scale = Vector2(1.32, 0.74)
-			body.rotation = lerp_angle(body.rotation, _facing.angle(), 0.35)
+			# El estiramiento sigue la velocidad real: se afila al salir y se
+			# redondea solo mientras frena, en vez de un valor fijo todo el vuelo.
+			target_scale = Vector2(1.0 + _speed_ratio * 0.36, 1.0 - _speed_ratio * 0.26)
+			body.rotation = lerp_angle(body.rotation, _facing.angle(), 1.0 - exp(-22.0 * delta))
 		State.RECOVERING:
-			target_scale = Vector2(1.2, 0.82)
+			# Rebote: aplastado al aterrizar y recuperando forma durante la pausa.
+			var settle: float = clampf(_recovery / WALL_RECOVERY_TIME, 0.0, 1.0)
+			target_scale = Vector2(1.0 + settle * 0.24, 1.0 - settle * 0.2)
 		_:
 			_breathe += delta
 			var breathe: float = sin(_breathe * 2.0) * 0.04
 			target_scale = Vector2(1.0 + breathe, 1.0 - breathe)
-			body.rotation = lerp_angle(body.rotation, 0.0, 0.1)
+			body.rotation = lerp_angle(body.rotation, 0.0, 1.0 - exp(-6.0 * delta))
 
-	body.scale = body.scale.lerp(target_scale, 0.3)
-	body.position = body.position.lerp(target_offset, 0.3)
+	# Suavizado exponencial: independiente del framerate.
+	var smoothing: float = 1.0 - exp(-18.0 * delta)
+	body.scale = body.scale.lerp(target_scale, smoothing)
+	body.position = body.position.lerp(target_offset, smoothing)
 
 	core.modulate.a = 1.0 if _state == State.DASHING else 0.6 + sin(_breathe * 3.0) * 0.2
 	# Parpadeo durante los frames de invulnerabilidad.
