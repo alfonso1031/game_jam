@@ -4,17 +4,20 @@ const Palette := preload("res://scripts/core/palette.gd")
 const ProjectileScene := preload("res://scenes/boss/projectile.tscn")
 const PickupScene := preload("res://scenes/props/ability_pickup.tscn")
 
-const MAX_HEALTH := 6
+const MAX_HEALTH := 4
 const HIT_COOLDOWN := 0.7
+# Tras un golpe el boss retrocede y no hace daño por contacto: si no, el jugador
+# sigue solapado con la hitbox y come daño en el frame siguiente.
+const RECOIL_TIME := 0.9
 
 # Por fase (1..3): velocidad de persecución, duración de persecución,
 # cantidad de proyectiles y ventana de vulnerabilidad.
-const CHASE_SPEED := [55.0, 85.0, 120.0]
-const CHASE_TIME := [2.2, 1.8, 1.4]
-const BURST_COUNT := [8, 10, 12]
-const VULNERABLE_TIME := [1.9, 1.6, 1.3]
+const CHASE_SPEED := [45.0, 65.0, 85.0]
+const CHASE_TIME := [2.4, 2.0, 1.7]
+const BURST_COUNT := [6, 8, 10]
+const VULNERABLE_TIME := [3.4, 3.0, 2.6]
 
-enum State {CHASE, SHOOT, VULNERABLE, DEAD}
+enum State {CHASE, SHOOT, VULNERABLE, RECOIL, DEAD}
 
 @export var room_id: String = "L3_NUCLEO"
 @export var ability_id: String = "dash"
@@ -72,13 +75,18 @@ func _physics_process(delta: float) -> void:
 			core.scale = Vector2.ONE * (1.0 + sin(_pulse * 8.0) * 0.12)
 			if _timer <= 0.0:
 				_enter_chase()
+		State.RECOIL:
+			velocity = velocity.lerp(Vector2.ZERO, 0.06)
+			move_and_slide()
+			if _timer <= 0.0:
+				_enter_chase()
 
 	_resolve_contact()
 
 func _phase() -> int:
-	if health > 4:
+	if health > 2:
 		return 1
-	elif health > 2:
+	elif health > 1:
 		return 2
 	return 3
 
@@ -132,6 +140,8 @@ func _fire_burst() -> void:
 		get_parent().add_child(projectile)
 
 func _resolve_contact() -> void:
+	if _state == State.RECOIL:
+		return
 	for body in hitbox.get_overlapping_bodies():
 		if not body.is_in_group("player"):
 			continue
@@ -146,11 +156,22 @@ func _take_damage(player_node: Node2D) -> void:
 	health -= 1
 	_hit_cd = HIT_COOLDOWN
 	_refresh_health_bar()
-	player_node.velocity = (player_node.global_position - global_position).normalized() * 700.0
+	var away := (player_node.global_position - global_position).normalized()
+	player_node.velocity = away * 700.0
 	if health <= 0:
 		_die()
-	else:
-		_enter_chase()
+		return
+	_enter_recoil(-away)
+
+func _enter_recoil(push_dir: Vector2) -> void:
+	_state = State.RECOIL
+	_timer = RECOIL_TIME
+	velocity = push_dir * 420.0
+	shell.color = Palette.WALL
+	core.color = Palette.WALL.lightened(0.1)
+	core.scale = Vector2.ONE
+	light.energy = 0.5
+	_set_label("¡GOLPE!", Palette.SLIME_BODY)
 
 func _die() -> void:
 	_state = State.DEAD
