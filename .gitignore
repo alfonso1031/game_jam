@@ -18,3 +18,6 @@ mono_crash.*.json
 
 # Local knowledge-graph analysis
 graphify-out/
+
+# Local isolated worktrees used by coding agents
+.worktrees/
