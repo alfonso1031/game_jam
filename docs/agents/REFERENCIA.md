@@ -95,7 +95,10 @@ lamps_o = Array[int]([3])
 dead_lamps_s = Array[int]([6])
 ```
 
-Evitar el índice del carril de puerta (`6` en N/S, `3` en E/O) del lado que tenga puerta.
+Cada sala debe sumar **3 focos activos como mínimo** entre `lamps_n/s/e/o`;
+`dead_lamps_*` no cuentan. Evitar el índice del carril de puerta (`6` en N/S, `3` en
+E/O) del lado que tenga puerta y no declarar un mismo lado/índice como activo y averiado.
+Para mejorar la cobertura se cambia la distribución, no las propiedades de `lamp.tscn`.
 
 `room.gd` los instancia en `_ready()`. Para un prop nuevo: escena en `world/props/`,
 `preload` y un `@export var ... : Array[Vector2i]` en `world/rooms/room.gd`.

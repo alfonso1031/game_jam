@@ -168,6 +168,11 @@ lo detectan al instante.
     El respawn usa la sala y el `Spawn` guardados para no aparecer encima de enemigos.
     Cualquier ruta que empiece o abandone una partida debe pasar por `GameState.reset_run()`.
 
+15. **Cada sala mantiene al menos tres focos activos.** `dead_lamps_*` no cuenta como
+    iluminación y un mismo lado/índice no puede estar activo y averiado a la vez. Respetar
+    el carril central de las puertas; mejorar cobertura agregando o redistribuyendo focos,
+    sin alterar energía, radio, color ni parpadeo de `lamp.tscn`.
+
 ---
 
 ## 4. Antes de dar algo por terminado

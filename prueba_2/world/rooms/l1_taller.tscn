@@ -17,7 +17,7 @@ size = Vector2(120, 300)
 
 [node name="L1Taller" type="Node2D"]
 script = ExtResource("1")
-lamps_s = Array[int]([2, 10])
+lamps_s = Array[int]([2, 6, 10])
 dead_lamps_n = Array[int]([4, 8])
 tanks = Array[Vector2i]([Vector2i(2, 3), Vector2i(10, 3)])
 debris = Array[Vector2i]([Vector2i(5, 5), Vector2i(7, 1)])

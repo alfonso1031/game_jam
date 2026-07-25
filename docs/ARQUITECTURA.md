@@ -258,6 +258,11 @@ lamps_o = Array[int]([3])
 dead_lamps_s = Array[int]([6])
 ```
 
+Cada sala mantiene **al menos tres lámparas activas**; las declaradas en `dead_lamps_*`
+no cuentan. La luz se reparte entre paredes sin ocupar el índice central de una pared con
+puerta (`6` en N/S, `3` en E/O). Para aclarar una sala se redistribuyen o agregan focos:
+no se cambia la energía, el radio, el color ni el parpadeo común de `lamp.tscn`.
+
 Puestas en el suelo se leían como objetos que se pueden recoger; empotradas en la banda de
 muro se leen como instalación del laboratorio. En los muros laterales el aplique se rota
 90° para quedar vertical. Al no ocupar celdas del suelo, además dejaron de competir con
@@ -567,11 +572,11 @@ podrían haber quedado trabados a mitad de una transición.
 | 3 | `room.gd`, puertas, transiciones, `room_db` | ✅ |
 | 4 | Las 7 salas + ascensor + validador | ✅ |
 | 5 | HUD + overlay de mapa | ✅ |
-| 6 | Ambientación: oscuridad, lámparas, props, carteles | ✅ |
+| 6 | Ambientación: oscuridad, mínimo 3 lámparas activas por sala, props, carteles | ✅ |
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
 | 8 | Pulido: pausa, título, "CONTINUARÁ" | ✅ |
 
-**MVP completo.** Partida jugable de principio a fin: título → 7 salas en 2 niveles →
+**MVP completo.** Partida jugable de principio a fin: título → 13 salas en 4 niveles →
 boss → DASH → hueco de Biolab → esclusa → "CONTINUARÁ…".
 
 ---

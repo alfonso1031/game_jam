@@ -41,6 +41,7 @@ func _run() -> void:
 	await _test_every_enemy()
 	await _test_drop_rules()
 	await _test_rooms()
+	await _test_room_lighting()
 	await _test_progression()
 	_report()
 
@@ -411,6 +412,31 @@ func _test_progression() -> void:
 	_check(not overlapped, "ninguna sala del mapa se dibuja encima de otra")
 	overlay.queue_free()
 	await get_tree().process_frame
+
+func _test_room_lighting() -> void:
+	for room_id in RoomDB.ROOMS:
+		var room_data: Dictionary = RoomDB.ROOMS[room_id]
+		var scene: PackedScene = load(room_data["scene"])
+		var room: Node = scene.instantiate()
+		var active_count := 0
+		var has_overlap := false
+		var blocks_door_lane := false
+		for side_value in ["n", "s", "e", "o"]:
+			var side: String = side_value
+			var active_indices: Array = room.get("lamps_%s" % side)
+			var dead_indices: Array = room.get("dead_lamps_%s" % side)
+			active_count += active_indices.size()
+			for index in active_indices:
+				if index in dead_indices:
+					has_overlap = true
+			var door_side: String = side.to_upper()
+			var door_index: int = 6 if side == "n" or side == "s" else 3
+			if room_data["doors"].has(door_side) and door_index in active_indices:
+				blocks_door_lane = true
+		_check(active_count >= 3, "%s tiene al menos tres focos activos" % room_id)
+		_check(not has_overlap, "%s no declara el mismo foco activo y averiado" % room_id)
+		_check(not blocks_door_lane, "%s deja libre el centro de las paredes con puerta" % room_id)
+		room.free()
 
 # --- Utilidades ---
 
