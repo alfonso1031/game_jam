@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://ui/map_overlay.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="5"]
-[ext_resource type="PackedScene" path="res://ui/ending.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://ui/run_summary.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://ui/inventory_ui.tscn" id="7"]
 
 [node name="Main" type="Node2D"]
@@ -42,10 +42,10 @@ layer = 20
 
 [node name="PauseMenu" parent="PauseLayer" instance=ExtResource("5")]
 
-[node name="EndingLayer" type="CanvasLayer" parent="."]
+[node name="SummaryLayer" type="CanvasLayer" parent="."]
 layer = 30
 
-[node name="Ending" parent="EndingLayer" instance=ExtResource("6")]
+[node name="RunSummary" parent="SummaryLayer" instance=ExtResource("6")]
 
 [node name="FadeLayer" type="CanvasLayer" parent="."]
 layer = 10

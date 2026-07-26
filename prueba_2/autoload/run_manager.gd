@@ -13,6 +13,8 @@ var completed_floors: Dictionary = {}
 var parts_consumed: Array[String] = []
 var parts_sacrificed: Array[String] = []
 var active := false
+var end_reason: StringName = &""
+var last_summary: Dictionary = {}
 
 
 func _ready() -> void:
@@ -33,6 +35,8 @@ func start_new_run(seed_value: int = -1) -> void:
 	completed_floors.clear()
 	parts_consumed.clear()
 	parts_sacrificed.clear()
+	end_reason = &""
+	last_summary.clear()
 	active = true
 	run_started.emit(current_seed)
 	map_generated.emit(current_map)
@@ -50,11 +54,23 @@ func complete_floor(floor_id: StringName) -> bool:
 
 func end_run(reason: StringName) -> Dictionary:
 	if not active:
-		return {}
+		return last_summary.duplicate(true)
 	active = false
-	var result := {"reason": reason}
-	run_ended.emit(result)
-	return result
+	end_reason = reason
+	last_summary = summary()
+	run_ended.emit(last_summary.duplicate(true))
+	return last_summary.duplicate(true)
+
+
+func summary() -> Dictionary:
+	return {
+		"reason": end_reason,
+		"zone": "CONTENCIÓN",
+		"rooms_visited": GameState.visited.size(),
+		"consumed": parts_consumed.duplicate(),
+		"sacrificed": parts_sacrificed.duplicate(),
+		"seed": current_seed,
+	}
 
 
 func pay_grate_cost(slot_index: int, confirm_lethal: bool = false) -> StringName:

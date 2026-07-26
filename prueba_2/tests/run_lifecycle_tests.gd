@@ -52,6 +52,18 @@ func _run() -> void:
 	_check(RunManager.pay_grate_cost(-1, true) == &"death", "confirmar permite morir")
 
 	RunManager.start_new_run(777)
+	GameState.visited["C_00"] = true
+	RunManager.parts_consumed.append("serrated_jaw")
+	RunManager.parts_sacrificed.append("scaled_skin")
+	var summary: Dictionary = RunManager.end_run(&"death")
+	_check(summary["zone"] == "CONTENCIÓN", "resume zona")
+	_check(summary["rooms_visited"] == 1, "cuenta salas")
+	_check(summary["consumed"] == ["serrated_jaw"], "lista comidas")
+	_check(summary["sacrificed"] == ["scaled_skin"], "lista sacrificadas")
+	_check(summary["seed"] == 777, "muestra seed")
+	_check(not RunManager.active, "terminar desactiva la partida")
+
+	RunManager.start_new_run(777)
 	var room_host := Node2D.new()
 	var player := Node2D.new()
 	var fade := ColorRect.new()
@@ -82,6 +94,22 @@ func _run() -> void:
 	room_host.queue_free()
 	player.queue_free()
 	fade.queue_free()
+	await get_tree().process_frame
+
+	var summary_scene: PackedScene = load("res://ui/run_summary.tscn")
+	var summary_ui: Control = summary_scene.instantiate()
+	add_child(summary_ui)
+	RunManager.start_new_run(5150)
+	GameState.visited["C_00"] = true
+	RunManager.end_run(&"death")
+	_check(summary_ui.visible, "el resumen aparece al terminar")
+	_check(get_tree().paused, "el resumen pausa la partida")
+	_check(
+		summary_ui.get_node("Panel/Content/Seed").text == "SEED · 5150",
+		"la vista muestra la seed reproducible"
+	)
+	get_tree().paused = false
+	summary_ui.queue_free()
 	await get_tree().process_frame
 	_finish()
 

@@ -35,12 +35,14 @@ func _close() -> void:
 
 func _restart() -> void:
 	get_tree().paused = false
-	GameState.reset_run()
-	get_tree().change_scene_to_file("res://game/main.tscn")
+	RunManager.start_new_run()
+	get_tree().reload_current_scene()
 
 func _to_title() -> void:
 	get_tree().paused = false
+	RunManager.active = false
 	GameState.reset_run()
+	Inventory.reset_run()
 	get_tree().change_scene_to_file("res://ui/title.tscn")
 
 func _quit() -> void:
