@@ -40,12 +40,33 @@ func _run() -> void:
 	await _test_every_part()
 	await _test_every_enemy()
 	await _test_drop_rules()
+	await _test_room_templates()
 	await _test_rooms()
 	await _test_room_lighting()
 	await _test_progression()
 	_report()
 
 # --- Pruebas ---
+
+
+func _test_room_templates() -> void:
+	var fixtures: Array = [
+		["E"], ["N"], ["O"], ["S"],
+		["N", "S"], ["E", "O"], ["O", "N"], ["S", "E"],
+		["E", "S", "O"], ["N", "E", "O"], ["N", "E", "S"], ["N", "S", "O"],
+		["O", "N", "E", "S"],
+	]
+	for doors_value: Variant in fixtures:
+		var doors: Array[String] = []
+		doors.assign(doors_value)
+		var template: Dictionary = RoomDB.template_for(doors)
+		_check(not template.is_empty(), "hay plantilla para %s" % [doors])
+		if not template.is_empty():
+			_check(
+				ResourceLoader.exists(template["background"]),
+				"fondo de plantilla existe para %s" % [doors]
+			)
+
 
 func _test_health_halves() -> void:
 	GameState.reset_run()

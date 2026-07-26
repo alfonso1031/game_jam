@@ -2,6 +2,22 @@ extends Node
 
 const OPPOSITE := {"N": "S", "S": "N", "E": "O", "O": "E"}
 
+const TEMPLATES := {
+	"E": {"background": "res://assets/environment/rooms/room_1door_E.png"},
+	"N": {"background": "res://assets/environment/rooms/room_1door_N.png"},
+	"O": {"background": "res://assets/environment/rooms/room_1door_O.png"},
+	"S": {"background": "res://assets/environment/rooms/room_1door_S.png"},
+	"NS": {"background": "res://assets/environment/rooms/room_2door_NS.png"},
+	"EO": {"background": "res://assets/environment/rooms/room_2door_OE.png"},
+	"NO": {"background": "res://assets/environment/rooms/room_2door_ON.png"},
+	"ES": {"background": "res://assets/environment/rooms/room_2door_SE.png"},
+	"ESO": {"background": "res://assets/environment/rooms/room_3door_ESO.png"},
+	"NEO": {"background": "res://assets/environment/rooms/room_3door_NEO.png"},
+	"NES": {"background": "res://assets/environment/rooms/room_3door_NES.png"},
+	"NSO": {"background": "res://assets/environment/rooms/room_3door_NSO.png"},
+	"NESO": {"background": "res://assets/environment/rooms/room_4door_ONES.png"},
+}
+
 const ROOMS := {
 	"L3_CELDA": {
 		"level": -3,
@@ -125,6 +141,16 @@ const ROOMS := {
 
 func _ready() -> void:
 	_validate()
+
+
+func template_for(directions: Array[String]) -> Dictionary:
+	var key_parts: Array[String] = directions.duplicate()
+	key_parts.sort_custom(func(a: String, b: String) -> bool:
+		return "NESO".find(a) < "NESO".find(b)
+	)
+	var template: Dictionary = TEMPLATES.get("".join(key_parts), {})
+	return template
+
 
 func _validate() -> void:
 	for room_id in ROOMS:
