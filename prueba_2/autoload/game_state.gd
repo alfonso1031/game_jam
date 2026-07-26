@@ -2,6 +2,7 @@ extends Node
 
 const PartsDB := preload("res://core/parts_db.gd")
 
+@warning_ignore("unused_signal")
 signal room_changed(room_id: String)
 signal ability_gained(id: String)
 signal health_changed(halves: int)
@@ -45,6 +46,7 @@ var _base_max_halves: int = BASE_MAX_HEALTH_HALVES
 
 var max_health: int:
 	get:
+		@warning_ignore("integer_division")
 		return max_health_halves / HALVES_PER_HEART
 
 var health: int:

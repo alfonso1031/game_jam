@@ -2,6 +2,7 @@ extends RefCounted
 
 const OPPOSITE: Dictionary = {"N": "S", "S": "N", "E": "O", "O": "E"}
 
+@warning_ignore("shadowed_global_identifier")
 var seed: int
 var attempt: int
 var floor_id: StringName = &"contencion"
