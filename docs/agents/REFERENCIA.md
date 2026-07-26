@@ -2,7 +2,9 @@
 
 Material de consulta: medidas, recetas y convenciones. Las **reglas duras** y el flujo de
 verificación están en [`AGENTS.md`](../../AGENTS.md), en la raíz del repositorio — ese
-archivo se lee primero.
+archivo se lee primero. Para conocer qué está implementado, qué valores están vigentes y
+qué trabajo sigue aprobado, consultar antes
+[`ESTADO_ACTUAL.md`](ESTADO_ACTUAL.md); esta referencia no reemplaza ese contrato.
 
 ---
 

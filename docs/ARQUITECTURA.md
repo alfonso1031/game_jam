@@ -1,11 +1,12 @@
 # SLIME ESCAPE — Arquitectura
 
 Juego 2D cenital hecho en **Godot 4.7.1**. Un slime recién liberado escapa de un
-laboratorio abandonado subiendo de nivel en nivel. Implementación del plan descrito en
-[PLAN.md](PLAN.md).
+laboratorio abandonado subiendo de nivel en nivel.
 
 > Si sos un agente de IA trabajando en este repo, leé primero [AGENTS.md](../AGENTS.md):
-> tiene las reglas duras, los comandos de verificación y los errores ya cometidos.
+> tiene las reglas duras y el flujo de verificación. El contrato jugable consolidado,
+> sin decisiones históricas solapadas, está en
+> [agents/ESTADO_ACTUAL.md](agents/ESTADO_ACTUAL.md).
 
 - **Proyecto activo:** `prueba_2/`
 - **Escena de arranque:** `res://ui/title.tscn` (la partida vive en `res://game/main.tscn`)
@@ -626,7 +627,8 @@ BUSCA ESQUINA → FIJA POSICIÓN → EMBESTIDA → RECUPERA → BUSCA OTRA ESQUI
 - **FIJA POSICIÓN:** se detiene, mira al jugador y dibuja una línea discontinua hasta su
   posición. No muestra texto que anuncie el estado.
 - **EMBESTIDA:** congela esa posición al empezar y se lanza hacia ella sin corregir el
-  rumbo. Solo este estado aplica `1 HP` de contacto y retroceso.
+  rumbo. Solo este estado aplica un impacto de 1 corazón (`2 HP` de la barra) y
+  retroceso.
 - **RECUPERA:** frena antes de elegir la siguiente esquina.
 
 Tres fases según vida aceleran desplazamiento/embestida y reducen aviso/recuperación:

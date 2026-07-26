@@ -3,8 +3,8 @@
 > **Documento histórico.** Es el plan original con el que se arrancó y se conserva tal
 > cual para poder contrastar lo planeado con lo construido. Varias cosas cambiaron por el
 > camino — sobre todo la estructura de carpetas (§2) y el movimiento del slime (§5), que
-> pasó a ser un impulso cargado. Para el estado real ver
-> [ARQUITECTURA.md](ARQUITECTURA.md).
+> pasó a ser un impulso cargado. Para el contrato actual sin decisiones solapadas ver
+> [agents/ESTADO_ACTUAL.md](agents/ESTADO_ACTUAL.md).
 
 Juego 2D cenital. Slime recién liberado escapa de un laboratorio abandonado subiendo
 de nivel en nivel. Salas grandes conectadas por puertas, mapa/HUD que indica nivel y

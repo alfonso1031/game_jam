@@ -1,5 +1,11 @@
 # Especificación de arte — Slime Escape
 
+> Este archivo es el catálogo técnico amplio de arte. El alcance jugable actual y el
+> estado real de cada asset se consultan en
+> [`../../docs/agents/ESTADO_ACTUAL.md`](../../docs/agents/ESTADO_ACTUAL.md). Que una
+> criatura o pieza aparezca listada aquí no significa que esté implementada ni aprobada
+> como siguiente tarea.
+
 Documento para pasar a diseño. Todas las medidas salen del código actual: las
 formas primitivas que se ven ahora ya están ajustadas al tamaño de las hitboxes
 y a la legibilidad en pantalla, así que **el arte tiene que respetar la silueta

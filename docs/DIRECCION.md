@@ -1,32 +1,17 @@
 # DIRECCIÓN — Humano o Monstruo
 
-Documento de diseño. Fija **de qué va el juego** y qué se recorta para llegar ahí.
-Es par de [`PLAN.md`](PLAN.md): el PLAN describe el MVP que ya se construyó, este
-describe hacia dónde gira. Donde se contradigan, manda este.
+> **Documento de exploración futura.** No define el estado jugable actual. Las cifras y
+> reglas vigentes están consolidadas en
+> [`agents/ESTADO_ACTUAL.md`](agents/ESTADO_ACTUAL.md), que manda ante cualquier
+> contradicción. Este archivo conserva únicamente la dirección temática para una
+> iteración posterior.
 
-Estado: **Contención procedural en implementación.** Las secciones de humanidad y cuatro
-zonas se conservan como exploración futura; no reemplazan el contrato jugable actual.
-
-## 0 · Contrato vigente del primer piso
-
-- Alcance: solo `NIVEL -3 · CONTENCIÓN`; -2, -1 y 0 quedan para iteraciones futuras.
-- Se mantienen **seis slots genéricos**. Comer, perder o sacrificar una parte libera el
-  slot; el jugador vuelve a elegir con lo siguiente que encuentre.
-- Máximo `15 HP`, inicio `5 HP`; cada HP equivale a medio corazón. Comer cura `+1 HP`.
-- Morir termina la partida actual y muestra un resumen; no hay checkpoint ni respawn.
-- Las rejillas **no usan `squeeze` ni un ítem adicional**: cuestan una parte equipada o
-  `1 HP`. A `1 HP` se confirma y el jugador puede elegir morir.
-- Ruta principal de 6–8 salas, máximo 12. Contenido normal: fácil 40 %, difícil 30 %,
-  vacía 20 %, cierre 10 %.
-- Rejilla en 60 % de combates elegibles, máximo una por origen, mínimo una si hay combate
-  y destinos sin compartir. Destino: vacío 40 %, combate 20 %, loot 40 %.
-
-Este bloque manda sobre cualquier propuesta anterior que hable de cuatro slots fijos,
-irreversibilidad, coste permanente o requisito `squeeze`.
+Estado: la idea Humano/Monstruo y las cuatro zonas no están implementadas ni aprobadas
+como siguiente tarea automática.
 
 ---
 
-## 1 · La decisión
+## 1 · La decisión futura
 
 Todo el juego es una pregunta, repetida cuatro veces:
 

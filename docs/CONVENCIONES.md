@@ -6,6 +6,7 @@ verdad, se cambia el documento primero y el código después.
 
 Documentos relacionados: [ARQUITECTURA.md](ARQUITECTURA.md) explica *cómo está construido*
 el juego; [`AGENTS.md`](../AGENTS.md) es el flujo operativo de verificación;
+[agents/ESTADO_ACTUAL.md](agents/ESTADO_ACTUAL.md) es la fuente única del contrato vigente;
 [agents/REFERENCIA.md](agents/REFERENCIA.md) tiene las medidas y recetas concretas.
 
 ---
@@ -141,7 +142,9 @@ autoridades. No existe persistencia en disco, checkpoint ni respawn.
   desde `Variant` (`var x := clamp(...)`) rompe el arranque. Va `var x: float = clamp(...)`.
 - Comentarios en **español**, solo donde el "por qué" no se ve en el código.
 - Nada de `print()` de depuración en lo que se entrega.
-- Sin assets de arte: todo con `Polygon2D`, `ColorRect`, `_draw()` y `GradientTexture2D`.
+- Los assets autorados viven en `prueba_2/assets/` y se versionan junto con sus `.import`.
+  `Polygon2D`, `ColorRect`, `_draw()` y `GradientTexture2D` quedan como recursos
+  procedurales o fallback intencional, no como prohibición de usar arte.
 
 ---
 
