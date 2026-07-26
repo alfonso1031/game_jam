@@ -40,6 +40,10 @@ func _run() -> void:
 		"la carga completa dura cerca de 1.08 s"
 	)
 
+	var visual := await _spawn_player(scene)
+	visual.position = Vector2(0, 600)
+	_test_deformation(visual)
+
 	await _cleanup()
 	scene = null
 	_finish()
@@ -61,6 +65,64 @@ func _advance_until_recovery(player: Node) -> PackedFloat32Array:
 		player._advance_launch(FRAME_TIME)
 		samples.append(before.distance_to(player.position))
 	return samples
+
+
+func _test_deformation(player: Node) -> void:
+	var body := player.get_node("Body") as Polygon2D
+	var collision := player.get_node("CollisionShape2D") as CollisionShape2D
+	var base_points: PackedVector2Array = body.polygon.duplicate()
+	var initial_position: Vector2 = player.position
+
+	player._begin_charge(Vector2.RIGHT)
+	player._update_charge(1.0)
+	player._update_visual(FRAME_TIME)
+	_assert_true(
+		_max_x(body.polygon) > _max_x(base_points) + 10.0,
+		"la parte frontal del slime se estira al cargar"
+	)
+	_assert_close(
+		player.position.distance_to(initial_position),
+		0.0,
+		0.01,
+		"cargar no traslada el cuerpo físico"
+	)
+	_assert_close(
+		(collision.shape as CircleShape2D).radius,
+		45.0,
+		0.01,
+		"la deformación no cambia la colisión"
+	)
+
+	player._begin_recovery(0.0)
+	player._state = player.State.IDLE
+	for _frame in range(90):
+		player._update_visual(FRAME_TIME)
+	_assert_points_close(body.polygon, base_points, 0.75, "el cuerpo vuelve a reposo")
+
+
+func _max_x(points: PackedVector2Array) -> float:
+	var result := -INF
+	for point in points:
+		result = maxf(result, point.x)
+	return result
+
+
+func _assert_points_close(
+	actual: PackedVector2Array,
+	expected: PackedVector2Array,
+	tolerance: float,
+	label: String
+) -> void:
+	if actual.size() != expected.size():
+		failures += 1
+		push_error("%s: cantidad de puntos distinta" % label)
+		return
+	for index in range(actual.size()):
+		if actual[index].distance_to(expected[index]) <= tolerance:
+			continue
+		failures += 1
+		push_error("%s: el punto %d no volvió a reposo" % [label, index])
+		return
 
 
 func _assert_uniform(

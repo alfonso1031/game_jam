@@ -101,6 +101,9 @@ var _dash_cd := 0.0
 var _invuln := 0.0
 var _knockback := Vector2.ZERO
 var _breathe := 0.0
+var _body_base := PackedVector2Array()
+var _core_base := PackedVector2Array()
+var _crawl_phase := 0.0
 
 # --- Partes equipadas ---
 # Buff activo (Piel Escamada, Garras Silenciosas, Placa de Cadera...).
@@ -123,6 +126,8 @@ var _ram_hit_cd := 0.0
 var _rammed: Dictionary = {}
 
 func _ready() -> void:
+	_body_base = body.polygon.duplicate()
+	_core_base = core.polygon.duplicate()
 	GameState.room_changed.connect(_on_room_changed)
 	Inventory.slots_changed.connect(_refresh_dash_charges)
 	_refresh_dash_charges()
@@ -665,19 +670,62 @@ func _apply_knockback(delta: float) -> void:
 
 # --- Presentación ---
 
+func _deform_points(
+	base: PackedVector2Array,
+	charge: float,
+	phase: float,
+	launching: bool
+) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	for point: Vector2 in base:
+		var normalized_x := clampf(point.x / 45.0, -1.0, 1.0)
+		var front := maxf(normalized_x, 0.0)
+		var tail := maxf(-normalized_x, 0.0)
+		var x := point.x + front * front * charge * 30.0
+		x += tail * charge * 8.0
+		var belly := 1.0 + charge * 0.10 * (1.0 - absf(normalized_x))
+		var wave := sin(phase - normalized_x * PI) * 4.0 if launching else 0.0
+		result.append(Vector2(x + wave, point.y * belly))
+	return result
+
+
+func _lerp_points(
+	current: PackedVector2Array,
+	target: PackedVector2Array,
+	weight: float
+) -> PackedVector2Array:
+	if current.size() != target.size():
+		return target.duplicate()
+	var result := PackedVector2Array()
+	for index in range(target.size()):
+		result.append(current[index].lerp(target[index], weight))
+	return result
+
+
 func _update_visual(delta: float) -> void:
 	var target_scale := Vector2.ONE
 	var target_offset := Vector2.ZERO
+	var charge := pow(_charge_power(), 0.75) if _state == State.CHARGING else 0.0
+	var launching := _state == State.LAUNCHING
+	if launching:
+		_crawl_phase += delta * 9.0
+
+	if _state == State.CHARGING or launching:
+		body.polygon = _deform_points(_body_base, charge, _crawl_phase, launching)
+		core.polygon = _deform_points(_core_base, charge * 0.65, _crawl_phase, launching)
+	else:
+		var point_smoothing := 1.0 - exp(-18.0 * delta)
+		body.polygon = _lerp_points(body.polygon, _body_base, point_smoothing)
+		core.polygon = _lerp_points(core.polygon, _core_base, point_smoothing)
 
 	match _state:
 		State.CHARGING:
 			# Se comprime en el eje del lanzamiento y retrocede como un resorte.
 			# La curva hace que la compresión gane fuerza cerca de la carga plena.
-			var power: float = pow(_charge_power(), 0.75)
-			target_scale = Vector2(1.0 - power * 0.22, 1.0 + power * 0.16)
-			target_offset = -_charge_dir * power * 14.0
 			body.rotation = lerp_angle(body.rotation, _charge_dir.angle(), 1.0 - exp(-14.0 * delta))
-		State.LAUNCHING, State.DASHING, State.PART_DASH:
+		State.LAUNCHING:
+			body.rotation = lerp_angle(body.rotation, _facing.angle(), 1.0 - exp(-14.0 * delta))
+		State.DASHING, State.PART_DASH:
 			# El estiramiento sigue la velocidad real: se afila al salir y se
 			# redondea solo mientras frena, en vez de un valor fijo todo el vuelo.
 			target_scale = Vector2(1.0 + _speed_ratio * 0.36, 1.0 - _speed_ratio * 0.26)
@@ -694,8 +742,12 @@ func _update_visual(delta: float) -> void:
 
 	# Suavizado exponencial: independiente del framerate.
 	var smoothing: float = 1.0 - exp(-18.0 * delta)
-	body.scale = body.scale.lerp(target_scale, smoothing)
-	body.position = body.position.lerp(target_offset, smoothing)
+	if _state == State.CHARGING or launching:
+		body.scale = Vector2.ONE
+		body.position = Vector2.ZERO
+	else:
+		body.scale = body.scale.lerp(target_scale, smoothing)
+		body.position = body.position.lerp(target_offset, smoothing)
 
 	core.modulate.a = 1.0 if _state == State.DASHING else 0.6 + sin(_breathe * 3.0) * 0.2
 	# Parpadeo durante los frames de invulnerabilidad.
