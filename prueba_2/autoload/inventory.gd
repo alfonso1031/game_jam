@@ -147,6 +147,14 @@ func consume_slot(index: int) -> bool:
 	_digest(id)
 	return true
 
+
+func consume_loose_duplicate(part_id: String) -> bool:
+	if not PartsDB.exists(part_id) or not has_part(part_id):
+		return false
+	_digest(part_id)
+	return true
+
+
 func _digest(part_id: String) -> void:
 	GameState.heal_halves(2)
 	if PartsDB.is_boss_part(part_id):
