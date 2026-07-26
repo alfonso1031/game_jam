@@ -297,10 +297,14 @@ func _draw_room(
 
 	draw_rect(rect, fill, true)
 	draw_rect(rect, border, false, 4.0 if room_id == GameState.current_room else 2.0)
-	for direction: String in data["doors"]:
-		var target_id: String = data["doors"][direction]
-		if visible_ids.has(target_id):
-			_draw_door_notch(rect, direction, border)
+	for connections: Dictionary in [
+		data.get("doors", {}),
+		data.get("entrances", {}),
+	]:
+		for direction: String in connections:
+			var target_id: String = connections[direction]
+			if visible_ids.has(target_id):
+				_draw_door_notch(rect, direction, border)
 
 	if not visited:
 		draw_string(

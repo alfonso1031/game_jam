@@ -76,9 +76,7 @@ func is_cleared() -> bool:
 
 
 func _build_background() -> void:
-	var doors: Dictionary = _room_data["doors"]
-	var directions: Array[String] = []
-	directions.assign(doors.keys())
+	var directions := _opening_directions()
 	var template: Dictionary = RoomDB.template_for(directions)
 	assert(not template.is_empty(), "No existe fondo para %s" % [directions])
 	var background := Sprite2D.new()
@@ -94,22 +92,36 @@ func _build_background() -> void:
 
 func _build_walls_and_doors() -> void:
 	var doors: Dictionary = _room_data["doors"]
-	_build_horizontal_wall("N", doors.has("N"))
-	_build_horizontal_wall("S", doors.has("S"))
-	_build_vertical_wall("O", doors.has("O"))
-	_build_vertical_wall("E", doors.has("E"))
+	var openings := _opening_directions()
+	_build_horizontal_wall("N", openings.has("N"))
+	_build_horizontal_wall("S", openings.has("S"))
+	_build_vertical_wall("O", openings.has("O"))
+	_build_vertical_wall("E", openings.has("E"))
 	for direction in ["N", "E", "S", "O"]:
-		if not doors.has(direction):
+		if not openings.has(direction):
 			continue
 		var door: Area2D = DoorScene.instantiate()
 		door.name = "Door%s" % direction
 		door.position = DOOR_POSITIONS[direction]
-		door.direction = direction
+		door.configure(direction, doors.has(direction))
 		add_child(door)
 		var spawn := Marker2D.new()
 		spawn.name = "Spawn%s" % direction
 		spawn.position = SPAWN_POSITIONS[direction]
 		add_child(spawn)
+
+
+func _opening_directions() -> Array[String]:
+	var result: Array[String] = []
+	for source: Dictionary in [
+		_room_data.get("doors", {}),
+		_room_data.get("entrances", {}),
+	]:
+		for direction: String in source:
+			if not result.has(direction):
+				result.append(direction)
+	result.sort()
+	return result
 
 
 func _build_horizontal_wall(direction: String, has_door: bool) -> void:
@@ -205,40 +217,58 @@ func _build_story_content() -> void:
 			String(_room_data.get("reward_part_id", ""))
 		)
 		add_child(source)
+	elif (
+		role == &"grate_destination"
+		and _room_data.get("content_type", &"") == &"loot"
+	):
+		var loot_source: Node2D = BodySourceScene.instantiate()
+		loot_source.name = "LootSource"
+		loot_source.position = ROOM_CENTER
+		loot_source.configure(
+			String(_room_data["id"]),
+			String(_room_data.get("reward_part_id", ""))
+		)
+		add_child(loot_source)
 
 
 func _build_grate() -> void:
 	var room_id: String = String(_room_data["id"])
 	var target_id: String = String(_room_data.get("grate_target", ""))
-	var requires_cost := not target_id.is_empty()
 	if target_id.is_empty():
-		target_id = String(_room_data.get("grate_source", ""))
-	if target_id.is_empty():
+		var source_id := String(_room_data.get("grate_source", ""))
+		if source_id.is_empty():
+			return
+		var arrival_direction := String(
+			_room_data.get("grate_arrival_direction", "")
+		)
+		assert(SPAWN_POSITIONS.has(arrival_direction))
+		var arrival_spawn := Marker2D.new()
+		arrival_spawn.name = "GrateSpawn"
+		arrival_spawn.position = SPAWN_POSITIONS[arrival_direction]
+		add_child(arrival_spawn)
 		return
 	var direction: String = String(_room_data.get("grate_direction", ""))
 	assert(DOOR_POSITIONS.has(direction), "Rejilla sin pared válida en %s" % room_id)
 	assert(
-		not _room_data["doors"].has(direction),
+		not _opening_directions().has(direction),
 		"Rejilla comparte pared en %s" % room_id
 	)
 
 	var grate: Area2D = GrateScene.instantiate()
 	grate.name = "Grate"
 	grate.position = DOOR_POSITIONS[direction]
-	grate.configure(room_id, target_id, requires_cost, direction)
+	grate.configure(room_id, target_id, true, direction)
 	add_child(grate)
-
-	var spawn := Marker2D.new()
-	spawn.name = "GrateSpawn"
-	spawn.position = SPAWN_POSITIONS[direction]
-	add_child(spawn)
 
 
 func _direction_to(target_id: String) -> String:
-	var doors: Dictionary = _room_data.get("doors", {})
-	for direction: String in doors:
-		if String(doors[direction]) == target_id:
-			return direction
+	for source: Dictionary in [
+		_room_data.get("doors", {}),
+		_room_data.get("entrances", {}),
+	]:
+		for direction: String in source:
+			if String(source[direction]) == target_id:
+				return direction
 	return ""
 
 

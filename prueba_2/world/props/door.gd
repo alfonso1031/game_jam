@@ -5,6 +5,7 @@ extends Area2D
 const OUTWARD_ROTATION := {"E": 0.0, "O": PI, "N": -PI / 2.0, "S": PI / 2.0}
 
 @export var direction: String = "E"
+var traversable := true
 
 # Empieza desarmada: si la sala carga con el jugador encima de la puerta
 # (viene de la puerta equivalente de la sala anterior) no debe dispararse.
@@ -15,6 +16,7 @@ var _sealed := false
 @onready var seal_collision: CollisionShape2D = $SealBody/CollisionShape2D
 
 func _ready() -> void:
+	_sealed = not traversable
 	rotation = OUTWARD_ROTATION.get(direction, 0.0)
 	body_exited.connect(_on_body_exited)
 	_apply_seal_visual()
@@ -24,8 +26,13 @@ func _ready() -> void:
 		return
 	_armed = get_overlapping_bodies().is_empty()
 
+func configure(value: String, can_traverse: bool) -> void:
+	direction = value
+	traversable = can_traverse
+
+
 func set_sealed(value: bool) -> void:
-	_sealed = value
+	_sealed = value or not traversable
 	_apply_seal_visual()
 
 # El arte de fondo ya dibuja el hueco de la puerta; acá solo se marca el
@@ -42,7 +49,7 @@ func _on_body_exited(_body: Node) -> void:
 	_armed = true
 
 func _on_body_entered(body: Node) -> void:
-	if _sealed or not _armed or not body.is_in_group("player"):
+	if not traversable or _sealed or not _armed or not body.is_in_group("player"):
 		return
 	if RunManager.current_map == null:
 		return
