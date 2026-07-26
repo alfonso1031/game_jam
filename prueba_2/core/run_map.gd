@@ -104,7 +104,7 @@ func can_reach(from_id: String, target_id: String) -> bool:
 	var pending: Array[String] = [from_id]
 	var visited: Dictionary = {}
 	while not pending.is_empty():
-		var current := pending.pop_back()
+		var current: String = pending.pop_back()
 		if current == target_id:
 			return true
 		if visited.has(current):
