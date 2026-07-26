@@ -70,7 +70,7 @@ const PARTS := {
 		"slot": SLOT_CABEZA,
 		"tier": TIER_BASIC,
 		"source": "EXP-01 Ciempiés de Agujas",
-		"desc": "Mordisco corto que destruye escudos.",
+		"desc": "Mordisco a corta distancia.",
 		"cooldown": 0.9,
 		"effect": {
 			"kind": EFFECT_MELEE,
@@ -128,7 +128,7 @@ const PARTS := {
 		"slot": SLOT_PIERNA,
 		"tier": TIER_BASIC,
 		"source": "EXP-03 Saurio Escamado",
-		"desc": "Barrido giratorio de 360° que repele a los enemigos.",
+		"desc": "Barrido giratorio de 360 grados que repele a los enemigos alrededor.",
 		"cooldown": 1.8,
 		"effect": {
 			"kind": EFFECT_RADIAL,
@@ -142,7 +142,7 @@ const PARTS := {
 		"slot": SLOT_PIERNA,
 		"tier": TIER_BASIC,
 		"source": "EXP-03 Saurio Escamado",
-		"desc": "Endurecimiento que bloquea el siguiente impacto recibido.",
+		"desc": "Endurecimiento instantáneo que bloquea el siguiente impacto recibido.",
 		"cooldown": 6.0,
 		"effect": {
 			"kind": EFFECT_BUFF,
@@ -283,7 +283,7 @@ const PARTS := {
 		"slot": SLOT_BRAZO,
 		"tier": TIER_BASIC,
 		"source": "EXP-07 Crustáceo Escudo",
-		"desc": "Impacto frontal en cono estrecho.",
+		"desc": "Ataque cónico frontal.",
 		"cooldown": 1.7,
 		"effect": {
 			"kind": EFFECT_MELEE,
@@ -319,7 +319,7 @@ const PARTS := {
 		"slot": SLOT_BRAZO,
 		"tier": TIER_BASIC,
 		"source": "EXP-08 Cuerpo Fúngico",
-		"desc": "Línea de micelio que inmoviliza al primer enemigo tocado.",
+		"desc": "Dispara una línea de raíz que inmoviliza al primer enemigo tocado.",
 		"cooldown": 2.6,
 		"effect": {
 			"kind": EFFECT_BEAM,
@@ -811,6 +811,9 @@ static func is_boss_part(id: String) -> bool:
 
 static func display_name(id: String) -> String:
 	return PARTS.get(id, {}).get("name", id)
+
+static func description(id: String) -> String:
+	return PARTS.get(id, {}).get("desc", "")
 
 static func cooldown_of(id: String) -> float:
 	return PARTS.get(id, {}).get("cooldown", 0.0)
