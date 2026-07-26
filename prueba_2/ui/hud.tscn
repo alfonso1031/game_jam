@@ -28,14 +28,6 @@ offset_right = 388.0
 offset_bottom = 96.0
 mouse_filter = 2
 
-[node name="Caption" type="Label" parent="Health"]
-layout_mode = 0
-offset_right = 160.0
-offset_bottom = 26.0
-theme_override_colors/font_color = Color(0.490196, 0.839216, 0.827451, 1)
-theme_override_font_sizes/font_size = 17
-text = "BIOMASA"
-
 [node name="Track" type="Panel" parent="Health"]
 layout_mode = 0
 offset_top = 30.0
@@ -66,23 +58,3 @@ theme_override_font_sizes/font_size = 19
 text = "5 / 15 HP"
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="LevelLabel" type="Label" parent="."]
-offset_left = 760.0
-offset_top = 20.0
-offset_right = 1160.0
-offset_bottom = 70.0
-theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
-theme_override_font_sizes/font_size = 40
-horizontal_alignment = 1
-text = "NIVEL -3 · CONTENCIÓN"
-
-[node name="RoomLabel" type="Label" parent="."]
-offset_left = 760.0
-offset_top = 68.0
-offset_right = 1160.0
-offset_bottom = 98.0
-theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
-theme_override_font_sizes/font_size = 26
-horizontal_alignment = 1
-text = "Celda de Contención"

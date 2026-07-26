@@ -6,8 +6,6 @@ const MINIMAP_PANEL := Rect2(1660, 20, 240, 180)
 const MINIMAP_MAX_CELL := 42.0
 const HEALTH_FILL_WIDTH := 356.0
 
-@onready var level_label: Label = $LevelLabel
-@onready var room_label: Label = $RoomLabel
 @onready var health_fill: ColorRect = $Health/Fill
 @onready var health_value: Label = $Health/Value
 
@@ -37,22 +35,7 @@ func _refresh_health() -> void:
 	health_fill.size.x = HEALTH_FILL_WIDTH * health_ratio()
 
 func _on_room_changed(_room_id: String) -> void:
-	_refresh_labels()
 	queue_redraw()
-
-func _refresh_labels() -> void:
-	var room_data: Dictionary = _current_room_data()
-	if room_data.is_empty():
-		return
-	var level: int = int(room_data.get("level", -3))
-	var level_name: String = String(room_data.get("level_name", "CONTENCIÓN"))
-	level_label.text = "NIVEL %d · %s" % [level, level_name]
-	if room_data.has("room_name"):
-		room_label.text = room_data["room_name"]
-	else:
-		var role: String = String(room_data.get("role", &"normal"))
-		var content: String = String(room_data.get("content_type", &"empty"))
-		room_label.text = "%s · %s" % [role.capitalize(), content.capitalize()]
 
 func _draw() -> void:
 	if GameState.current_room == "":

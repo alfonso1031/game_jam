@@ -10,37 +10,3 @@ mouse_filter = 2
 script = ExtResource("1")
 
 [node name="BodyPanel" parent="." instance=ExtResource("2")]
-
-[node name="Title" type="Label" parent="."]
-anchor_left = 0.5
-anchor_right = 1.0
-offset_top = 30.0
-offset_bottom = 80.0
-theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
-theme_override_font_sizes/font_size = 36
-horizontal_alignment = 1
-text = "MAPA LOCAL · CONTENCIÓN"
-
-[node name="Legend" type="Label" parent="."]
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -98.0
-offset_bottom = -62.0
-theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
-theme_override_font_sizes/font_size = 18
-horizontal_alignment = 1
-text = "◆ AQUÍ ESTÁS   ▰ VISITADA   ? POSIBLE   ┄ REJILLA"
-
-[node name="Hint" type="Label" parent="."]
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -59.0
-offset_bottom = -25.0
-theme_override_colors/font_color = Color(0.490196, 0.839216, 0.827451, 1)
-theme_override_font_sizes/font_size = 16
-text = "TAB PARA VOLVER · SOLO SE MUESTRA EL PISO ACTUAL"
-horizontal_alignment = 1
