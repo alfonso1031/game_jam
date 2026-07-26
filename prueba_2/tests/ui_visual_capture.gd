@@ -206,6 +206,8 @@ func _prepare_lighting() -> void:
 
 func _prepare_boss_room() -> void:
 	$Background.visible = false
+	# Angry alcanza su postura de embestida cerca del frame 8.
+	_min_frames = 60
 	GameState.reset_run()
 	var map := RunMap.new(9001, 0)
 	map.add_room("BOSS", Vector2i.ZERO, &"boss_choice", &"boss_choice")
@@ -226,6 +228,7 @@ func _prepare_boss_room() -> void:
 	boss.set_physics_process(false)
 	boss.position = Vector2(330, 270)
 	boss.call("_enter_corner_aim")
+	boss.call("_update_sprite_animation")
 
 
 func _prepare_fixture(mode: String) -> void:
