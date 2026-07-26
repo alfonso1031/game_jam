@@ -45,6 +45,9 @@ Preguntas para ubicar algo nuevo:
 
 - `cell_center(c) = Vector2(180, 120) + c * 120 + Vector2(60, 60)`
 - **Carriles de puerta libres:** columna `x = 6` y fila `y = 3` no llevan props sólidos.
+- Rejilla: `grate_direction` reserva una pared sin puerta. `Grate` usa
+  `DOOR_POSITIONS[direction]`, `GrateSpawn` usa el punto interior equivalente y el retorno
+  queda en la pared opuesta.
 - Una puerta por lado como máximo, centrada. El muro se parte en **dos** `ColorRect` +
   **dos** `CollisionShape2D` y el `Area2D` de la puerta va en el medio.
 - **El hueco del muro mide 240 px, no 120.** Las jambas en embudo de `door.tscn` lo
@@ -110,11 +113,24 @@ dead_lamps_s = Array[int]([6])
 ```
 
 Los focos actuales conservan `energy = 1.6` y amplían cobertura con
-`texture_scale = 1.35`. Evitar el carril central de puerta y no usar decals narrativos
+`texture_scale = 1.85`. Evitar el carril central de puerta y no usar decals narrativos
 como fuentes de luz.
 
 `room.gd` los instancia en `_ready()`. Para un prop nuevo: escena en `world/props/`,
 `preload` y un `@export var ... : Array[Vector2i]` en `world/rooms/room.gd`.
+
+### Props de Contención y rejilla
+
+Las salas procedurales no declaran estos props en el `.tscn`: `core/containment_prop_catalog.gd`
+devuelve la receta estable por `room_data["id"]` y `world/rooms/procedural_room.gd` la ensambla.
+Usa solo las ocho celdas seguras y deja libres fila 3/columna 6; `entry` recibe siempre
+`broken_glass_tube` en `(960, 500)` y los roles narrativos no reciben utilería aleatoria.
+
+Las escenas `world/props/containment/` deben conservar el nodo `Sprite`, `footprint()` y una
+colisión de base. Para una rejilla, no crear puertas:
+`RunMap.set_grate(source, target, direction)` registra `grate_target`, `grate_source` y
+paredes opuestas; `procedural_room.gd` instancia ambos extremos dentro de `120 × 120` y
+`Transition.go_via_grate()` coloca al jugador en `GrateSpawn`.
 
 ### Añadir una habilidad
 
@@ -157,13 +173,14 @@ godot --headless --path prueba_2 res://tests/floor_route_tests.tscn
 ```
 
 Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `tooltip`,
-`route` o `tutorial`):
+`route`, `tutorial` o `grate`):
 
 ```powershell
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1280x720 res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- grate user://grate-wall-flow.png 1920x1080
 ```
 
 ### Cambiar movimiento base
@@ -185,14 +202,16 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
 
 ### Ciclo de partida y rejillas
 
-- Nueva partida: `RunManager.start_new_run(seed)`; máximo 15 HP, inicio 5 HP.
+- Nueva partida: `RunManager.start_new_run(seed)`; máximo 15 HP, inicio 7 HP.
 - Completar Contención: `RunManager.complete_floor(&"contencion")`, cura +2 HP una vez.
 - Comer: `TAB` abre el mapa corporal, las flechas seleccionan y `F` llama
-  `Inventory.consume_slot()`. Cura +1 HP y libera el slot.
+  `Inventory.consume_slot()`. Cura +2 HP y libera el slot; `Tab` solo muestra `F · COMER`.
 - Perder/sacrificar: liberan slot y no curan.
 - Cuerpo lleno: el séptimo pickup permanece en el mundo; no existe parte pendiente ni
   pantalla separada con `I`.
-- Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP.
+- Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP. Pagar
+  ejecuta `GameState.unlock_grate(source_id)` para la partida actual; entrar por la fuente
+  desbloqueada o regresar por `grate_source` es gratis.
 - A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
 
 ---

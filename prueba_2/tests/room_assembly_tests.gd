@@ -25,6 +25,9 @@ func _run() -> void:
 	for room_id: String in regression_map.room_ids():
 		var data: Dictionary = regression_map.room(room_id)
 		var room: Node2D = RoomAssembler.build(data)
+		var light := room.get_node("LampN2/Light") as PointLight2D
+		_check(is_equal_approx(light.energy, 1.6), "%s mantiene intensidad de foco" % room_id)
+		_check(is_equal_approx(light.texture_scale, 1.85), "%s amplía radio de foco" % room_id)
 		for direction: String in ["N", "E", "S", "O"]:
 			var expected: bool = data["doors"].has(direction)
 			_check(

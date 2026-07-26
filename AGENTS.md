@@ -171,7 +171,7 @@ lo detectan al instante.
     `RunManager.end_run()` y muestra el resumen; continuar exige una partida nueva.
 
 15. **La iluminación conserva intensidad, no cobertura antigua.** Cada foco usa energía
-    `1.6` y `texture_scale = 1.35`; no bajar intensidad al ampliar el radio. Respetar el
+    `1.6` y `texture_scale = 1.85`; no bajar intensidad al ampliar el radio. Respetar el
     carril central de puertas y no convertir los decals narrativos en luces.
 
 16. **Contención se genera, no se enumera en `RoomDB.ROOMS`.** `MapGenerator` y `RunMap`
@@ -182,7 +182,8 @@ lo detectan al instante.
 17. **Una rejilla nunca requiere `squeeze`.** Si se usa, el jugador elige sacrificar una
     parte equipada o pagar `1 HP`; a `1 HP` la UI debe pedir confirmación y puede matar.
     Máximo una rejilla por sala, destinos exclusivos y mínimo una si el mapa contiene
-    combate elegible.
+    combate elegible. Fuente y retorno usan paredes libres opuestas, caben en `120 × 120`
+    y su destino adyacente se elige `40 %` vacío, `40 %` loot y `20 %` combate.
 
 18. **El mapa de `TAB` es local y procedural.** Lee `RunManager.current_map`, nunca
     `RoomDB.ROOMS`, y debe admitir vecinos N/E/S/O simultáneos. Solo muestra salas

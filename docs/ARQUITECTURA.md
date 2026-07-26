@@ -197,6 +197,13 @@ fijas:
 volver después no la duplica y `reset_run()` la libera para la siguiente partida. Cuerpo,
 gotas, arrastre y charco son PNG transparentes; ninguno tiene colisión.
 
+Las salas de Contención también reciben utilería desde
+`core/containment_prop_catalog.gd`: la receta es determinista por ID de sala y
+`ProceduralRoom` solo instancia las escenas elegidas. `cabinet`, `pipe` y `glass_tube`
+son props reutilizables con colisión limitada a su base; la entrada conserva el
+`broken_glass_tube` narrativo. El catálogo no coloca props sólidos en la fila 3 ni la
+columna 6.
+
 ### Flujo de transición (`transition.gd`)
 
 1. `Door`/`Elevator` detecta al jugador → `Transition.go_to(target_id, dir)`.
@@ -213,12 +220,15 @@ El jugador vive en `main.tscn`, **no** dentro de la sala — sobrevive a los cam
 ### Ciclo de partida y vida
 
 `RunManager.start_new_run(seed)` limpia `GameState`/`Inventory`, genera Contención y
-mantiene todo solo en memoria. Máximo `15 HP`, inicio `5 HP`; cada HP es medio corazón.
-Completar Contención cura `+2 HP` una sola vez. Comer parte cura `+1 HP`; comer, perder o
+mantiene todo solo en memoria. Máximo `15 HP`, inicio `7 HP`; cada HP es medio corazón.
+Completar Contención cura `+2 HP` una sola vez. Comer parte cura `+2 HP`; comer, perder o
 sacrificar libera el slot.
 
-Una rejilla cuesta una parte equipada elegida o `1 HP`, sin bandera `squeeze`. Con `1 HP`
-la UI debe pedir confirmación y el jugador puede elegir morir. A cero no hay respawn:
+Una conexión de rejilla queda modelada en ambos extremos: `grate_target` desde la sala de
+origen y `grate_source` desde su destino. La entrada cuesta una parte equipada elegida o
+`1 HP`, sin bandera `squeeze`; al pagar, `GameState.unlock_grate(source_id)` persiste solo
+durante la partida. El retorno desde el destino no cuesta nada. Con `1 HP` la UI debe pedir
+confirmación y el jugador puede elegir morir. A cero no hay respawn:
 `RunManager.end_run()` emite un resumen con zona, salas, consumidas, sacrificadas y seed.
 
 ---
@@ -258,6 +268,13 @@ orientaciones.
 **Carriles de puerta:** la columna `x = 6` y la fila `y = 3` se dejan libres de props
 sólidos para no bloquear las entradas.
 
+La rejilla no ocupa una celda de prop. `grate_direction` elige una pared sin puerta:
+`Grate` usa `DOOR_POSITIONS[direction]` y `GrateSpawn` el punto interior equivalente.
+Fuente y retorno quedan en paredes opuestas, el PNG conserva su aspecto dentro de
+`120 × 120` y el destino siempre ocupa la celda adyacente. `grate.tscn` es un `Area2D`
+con prompt; abre el selector solo en el origen todavía bloqueado y
+`Transition.go_via_grate()` conserva el mismo fundido de una puerta.
+
 ---
 
 ## 6. Decoración data-driven (`room.gd`)
@@ -284,7 +301,8 @@ dead_lamps_s = Array[int]([6])
 Cada sala mantiene **al menos tres lámparas activas**; las declaradas en `dead_lamps_*`
 no cuentan. La luz se reparte entre paredes sin ocupar el índice central de una pared con
 puerta (`6` en N/S, `3` en E/O). Para aclarar una sala se redistribuyen o agregan focos:
-no se cambia la energía, el radio, el color ni el parpadeo común de `lamp.tscn`.
+no se cambia la energía, el color ni el parpadeo común de `lamp.tscn`. La cobertura global
+usa `texture_scale = 1.85` con energía `1.6`.
 
 Puestas en el suelo se leían como objetos que se pueden recoger; empotradas en la banda de
 muro se leen como instalación del laboratorio. En los muros laterales el aplique se rota
@@ -467,7 +485,8 @@ desde `_process()`.
   Cada tarjeta y la habilidad DASH tienen una curva orgánica hasta el borde del cuerpo.
   `Inventory.slots_changed` retira de inmediato tarjeta, curva y tooltip al liberar slot.
 - Al abrirlo selecciona la primera parte equipada. Las flechas navegan espacialmente
-  entre tarjetas ocupadas y `F` consume la seleccionada para curar medio corazón. La
+  entre tarjetas ocupadas y `F` consume la seleccionada para curar `2 HP`. La interfaz no
+  anuncia la cantidad antes de comer. La
   tarjeta activa se amplía, ilumina su borde y resalta su conexión al slime.
 - El hover abre `PartTooltip` con nombre/descripción de `PartsDB`; la selección por
   teclado lo mantiene anclado a su tarjeta.
@@ -502,6 +521,14 @@ desde `_process()`.
 
 La base lógica es 1920×1080 con stretch `canvas_items`; la captura de regresión también se
 escala a 1280×720 para comprobar clipping.
+
+**`grate_cost_overlay.tscn`**
+- Vive en `GrateLayer` (capa 18), por encima del mapa y del fundido normal, y pertenece al
+  grupo `grate_cost_ui`.
+- Al abrirse pausa la partida y ofrece solo slots ocupados más `½ CORAZÓN`; la tarjeta activa
+  escala a `1.08` y usa borde cálido.
+- Cancelar no cambia estado. Pagar una parte o vida desbloquea la fuente y viaja; el retorno
+  ya desbloqueado no abre el selector.
 
 ---
 
@@ -621,7 +648,7 @@ podrían haber quedado trabados a mitad de una transición.
 | 3 | `RunMap`, generador, ensamblador y transiciones procedurales | ✅ |
 | 4 | Contención: 6–8 hitos, cierres, reconexiones y rejillas | ✅ |
 | 5 | HUD + overlay de mapa | ✅ |
-| 6 | Ambientación: focos a energía 1.6/radio 1.35, cuerpo, sangre y mural | ✅ |
+| 6 | Ambientación: focos a energía 1.6/radio 1.85, cuerpo, sangre y mural | ✅ |
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
 | 8 | Ciclo de muerte sin respawn y resumen reproducible | ✅ |
 | 9 | Barra 5/15, tooltips, cuerpo conectado y mapas local/global | ✅ |
@@ -641,8 +668,10 @@ futuros y no se simulan con salas fijas durante la partida activa.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
 - `tests/ui_visual_capture.tscn` construye fixtures reproducibles y permite capturar
-  `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route` o `tutorial`; el tercer
+  `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route`, `tutorial` o `grate`; el tercer
   argumento fija el tamaño físico final cuando el viewport lógico sigue siendo 1080p.
+  `grate` materializa `CENTER` con su conexión, muestra el prompt y abre el selector con dos
+  partes sin cambiar `GameState.current_room`.
   Para registrar la portada a 1920×1080:
 
   ```powershell

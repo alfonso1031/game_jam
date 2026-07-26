@@ -168,6 +168,26 @@ Todas las salas son la misma caja. Rejilla de **13 × 7 celdas de 120 px**.
 La puerta y el ascensor **necesitan sí o sí los dos estados**: la sala se cierra
 mientras hay enemigos vivos, y el jugador tiene que ver que está encerrado.
 
+### Props ilustrados de Contención ya integrados
+
+Estos PNG entraron como ilustración con alfa y se cargan desde
+`assets/environment/containment/`. Las dimensiones son las originales del archivo; no se
+recortan ni se reescalan al importarlos. La colisión, cuando existe, queda solamente en la
+base visual para que la silueta alta no bloquee al slime de forma invisible.
+
+| Archivo | Dimensiones originales | Uso en sala |
+|---|---:|---|
+| `cabinet.png` | 289 × 248 px | Armario sólido de utilería |
+| `pipe.png` | 328 × 403 px | Tubería sólida de utilería |
+| `glass_tube.png` | 344 × 521 px | Tubo de vidrio sólido |
+| `broken_glass_tube.png` | 344 × 521 px | Tubo narrativo de la entrada; base estrecha |
+| `grate.png` | 445 × 483 px | Conexión mural; se ajusta con aspecto intacto dentro de 120 × 120 |
+
+La rejilla siempre ocupa una pared libre y usa el mismo centro funcional que
+una puerta. Fuente y retorno quedan enfrentados; no se coloca una rejilla en el
+suelo ni sobre una pared que ya tenga puerta. Los focos conservan energía `1.6`
+y usan `texture_scale = 1.85` para ampliar cobertura sin aumentar intensidad.
+
 ### Ambientación por nivel
 
 Cuatro pisos, de abajo arriba. Que se note que el slime va escapando:
