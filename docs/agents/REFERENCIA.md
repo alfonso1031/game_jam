@@ -138,7 +138,8 @@ sensor, porque desde allí el jugador no puede alcanzarlo físicamente.
 ### Boss de Contención
 
 - `role = &"boss_choice"` instancia `BossCore` y `ChimeraArena`; no usa el pool normal.
-- Ciclo: `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`.
+- Ciclo: `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`; `CORNER_AIM` dura
+  `[1.35, 1.08, 0.84]` s según fase y no muestra texto de acción.
 - La posición del jugador se congela al entrar a `POUNCE`; no hay homing durante la
   embestida.
 - `BossCore` usa capa 2, grupos `enemies`/`bosses`, `12 HP` y la firma normal de
@@ -162,7 +163,7 @@ añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **so
 - Nombres y resúmenes: `PartsDB.display_name()` / `PartsDB.description()`. No copiar texto
   a un `.tscn`.
 - Tarjetas: `body_panel.gd` escucha `Inventory.slots_changed`; un slot vacío no conserva
-  ni tarjeta ni curva. Con `TAB` abierto, las flechas recorren solo tarjetas ocupadas y
+  ni tarjeta ni curva. Con `TAB` abierto, `WASD` o flechas recorren solo tarjetas ocupadas y
   `F` consume la seleccionada. La selección debe conservar escala, borde y conexión
   resaltados como una sola señal visual.
 - Mapa local: `map_overlay.gd` lee `RunManager.current_map`, no `RoomDB.ROOMS`.
@@ -225,7 +226,9 @@ Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `toolt
 
 ### Cambiar movimiento base
 
-- Mantener dirección carga; soltar inicia el arrastre.
+- Sin piernas, mantener dirección carga y soltar inicia el arrastre.
+- Cualquier parte de tipo `pierna` cambia a movimiento continuo a `280 px/s`; perder la
+  última restaura la carga. `Inventory` expone el conteo para futuras reglas de una o dos.
 - Rango válido: `112–520 px`, calculado desde el umbral `MIN_CHARGE_TIME = 0.12`.
 - El tramo base avanza uniforme a `CRAWL_SPEED = 480 px/s`; más carga aumenta duración.
 - La deformación de `Body`/`Core` no mueve el `CharacterBody2D` ni cambia el círculo de

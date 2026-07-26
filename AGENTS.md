@@ -152,10 +152,12 @@ lo detectan al instante.
     (`Shift`/`Espacio`). Solo el DASH da invulnerabilidad y apaga el bit 3 para cruzar
     huecos. No unificarlos ni copiar las reglas de uno al otro.
 
-12. **No aflojar el anti-machaque.** Soltar la dirección antes de `MIN_CHARGE_TIME` no
-    lanza y penaliza con `FIZZLE_RECOVERY_TIME`. Es deliberado: golpear teclas no puede
-    equivaler a caminar, porque el movimiento continuo es una habilidad futura (piernas).
-    Igual de deliberado es `WALL_RECOVERY_TIME`: chocar tiene que doler.
+12. **No aflojar el anti-machaque cuando no hay piernas.** Soltar la dirección antes de
+    `MIN_CHARGE_TIME` no lanza y penaliza con `FIZZLE_RECOVERY_TIME`. Al equipar una o más
+    partes cuyo tipo sea `pierna`, el slime sustituye la carga por movimiento continuo a
+    `280 px/s`; perder la última pierna restaura el impulso cargado. El conteo de piernas
+    queda disponible para reglas futuras distintas con una o dos. Igual de deliberado es
+    `WALL_RECOVERY_TIME`: chocar con el impulso tiene que doler.
 
 13. **Tocar las constantes del DASH cambia su alcance.** La velocidad no es constante
     (`_eased_speed()`), así que el alcance es la **integral de la curva**: hoy 382 px.
@@ -210,13 +212,15 @@ lo detectan al instante.
 22. **Solo existen las seis partes equipadas.** `Inventory` mantiene exactamente seis
     slots por compatibilidad interna, pero no hay `pending`, séptimo espacio ni pantalla
     separada con `I`. Si el cuerpo está lleno, el pickup permanece en el mundo. Consumir
-    se hace únicamente desde `TAB`: flechas para elegir una tarjeta ocupada y `F` para
-    comerla.
+    se hace únicamente desde `TAB`: `WASD` o flechas para elegir una tarjeta ocupada y
+    `F` para comerla.
 
 23. **La Quimera cierra Contención.** La sala `boss_choice` instancia un solo
     `BossCore` de `12 HP` y el ciclo `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`.
     `POUNCE` congela la posición del jugador y no corrige rumbo. El boss permanece en
     capa 2 y grupos `enemies`/`bosses`; los ataques normales deben incluir esa capa.
+    `CORNER_AIM` dura `[1.35, 1.08, 0.84]` s según fase. No hay `StateLabel` ni texto que
+    anuncie acciones: la línea discontinua, el objetivo y la barra de vida son el aviso.
     Derrotarlo entrega DASH y `silent_claws`, marca la sala y llama
     `RunManager.complete_floor(&"contencion")`.
 
