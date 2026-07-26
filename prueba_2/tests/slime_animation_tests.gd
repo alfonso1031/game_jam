@@ -48,7 +48,7 @@ func _assert_animation(
 ) -> void:
 	slime.set("_state", state)
 	slime.set("_continuous_moving", continuous_moving)
-	slime._update_sprite_animation()
+	slime.call("_update_sprite_animation")
 	_check(sprite.animation == expected, label)
 
 
