@@ -30,10 +30,13 @@ func _run() -> void:
 	_check(get_tree().paused, "pausa la partida durante la transición")
 	_check(route.get_node("Panel/Status").text.contains("+2 HP"), "muestra la curación obtenida")
 
+	var dismissed_floors: Array[StringName] = []
+	route.dismissed.connect(func(floor_id: StringName) -> void: dismissed_floors.append(floor_id))
 	route.dismiss()
 	await get_tree().process_frame
 	_check(not route.visible, "se puede continuar antes")
 	_check(not get_tree().paused, "continuar devuelve el control")
+	_check(dismissed_floors == [&"contencion"], "al cerrarse avisa qué piso se superó")
 	route.queue_free()
 	await get_tree().process_frame
 	_finish()

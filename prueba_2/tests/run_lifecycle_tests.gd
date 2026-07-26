@@ -140,6 +140,32 @@ func _run() -> void:
 		summary_ui.get_node("Panel/Content/Seed").text == "SEED · 5150",
 		"la vista muestra la seed reproducible"
 	)
+	_check(
+		summary_ui.get_node("Background").texture == summary_ui.BG_DEATH,
+		"morir muestra el fondo de muerte"
+	)
+	_check(
+		summary_ui.get_node("Panel/Content/Title").text == "TE CONTUVIERON",
+		"morir titula la contención"
+	)
+	get_tree().paused = false
+
+	RunManager.start_new_run(5150)
+	GameState.visited["C_00"] = true
+	RunManager.end_run(&"escape")
+	_check(
+		summary_ui.get_node("Background").texture == summary_ui.BG_ESCAPE,
+		"escapar muestra el fondo de fuga"
+	)
+	_check(
+		summary_ui.get_node("Panel/Content/Title").text == "ESCAPASTE",
+		"escapar titula la fuga"
+	)
+
+	var fallback: Dictionary = summary_ui.outcome_for(&"lo_que_sea")
+	_check(fallback["background"] == summary_ui.BG_DEFAULT, "un final sin mapear cae al fondo neutro")
+	_check(fallback["title"] == "PARTIDA TERMINADA", "el final neutro conserva el titular genérico")
+
 	get_tree().paused = false
 	summary_ui.queue_free()
 	await get_tree().process_frame

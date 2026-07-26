@@ -1,5 +1,9 @@
 extends Control
 
+## Se emite al cerrar el aviso de piso superado, sea por temporizador o por tecla.
+## `main.gd` lo usa para terminar la partida con final de escape.
+signal dismissed(floor_id: StringName)
+
 const DISPLAY_DURATION := 3.0
 const FLOOR_ORDER: Array[StringName] = [
 	&"surface",
@@ -12,6 +16,7 @@ const FLOOR_ORDER: Array[StringName] = [
 
 var _display_generation := 0
 var _owns_pause := false
+var _floor_id: StringName = &""
 
 
 func _ready() -> void:
@@ -36,6 +41,7 @@ func dismiss() -> void:
 	if _owns_pause:
 		get_tree().paused = false
 	_owns_pause = false
+	dismissed.emit(_floor_id)
 
 
 func _on_floor_completed(floor_id: StringName, healed_hp: int) -> void:
@@ -45,6 +51,7 @@ func _on_floor_completed(floor_id: StringName, healed_hp: int) -> void:
 		return
 	_display_generation += 1
 	var generation := _display_generation
+	_floor_id = floor_id
 	_owns_pause = not get_tree().paused
 	get_tree().paused = true
 	status.text = "CONTENCIÓN SUPERADA · +%d HP" % healed_hp

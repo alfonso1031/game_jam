@@ -693,6 +693,15 @@ llega a la esclusa. La habilidad abre progresión real, no es decorado.
 permite iniciar una partida nueva o volver al título; nunca restaura vida ni reaparece.
 El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 
+### Fin por escape
+
+Matar al jefe llama a `RunManager.complete_floor(&"contencion")`, que cura y saca el aviso
+`floor_route_overlay`. Al cerrarse ese aviso —por sus 3 s o por tecla— emite
+`dismissed(floor_id)`, y `main.gd` responde con `RunManager.end_run(&"escape")`. Contención
+es el único piso jugable, así que superarlo **termina la partida**: el resumen entra con el
+fondo y el titular de fuga. Si en el futuro hay más pisos, este enlace de `main.gd` es el
+único punto que hay que cambiar.
+
 ---
 
 ## 10. Bugs encontrados y resueltos
@@ -711,9 +720,9 @@ El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 ## 11. Flujo de pantallas y pausa
 
 ```
-title.tscn ──primera tecla/clic──▶ menú ──JUGAR──▶ main.tscn ──morir──▶ run_summary
-     ▲                                             │                       │
-     └────────────────── TÍTULO ◀── pausa ─────────┴───────────────────────┘
+title.tscn ──primera tecla/clic──▶ menú ──JUGAR──▶ main.tscn ──morir────────▶ run_summary
+     ▲                                             │      └──jefe muerto────▶ (muerte/escape)
+     └────────────────── TÍTULO ◀── pausa ─────────┴───────────────────────────────┘
 ```
 
 - **Título** (`ui/title.gd`): llama a `GameState.reset_run()` al entrar, así que volver al
@@ -721,7 +730,18 @@ title.tscn ──primera tecla/clic──▶ menú ──JUGAR──▶ main.tsc
   activar `PlayButton`; ignora la acción `fullscreen` para que `F11` no altere ese flujo.
 - **Pausa** (`ui/pause_menu.gd`, `Esc`): CONTINUAR / REINICIAR / TÍTULO.
 - **Resumen** (`ui/run_summary.gd`): escucha `RunManager.run_ended`, muestra seed y
-  decisiones de la partida, y ofrece nueva partida o título.
+  decisiones de la partida, y ofrece nueva partida o título. La clave `reason` elige
+  fondo, titular y color desde la tabla `OUTCOMES`:
+
+  | `reason` | Fondo en `assets/ui/summary/` | Titular | Lo dispara |
+  |---|---|---|---|
+  | `death` | `run_summary_death.png` | TE CONTUVIERON | `GameState.died` → `main.gd` |
+  | `escape` | `run_summary_escape.png` | ESCAPASTE | cerrar el aviso de Contención superada |
+  | cualquier otra | `run_summary_bg.png` | PARTIDA TERMINADA | reserva; hoy nada lo emite |
+
+  Al aparecer corre una entrada de ~0,5 s (fondo en fundido con zoom de 1,06 a 1,0, velo,
+  panel que sube 40 px y líneas escalonadas); `visible` se pone en `true` antes del tween,
+  así que el resumen no depende de la animación para existir.
 
 **Los overlays comparten `get_tree().paused`**, así que cada uno comprueba el estado antes
 de abrirse: mapa corporal, ruta, pausa y resumen no se apilan entre sí. Todos usan
