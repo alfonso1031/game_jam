@@ -28,9 +28,11 @@ func add_room(
 		"template_id": "",
 		"role": role,
 		"content_type": content_type,
+		"enemy_count": 0,
 		"doors": {},
 		"one_way": {},
 		"grate_target": "",
+		"closure_keep_direction": "",
 	}
 
 
