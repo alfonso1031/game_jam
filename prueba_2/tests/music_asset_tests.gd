@@ -2,7 +2,8 @@ extends Node
 
 const MENU_PATH := "res://assets/audio/music/main_menu.ogg"
 const GAMEPLAY_PATH := "res://assets/audio/music/containment_ambience.ogg"
-const CHIMERA_PATH := "res://assets/bosses/containment_chimera/animations/chimera_seek_00.png"
+const CHIMERA_IDLE_PATH := "res://assets/bosses/containment_chimera/animations/chimera_idle_00.png"
+const CHIMERA_ANGRY_PATH := "res://assets/bosses/containment_chimera/animations/chimera_angry_00.png"
 const ARENA_PATH := "res://assets/environment/containment/chimera_arena.png"
 const TitleScene := preload("res://ui/title.tscn")
 const MainScene := preload("res://game/main.tscn")
@@ -13,7 +14,8 @@ var failures: Array[String] = []
 func _ready() -> void:
 	_check_asset(MENU_PATH, "carga la música del menú")
 	_check_asset(GAMEPLAY_PATH, "carga la música de Contención")
-	_check_texture(CHIMERA_PATH, "carga el sprite de la Quimera")
+	_check_texture(CHIMERA_IDLE_PATH, "carga la animación Idle de la Quimera")
+	_check_texture(CHIMERA_ANGRY_PATH, "carga la animación Angry de la Quimera")
 	_check_texture(ARENA_PATH, "carga el decal de la arena")
 	_check_music_player(TitleScene, MENU_PATH, "menú")
 	_check_music_player(MainScene, GAMEPLAY_PATH, "partida")

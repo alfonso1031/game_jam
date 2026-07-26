@@ -51,8 +51,8 @@ comprobarlo**, no fiarse de esta tabla.
   3072 × 407. **No usar:** los fotogramas están empaquetados con anchos
   distintos (737, 768 y 754 px) y sin separación entre el segundo y el tercero,
   así que no se puede cortar en rejilla.
-- `containment/{exp01_centipede,exp02_spider,exp03_saurian,boss_chimera}/` — las
-  hojas de seis poses del primer piso. Cada `source_sheet.png` es una rejilla
+- `containment/{exp01_centipede,exp02_spider,exp03_saurian}/` — las hojas de seis
+  poses de los experimentos del primer piso. Cada `source_sheet.png` es una rejilla
   **3 × 2 con fondo croma `#ff00ff`**; `source_sheet_alpha.png` es su versión
   con transparencia y se regenera sola, no se edita.
 
@@ -68,12 +68,27 @@ El generador compone las hojas actuales con formas; el procesador quita el croma
 separa las seis poses con **un recorte común** —eso es lo que conserva la escala
 entre fotogramas— y las centra en el lienzo de runtime.
 
-**Si llega una entrega pintada a mano, solo hay que sobrescribir el
+**Si llega una entrega pintada a mano para EXP01–03, solo hay que sobrescribir el
 `source_sheet.png` de esa criatura** y volver a correr el procesador. Requisitos
 de la hoja: rejilla 3 × 2 exacta, mismo personaje y escala en las seis celdas,
 orientación a la derecha, fondo magenta uniforme, sin líneas de rejilla, texto ni
 sombras. El orden de poses está en
 [`prueba_2/docs/ART_SPEC.md`](../prueba_2/docs/ART_SPEC.md) §8.
+
+### Cómo se procesa la animación entregada de la Quimera
+
+La Quimera no usa las hojas croma anteriores. Sus fuentes transparentes están en
+`containment/boss_chimera/idle/` (7 fotogramas) y
+`containment/boss_chimera/angry/` (16 fotogramas). Se procesan con:
+
+```bash
+godot --headless --path prueba_2 --script res://tools/art/process_chimera_delivered_frames.gd
+godot --headless --path prueba_2 --import
+```
+
+El procesador valida los 23 PNG, calcula un único recorte compartido para evitar
+saltos de escala o pivote y los centra en lienzos transparentes de runtime de
+384 × 256.
 
 ### Cómo se generó `assets/enemies/exp07_crustacean/`
 
