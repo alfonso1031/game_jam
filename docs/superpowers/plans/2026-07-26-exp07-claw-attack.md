@@ -27,34 +27,31 @@
 - Create: `prueba_2/assets/enemies/exp07_crustacean/source_attack/claw_attack_03.png`
 - Create: `prueba_2/assets/enemies/exp07_crustacean/source_attack/claw_attack_04.png`
 - Create: `prueba_2/tools/art/process_exp07_claw_frames.gd`
-- Create: `prueba_2/tests/exp07_attack_tests.gd`
-- Create: `prueba_2/tests/exp07_attack_tests.tscn`
+- Create: `prueba_2/tests/exp07_asset_tests.gd`
+- Create: `prueba_2/tests/exp07_asset_tests.tscn`
 
 **Interfaces:**
 - Produces: `exp07_pinch_00.png` a `exp07_pinch_04.png`, todos 192 × 108 y con registro común.
 - Consumes: cinco originales transparentes de 1920 × 1080.
 
-- [ ] **Step 1: Escribir la prueba que falla**
+- [ ] **Step 1: Escribir la prueba de outputs que falla**
 
-La prueba carga `exp07_crustacean_frames.tres` y exige:
+La prueba recorre los cinco outputs que esta tarea entrega y exige:
 
 ```gdscript
-_check(frames.has_animation(&"pinch_windup"), "existe windup")
-_check(frames.get_frame_count(&"pinch_windup") == 5, "usa cinco fotogramas")
-_check(not frames.get_animation_loop(&"pinch_windup"), "el ataque no hace loop")
-_check(
-	is_equal_approx(frames.get_animation_speed(&"pinch_windup"), 6.25),
-	"cinco frames ocupan 0.8 segundos"
-)
+for index in range(5):
+	var path := "res://assets/enemies/exp07_crustacean/exp07_pinch_%02d.png" % index
+	_check(ResourceLoader.exists(path), "%s existe" % path)
+	var texture := load(path) as Texture2D
+	_check(texture != null, "%s importa como textura" % path)
+	if texture != null:
+		_check(texture.get_size() == Vector2(192, 108), "%s usa tamaño runtime" % path)
 ```
-
-Para cada textura comprueba que mide 192 × 108 y que su ruta contiene
-`exp07_pinch_`.
 
 - [ ] **Step 2: Ejecutar y confirmar el fallo**
 
 ```powershell
-& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/exp07_attack_tests.tscn
+& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/exp07_asset_tests.tscn
 ```
 
 - [ ] **Step 3: Copiar las fuentes con nombres estables**
@@ -117,11 +114,19 @@ func _init() -> void:
 & 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 --import
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Ejecutar la prueba y confirmar que pasa**
 
 ```powershell
-git add prueba_2/assets/enemies/exp07_crustacean/source_attack prueba_2/assets/enemies/exp07_crustacean/exp07_pinch_*.png prueba_2/tools/art/process_exp07_claw_frames.gd prueba_2/tests/exp07_attack_tests.gd prueba_2/tests/exp07_attack_tests.tscn
-git commit -m "test: prepara arte de ataque del exp07"
+& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/exp07_asset_tests.tscn
+```
+
+Expected: `PASS: EXP07 attack assets`.
+
+- [ ] **Step 7: Commit**
+
+```powershell
+git add prueba_2/assets/enemies/exp07_crustacean/source_attack prueba_2/assets/enemies/exp07_crustacean/exp07_pinch_*.png prueba_2/tools/art/process_exp07_claw_frames.gd prueba_2/tests/exp07_asset_tests.gd prueba_2/tests/exp07_asset_tests.tscn
+git commit -m "feat: prepara arte de ataque del exp07"
 ```
 
 ### Task 2: Animación sincronizada con la máquina de estados
@@ -129,27 +134,37 @@ git commit -m "test: prepara arte de ataque del exp07"
 **Files:**
 - Modify: `prueba_2/actors/enemies/exp07_crustacean_frames.tres`
 - Modify: `prueba_2/actors/enemies/exp07_crustacean.gd`
-- Modify: `prueba_2/tests/exp07_attack_tests.gd`
+- Create: `prueba_2/tests/exp07_attack_tests.gd`
+- Create: `prueba_2/tests/exp07_attack_tests.tscn`
 - Modify: `prueba_2/tests/check_enemy_animations.gd`
 
 **Interfaces:**
 - Consumes: `exp07_pinch_00.png` a `exp07_pinch_04.png`.
 - Produces: animaciones `pinch_windup` de cinco frames a 6,25 FPS y `recover` invertida a 8,333333 FPS.
 
-- [ ] **Step 1: Ampliar la prueba de estados**
+- [ ] **Step 1: Escribir la prueba de estados y animaciones**
 
-Además del contrato de frames, instanciar EXP07, fijar
+La prueba carga `exp07_crustacean_frames.tres`, exige cinco frames de windup a
+6,25 FPS y cinco de recover a 8,333333 FPS. Además instancia EXP07, fija
 `_state = State.PINCH_WINDUP`, comprobar `_visual_state() == &"pinch_windup"`,
 fijar `RECOVER` y comprobar `&"recover"`. Exigir que el último frame de windup
 sea el primero de recover y que recover termine en el primer frame del ataque.
 
-- [ ] **Step 2: Modificar `SpriteFrames`**
+- [ ] **Step 2: Ejecutar y confirmar el fallo**
+
+```powershell
+& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/exp07_attack_tests.tscn
+```
+
+Expected: FAIL porque el recurso todavía conserva tres posturas.
+
+- [ ] **Step 3: Modificar `SpriteFrames`**
 
 Añadir cinco `ext_resource` para los frames procesados. `pinch_windup` usa
 00→04, no hace loop y usa velocidad 6,25. `recover` usa 04→00, no hace loop y
 usa velocidad `8.333333`, ocupando 0,6 s.
 
-- [ ] **Step 3: Mantener el daño en `_pinch()`**
+- [ ] **Step 4: Mantener el daño en `_pinch()`**
 
 No añadir señales de daño al sprite. En `exp07_crustacean.gd`, actualizar el
 comentario de presentación para explicar que el último fotograma ocupa el tramo
@@ -164,7 +179,7 @@ func _pinch() -> void:
 	_strafe_sign *= -1.0
 ```
 
-- [ ] **Step 4: Ejecutar pruebas**
+- [ ] **Step 5: Ejecutar pruebas**
 
 ```powershell
 & 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/exp07_attack_tests.tscn
@@ -172,7 +187,7 @@ func _pinch() -> void:
 & 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/combat_smoke.tscn
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```powershell
 git add prueba_2/actors/enemies/exp07_crustacean_frames.tres prueba_2/actors/enemies/exp07_crustacean.gd prueba_2/tests/exp07_attack_tests.gd prueba_2/tests/check_enemy_animations.gd

@@ -23,18 +23,18 @@
 **Files:**
 - Create: `prueba_2/assets/ui/title/title_contained.png`
 - Create: `prueba_2/assets/ui/title/title_escaped.png`
-- Create: `prueba_2/tests/title_intro_tests.gd`
-- Create: `prueba_2/tests/title_intro_tests.tscn`
-- Modify: `prueba_2/tests/ui_cleanup_tests.gd`
+- Create: `prueba_2/tests/title_asset_tests.gd`
+- Create: `prueba_2/tests/title_asset_tests.tscn`
 
 **Interfaces:**
 - Consumes: las imágenes `Pantalla de inicio_1.png` y `Pantalla de inicio_2.png` del ZIP entregado.
-- Produces: recursos `res://assets/ui/title/title_contained.png` y `res://assets/ui/title/title_escaped.png`; contrato esperado `skip_intro() -> void` e `intro_finished() -> bool`.
+- Produces: recursos importables `res://assets/ui/title/title_contained.png` y `res://assets/ui/title/title_escaped.png`.
 
 - [ ] **Step 1: Escribir la prueba que falla**
 
-Crear `title_intro_tests.tscn` con un nodo `Node` que use
-`res://tests/title_intro_tests.gd`. La prueba debe cargar la escena y comprobar:
+Crear `title_asset_tests.tscn` con un nodo `Node` que use
+`res://tests/title_asset_tests.gd`. La prueba debe comprobar únicamente los
+recursos que esta tarea entrega:
 
 ```gdscript
 extends Node
@@ -42,25 +42,15 @@ extends Node
 var failures: Array[String] = []
 
 func _ready() -> void:
-	var title: Control = load("res://ui/title.tscn").instantiate()
-	add_child(title)
-	await get_tree().process_frame
-	_check(title.has_node("BackgroundContained"), "existe el estado contenido")
-	_check(title.has_node("BackgroundEscaped"), "existe el estado liberado")
-	_check(title.has_node("Menu/PlayButton"), "existe Jugar")
-	_check(title.has_node("Menu/QuitButton"), "existe Salir")
-	_check(title.has_method("skip_intro"), "la introducción se puede omitir")
-	_check(title.has_method("intro_finished"), "la introducción expone su estado")
-	if title.has_method("skip_intro"):
-		title.skip_intro()
-		await get_tree().process_frame
-		_check(title.intro_finished(), "omitir deja el menú preparado")
-		_check(title.get_node("Menu").visible, "el menú aparece")
-		_check(
-			is_equal_approx(title.get_node("BackgroundEscaped").modulate.a, 1.0),
-			"la imagen B queda visible"
-		)
-	title.queue_free()
+	for path: String in [
+		"res://assets/ui/title/title_contained.png",
+		"res://assets/ui/title/title_escaped.png",
+	]:
+		_check(ResourceLoader.exists(path), "%s existe" % path)
+		var texture := load(path) as Texture2D
+		_check(texture != null, "%s importa como textura" % path)
+		if texture != null:
+			_check(texture.get_size() == Vector2(1920, 1080), "%s conserva 1080p" % path)
 	_finish()
 
 func _check(condition: bool, message: String) -> void:
@@ -74,18 +64,15 @@ func _finish() -> void:
 	get_tree().quit(0 if failures.is_empty() else 1)
 ```
 
-Actualizar `ui_cleanup_tests.gd` para exigir `Menu/PlayButton` y
-`Menu/QuitButton`, y dejar de exigir el nodo obsoleto `TitleLabel`.
-
 - [ ] **Step 2: Ejecutar la prueba y confirmar el fallo**
 
 Run:
 
 ```powershell
-& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/title_intro_tests.tscn
+& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/title_asset_tests.tscn
 ```
 
-Expected: FAIL porque los fondos, el menú y la API todavía no existen.
+Expected: FAIL porque los dos recursos todavía no existen.
 
 - [ ] **Step 3: Extraer y copiar los dos PNG con nombres semánticos**
 
@@ -110,11 +97,19 @@ Get-ChildItem 'prueba_2\assets\ui\title\*.png' | ForEach-Object {
 }
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Ejecutar la prueba y confirmar que pasa**
 
 ```powershell
-git add prueba_2/assets/ui/title prueba_2/tests/title_intro_tests.gd prueba_2/tests/title_intro_tests.tscn prueba_2/tests/ui_cleanup_tests.gd
-git commit -m "test: define contrato de introduccion ilustrada"
+& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/title_asset_tests.tscn
+```
+
+Expected: `PASS: title assets`.
+
+- [ ] **Step 6: Commit**
+
+```powershell
+git add prueba_2/assets/ui/title prueba_2/tests/title_asset_tests.gd prueba_2/tests/title_asset_tests.tscn
+git commit -m "feat: importa ilustraciones de la portada"
 ```
 
 ### Task 2: Máquina de introducción y menú
@@ -122,13 +117,31 @@ git commit -m "test: define contrato de introduccion ilustrada"
 **Files:**
 - Modify: `prueba_2/ui/title.tscn`
 - Modify: `prueba_2/ui/title.gd`
-- Test: `prueba_2/tests/title_intro_tests.gd`
+- Create: `prueba_2/tests/title_intro_tests.gd`
+- Create: `prueba_2/tests/title_intro_tests.tscn`
+- Modify: `prueba_2/tests/ui_cleanup_tests.gd`
 
 **Interfaces:**
 - Consumes: `title_contained.png`, `title_escaped.png`.
 - Produces: `skip_intro() -> void`, `intro_finished() -> bool`, señales internas de `PlayButton` y `QuitButton`.
 
-- [ ] **Step 1: Construir la jerarquía visual de la escena**
+- [ ] **Step 1: Escribir la prueba del contrato de escena**
+
+Crear una suite que instancie `title.tscn`, exija
+`BackgroundContained`, `BackgroundEscaped`, `Menu/PlayButton` y
+`Menu/QuitButton`, llame `skip_intro()` y compruebe `intro_finished()`, el menú
+visible y alpha 1 en la imagen B. Actualizar `ui_cleanup_tests.gd` para exigir
+los dos botones y dejar de exigir `TitleLabel`.
+
+- [ ] **Step 2: Ejecutar la prueba y confirmar el fallo**
+
+```powershell
+& 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/title_intro_tests.tscn
+```
+
+Expected: FAIL porque la escena todavía conserva la portada procedural.
+
+- [ ] **Step 3: Construir la jerarquía visual de la escena**
 
 Reemplazar `Background`, `Slime`, `SlimeCore`, `TitleLabel` y `Prompt` por:
 
@@ -146,7 +159,7 @@ Ambos `TextureRect` usan anclajes completos, `expand_mode = 1`,
 `stretch_mode = 6` y `mouse_filter = IGNORE`. `BackgroundEscaped`,
 `Flash` y `Menu` comienzan transparentes; `Menu` comienza oculto.
 
-- [ ] **Step 2: Implementar el estado y los tweens**
+- [ ] **Step 4: Implementar el estado y los tweens**
 
 En `title.gd` declarar:
 
@@ -180,7 +193,7 @@ En `_ready()`, reiniciar la run, conectar los botones y lanzar un tween que:
 introducción solo llama `skip_intro()`; una vez terminada, los botones controlan
 el cambio a `res://game/main.tscn` y `get_tree().quit()`.
 
-- [ ] **Step 3: Ejecutar las pruebas de título y limpieza**
+- [ ] **Step 5: Ejecutar las pruebas de título y limpieza**
 
 ```powershell
 & 'C:\Users\jcbla\Downloads\Godot_v4.7.1-stable_win64.exe' --headless --path prueba_2 res://tests/title_intro_tests.tscn
@@ -189,7 +202,7 @@ el cambio a `res://game/main.tscn` y `get_tree().quit()`.
 
 Expected: ambas terminan con `PASS`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```powershell
 git add prueba_2/ui/title.gd prueba_2/ui/title.tscn prueba_2/tests/title_intro_tests.gd prueba_2/tests/ui_cleanup_tests.gd
