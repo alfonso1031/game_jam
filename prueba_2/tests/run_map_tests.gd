@@ -23,7 +23,7 @@ func _run() -> void:
 	map.add_room("R1", Vector2i.RIGHT, &"normal", &"easy")
 	map.add_room("RG", Vector2i(1, 1), &"grate_destination", &"loot")
 	map.connect_rooms("R0", "R1", &"E")
-	map.set_grate("R1", "RG")
+	map.set_grate("R1", "RG", &"S")
 
 	_check(map.seed == 42, "conserva la seed")
 	_check(map.room_ids() == ["R0", "R1", "RG"], "ordena ids de forma estable")
@@ -31,9 +31,41 @@ func _run() -> void:
 	_check(map.room("R1")["doors"]["O"] == "R0", "conecta la vuelta")
 	_check(map.room("R1")["grate_target"] == "RG", "registra destino")
 	_check(map.room("RG")["grate_source"] == "R1", "registra retorno")
+	_check(map.room("R1")["grate_direction"] == "S", "fuente guarda pared de rejilla")
+	_check(map.room("RG")["grate_direction"] == "N", "retorno usa pared opuesta")
 	_check(map.canonical_snapshot()["rooms"].size() == 3, "expone snapshot serializable")
 
 	var generator := MapGenerator.new()
+	_check(
+		MapGenerator.GRATE_CONTENT == [
+			[&"empty", 40],
+			[&"combat", 20],
+			[&"loot", 40],
+		],
+		"pesos de destino son 40/20/40"
+	)
+	var weight_rng := RandomNumberGenerator.new()
+	weight_rng.seed = 260726
+	var weighted_counts := {"empty": 0, "combat": 0, "loot": 0}
+	for _index in range(10000):
+		var choice: StringName = generator.call(
+			"_weighted_choice",
+			weight_rng,
+			MapGenerator.GRATE_CONTENT
+		)
+		weighted_counts[String(choice)] += 1
+	_check(
+		_near_ratio(int(weighted_counts["empty"]), weighted_counts, 0.40, 0.02),
+		"muestra de destino vacío cerca de 40%"
+	)
+	_check(
+		_near_ratio(int(weighted_counts["combat"]), weighted_counts, 0.20, 0.02),
+		"muestra de destino combate cerca de 20%"
+	)
+	_check(
+		_near_ratio(int(weighted_counts["loot"]), weighted_counts, 0.40, 0.02),
+		"muestra de destino loot cerca de 40%"
+	)
 	var first: RefCounted = generator.generate(90125)
 	var second: RefCounted = generator.generate(90125)
 	var different: RefCounted = generator.generate(90126)
@@ -137,6 +169,24 @@ func _run() -> void:
 				_check(not seen_grate_targets.has(grate_target), "destino único")
 				seen_grate_targets[grate_target] = true
 				var target_data: Dictionary = generated.room(grate_target)
+				var grate_direction: String = String(data["grate_direction"])
+				_check(
+					not data["doors"].has(grate_direction),
+					"seed %d, rejilla de %s no comparte pared con puerta"
+					% [seed_value, room_id]
+				)
+				_check(
+					target_data["grid"] - data["grid"]
+						== Vector2i(MapGenerator.DELTAS[grate_direction]),
+					"seed %d, destino %s queda adyacente a %s"
+					% [seed_value, grate_target, room_id]
+				)
+				_check(
+					String(target_data["grate_direction"])
+						== String(RunMap.OPPOSITE[grate_direction]),
+					"seed %d, retorno de %s mira a la fuente"
+					% [seed_value, grate_target]
+				)
 				_check(
 					String(target_data["grate_source"]) == room_id,
 					"seed %d, destino %s registra fuente %s" % [
@@ -193,13 +243,18 @@ func _check(condition: bool, message: String) -> void:
 		_failures.append(message)
 
 
-func _near_ratio(value: int, counts: Dictionary, expected: float) -> bool:
+func _near_ratio(
+	value: int,
+	counts: Dictionary,
+	expected: float,
+	tolerance := 0.05
+) -> bool:
 	var total := 0
 	for count_value: Variant in counts.values():
 		total += int(count_value)
 	if total == 0:
 		return false
-	return absf(float(value) / float(total) - expected) <= 0.05
+	return absf(float(value) / float(total) - expected) <= tolerance
 
 
 func _finish() -> void:

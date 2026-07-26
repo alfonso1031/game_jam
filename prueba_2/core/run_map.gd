@@ -33,6 +33,7 @@ func add_room(
 		"one_way": {},
 		"grate_target": "",
 		"grate_source": "",
+		"grate_direction": "",
 		"closure_keep_direction": "",
 		"reward_part_id": "",
 	}
@@ -57,9 +58,16 @@ func connect_rooms(
 		to_one_way[back] = false
 
 
-func set_grate(source_id: String, target_id: String) -> void:
+func set_grate(
+	source_id: String,
+	target_id: String,
+	direction: StringName
+) -> void:
+	var source_direction := String(direction)
 	rooms[source_id]["grate_target"] = target_id
+	rooms[source_id]["grate_direction"] = source_direction
 	rooms[target_id]["grate_source"] = source_id
+	rooms[target_id]["grate_direction"] = OPPOSITE[source_direction]
 
 
 func room(room_id: String) -> Dictionary:

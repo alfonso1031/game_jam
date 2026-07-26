@@ -7,6 +7,7 @@ const MapOverlayScene := preload("res://ui/map_overlay.tscn")
 const FloorRouteScene := preload("res://ui/floor_route_overlay.tscn")
 const HUDScene := preload("res://ui/hud.tscn")
 const TitleScene := preload("res://ui/title.tscn")
+const GrateCostOverlayScene := preload("res://ui/grate_cost_overlay.tscn")
 
 var _frames := 0
 var _output_path := ""
@@ -22,7 +23,7 @@ func _ready() -> void:
 		var dimensions := args[2].split("x")
 		if dimensions.size() == 2:
 			_target_size = Vector2i(int(dimensions[0]), int(dimensions[1]))
-	_prepare_fixture()
+	_prepare_fixture(mode)
 	match mode:
 		"title_intro":
 			var title: Control = TitleScene.instantiate()
@@ -51,6 +52,8 @@ func _ready() -> void:
 				"mycelium_hand",
 				Vector2(1900.0, 1060.0)
 			)
+		"grate":
+			_prepare_grate_room()
 		_:
 			var overlay: Control = MapOverlayScene.instantiate()
 			add_child(overlay)
@@ -101,7 +104,21 @@ func _process(_delta: float) -> void:
 	get_tree().quit(0 if error == OK else 1)
 
 
-func _prepare_fixture() -> void:
+func _prepare_grate_room() -> void:
+	$Background.visible = false
+	var room: Node2D = RoomAssembler.build(RunManager.current_map.room("CENTER"))
+	add_child(room)
+	var grate: Area2D = room.get_node("Grate") as Area2D
+	grate.get_node("Prompt").visible = true
+	var overlay: Control = GrateCostOverlayScene.instantiate()
+	add_child(overlay)
+	overlay.open("CENTER", "GRATE")
+	assert(overlay.visible, "el selector de rejilla debe permanecer abierto")
+	assert(overlay.selected_option == 0, "la primera parte debe quedar resaltada")
+	assert(GameState.current_room == "CENTER", "la captura no debe viajar por la rejilla")
+
+
+func _prepare_fixture(mode: String) -> void:
 	GameState.reset_run()
 	Inventory.reset_run()
 	var map := RunMap.new(1080, 0)
@@ -110,12 +127,14 @@ func _prepare_fixture() -> void:
 	map.add_room("E", Vector2i.RIGHT, &"normal", &"loot")
 	map.add_room("S", Vector2i.DOWN, &"normal", &"hard")
 	map.add_room("O", Vector2i.LEFT, &"normal", &"closure")
-	map.add_room("GRATE", Vector2i(2, 0), &"grate_destination", &"loot")
 	map.connect_rooms("CENTER", "N", &"N")
-	map.connect_rooms("CENTER", "E", &"E")
 	map.connect_rooms("CENTER", "S", &"S")
 	map.connect_rooms("CENTER", "O", &"O")
-	map.set_grate("CENTER", "GRATE")
+	if mode == "grate":
+		map.add_room("GRATE", Vector2i.RIGHT, &"grate_destination", &"loot")
+		map.set_grate("CENTER", "GRATE", &"E")
+	else:
+		map.connect_rooms("CENTER", "E", &"E")
 	map.entry_room_id = "CENTER"
 	RunManager.current_map = map
 	RunManager.current_seed = 1080
@@ -123,13 +142,19 @@ func _prepare_fixture() -> void:
 	GameState.current_room = "CENTER"
 	GameState.visited["CENTER"] = true
 	GameState.discover_grate("CENTER")
-	for part_id in [
+	var part_ids: Array[String] = [
 		"serrated_jaw",
 		"mycelium_hand",
-		"crusher_claw",
-		"scaled_skin",
-		"whip_tail",
-		"acid_stinger",
-	]:
+	]
+	if mode != "grate":
+		part_ids = [
+			"serrated_jaw",
+			"mycelium_hand",
+			"crusher_claw",
+			"scaled_skin",
+			"whip_tail",
+			"acid_stinger",
+		]
+	for part_id: String in part_ids:
 		Inventory.pick_up(part_id)
 	GameState.gain_ability("dash")

@@ -15,7 +15,7 @@ func _run() -> void:
 	var map := RunMap.new(4, 0)
 	map.add_room("SOURCE", Vector2i.ZERO, &"normal", &"easy")
 	map.add_room("TARGET", Vector2i.RIGHT, &"grate_destination", &"loot")
-	map.set_grate("SOURCE", "TARGET")
+	map.set_grate("SOURCE", "TARGET", &"E")
 	RunManager.current_map = map
 	RunManager.active = true
 	GameState.reset_run()

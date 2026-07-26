@@ -174,6 +174,11 @@ func validate(run_map: RefCounted) -> PackedStringArray:
 			grate_count += 1
 			if not _is_combat(content):
 				errors.append("%s tiene rejilla sin ser combate" % room_id)
+			var grate_direction: String = String(data["grate_direction"])
+			if not DELTAS.has(grate_direction):
+				errors.append("%s tiene dirección de rejilla inválida" % room_id)
+			elif doors.has(grate_direction):
+				errors.append("%s comparte pared entre puerta y rejilla" % room_id)
 			if not run_map.rooms.has(grate_target):
 				errors.append("%s apunta a rejilla inexistente" % room_id)
 			elif grate_targets.has(grate_target):
@@ -185,6 +190,18 @@ func validate(run_map: RefCounted) -> PackedStringArray:
 					errors.append("%s no apunta a destino de rejilla" % room_id)
 				elif String(grate_data["grate_source"]) != room_id:
 					errors.append("%s no registra el retorno desde %s" % [grate_target, room_id])
+				if (
+					DELTAS.has(grate_direction)
+					and grate_data["grid"] - grid
+						!= Vector2i(DELTAS[grate_direction])
+				):
+					errors.append("%s no tiene destino de rejilla adyacente" % room_id)
+				if (
+					DELTAS.has(grate_direction)
+					and String(grate_data["grate_direction"])
+						!= String(RunMap.OPPOSITE[grate_direction])
+				):
+					errors.append("%s no tiene retorno de rejilla opuesto" % room_id)
 
 		if role == &"grate_destination":
 			var grate_source: String = data["grate_source"]
@@ -376,7 +393,11 @@ func _add_grates(
 		var data: Dictionary = run_map.room(room_id)
 		var role: StringName = data["role"]
 		var content: StringName = data["content_type"]
-		if role != &"grate_destination" and _is_combat(content):
+		if (
+			role != &"grate_destination"
+			and _is_combat(content)
+			and not _available_grate_directions(data, occupied).is_empty()
+		):
 			eligible.append(room_id)
 	if eligible.is_empty():
 		return true
@@ -408,20 +429,33 @@ func _add_grates(
 	for index in range(mini(optional_count, optional_sources.size())):
 		selected.append(optional_sources[index])
 
-	for grate_index in range(selected.size()):
-		var source_id: String = selected[grate_index]
+	var placed_count := 0
+	for source_id: String in selected:
+		if placed_count >= target_count:
+			break
 		var source_data: Dictionary = run_map.room(source_id)
+		var available_directions := _available_grate_directions(
+			source_data,
+			occupied
+		)
+		if available_directions.is_empty():
+			if required_sources.has(source_id):
+				return false
+			continue
+		_shuffle_strings(available_directions, rng)
+		var direction: String = available_directions[0]
 		var source_grid: Vector2i = source_data["grid"]
-		var grate_grid: Vector2i = _free_grate_grid(source_grid, occupied, rng)
-		var grate_id := "G_%02d" % grate_index
+		var grate_grid := source_grid + Vector2i(DELTAS[direction])
+		var grate_id := "G_%02d" % placed_count
 		var grate_content: StringName = _weighted_choice(rng, GRATE_CONTENT)
 		run_map.add_room(grate_id, grate_grid, &"grate_destination", grate_content)
 		var grate_data: Dictionary = run_map.room(grate_id)
 		if grate_content == &"combat":
 			grate_data["enemy_count"] = rng.randi_range(1, 2)
-		run_map.set_grate(source_id, grate_id)
+		run_map.set_grate(source_id, grate_id, StringName(direction))
 		occupied[grate_grid] = grate_id
-	return true
+		placed_count += 1
+	return placed_count > 0
 
 
 func _weighted_choice(rng: RandomNumberGenerator, table: Array) -> StringName:
@@ -459,23 +493,20 @@ func _adjacent_candidates(
 	return candidates
 
 
-func _free_grate_grid(
-	source_grid: Vector2i,
-	occupied: Dictionary,
-	rng: RandomNumberGenerator
-) -> Vector2i:
-	var local_choices: Array[String] = _free_directions(source_grid, occupied, rng)
-	if not local_choices.is_empty():
-		return source_grid + Vector2i(DELTAS[local_choices[0]])
-	for radius in range(1, MAX_ROOMS * 2):
-		for y in range(-radius, radius + 1):
-			for x in range(-radius, radius + 1):
-				if absi(x) != radius and absi(y) != radius:
-					continue
-				var candidate := Vector2i(x, y)
-				if not occupied.has(candidate):
-					return candidate
-	return Vector2i(MAX_ROOMS * 2, MAX_ROOMS * 2)
+func _available_grate_directions(
+	source_data: Dictionary,
+	occupied: Dictionary
+) -> Array[String]:
+	var result: Array[String] = []
+	var source_grid: Vector2i = source_data["grid"]
+	var doors: Dictionary = source_data["doors"]
+	for direction: String in DIRECTIONS:
+		if doors.has(direction):
+			continue
+		if occupied.has(source_grid + Vector2i(DELTAS[direction])):
+			continue
+		result.append(direction)
+	return result
 
 
 func _direction_to_target(doors: Dictionary, target_id: String) -> String:
