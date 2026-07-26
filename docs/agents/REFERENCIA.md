@@ -160,8 +160,8 @@ Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `toolt
 `route` o `tutorial`):
 
 ```powershell
-godot --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
-godot --path prueba_2 --windowed --resolution 1280x720 res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1280x720 res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
 ```
