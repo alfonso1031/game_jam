@@ -15,6 +15,10 @@ func _run() -> void:
 	_check(GameState.max_health_halves == 15, "máximo son 15 HP")
 	_check(GameState.health_halves == 5, "inicia con 5 HP")
 	_check(Inventory.equipped_ids().is_empty(), "inicia sin partes")
+	GameState.unlock_grate("R1")
+	_check(GameState.is_grate_unlocked("R1"), "desbloquea la rejilla de origen")
+	RunManager.start_new_run(777)
+	_check(not GameState.is_grate_unlocked("R1"), "la nueva run limpia rejillas desbloqueadas")
 
 	GameState.damage_halves(2)
 	_check(RunManager.complete_floor(&"contencion"), "completa una vez")

@@ -29,6 +29,7 @@ var rooms_cleared: Dictionary = {}
 # Partes de jefe distintas ya consumidas: la bonificación es permanente y única.
 var boss_parts_consumed: Dictionary = {}
 var discovered_grates: Dictionary = {}
+var unlocked_grates: Dictionary = {}
 # Recompensas narrativas tomadas, indexadas por sala y válidas solo en la run.
 var claimed_room_rewards: Dictionary = {}
 
@@ -72,6 +73,7 @@ func reset_run() -> void:
 	rooms_cleared.clear()
 	boss_parts_consumed.clear()
 	discovered_grates.clear()
+	unlocked_grates.clear()
 	claimed_room_rewards.clear()
 	_max_health_mod = 0
 	max_health_halves = _base_max_halves
@@ -162,3 +164,12 @@ func discover_grate(source_id: String) -> void:
 		return
 	discovered_grates[source_id] = true
 	grate_discovered.emit(source_id)
+
+
+func unlock_grate(source_id: String) -> void:
+	if not source_id.is_empty():
+		unlocked_grates[source_id] = true
+
+
+func is_grate_unlocked(source_id: String) -> bool:
+	return unlocked_grates.get(source_id, false)

@@ -183,6 +183,17 @@ func validate(run_map: RefCounted) -> PackedStringArray:
 				var grate_data: Dictionary = run_map.room(grate_target)
 				if grate_data["role"] != &"grate_destination":
 					errors.append("%s no apunta a destino de rejilla" % room_id)
+				elif String(grate_data["grate_source"]) != room_id:
+					errors.append("%s no registra el retorno desde %s" % [grate_target, room_id])
+
+		if role == &"grate_destination":
+			var grate_source: String = data["grate_source"]
+			if grate_source.is_empty():
+				errors.append("%s no registra fuente de rejilla" % room_id)
+			elif not run_map.rooms.has(grate_source):
+				errors.append("%s registra fuente de rejilla inexistente" % room_id)
+			elif run_map.room(grate_source)["grate_target"] != room_id:
+				errors.append("%s no coincide con el destino de %s" % [room_id, grate_source])
 
 		if content == &"closure":
 			_validate_closure(run_map, room_id, data, errors)

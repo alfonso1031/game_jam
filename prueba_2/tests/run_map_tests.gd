@@ -21,15 +21,16 @@ func _run() -> void:
 	var map := RunMap.new(42, 0)
 	map.add_room("R0", Vector2i.ZERO, &"entry", &"tutorial")
 	map.add_room("R1", Vector2i.RIGHT, &"normal", &"easy")
+	map.add_room("RG", Vector2i(1, 1), &"grate_destination", &"loot")
 	map.connect_rooms("R0", "R1", &"E")
 	map.set_grate("R1", "RG")
-	map.add_room("RG", Vector2i(1, 1), &"grate_destination", &"loot")
 
 	_check(map.seed == 42, "conserva la seed")
 	_check(map.room_ids() == ["R0", "R1", "RG"], "ordena ids de forma estable")
 	_check(map.room("R0")["doors"]["E"] == "R1", "conecta la ida")
 	_check(map.room("R1")["doors"]["O"] == "R0", "conecta la vuelta")
-	_check(map.room("R1")["grate_target"] == "RG", "registra la rejilla")
+	_check(map.room("R1")["grate_target"] == "RG", "registra destino")
+	_check(map.room("RG")["grate_source"] == "R1", "registra retorno")
 	_check(map.canonical_snapshot()["rooms"].size() == 3, "expone snapshot serializable")
 
 	var generator := MapGenerator.new()
@@ -66,6 +67,18 @@ func _run() -> void:
 	_check(first.room(first.main_path[-2])["role"] == &"preboss", "preboss penúltimo")
 	_check(first.room(first.main_path[-1])["role"] == &"boss_choice", "boss al final")
 	_check(generator.validate(first).is_empty(), "la propuesta aceptada es válida")
+	var first_grate_target := ""
+	for room_id in first.room_ids():
+		var first_data: Dictionary = first.room(room_id)
+		if not String(first_data["grate_target"]).is_empty():
+			first_grate_target = String(first_data["grate_target"])
+			break
+	if not first_grate_target.is_empty():
+		first.room(first_grate_target)["grate_source"] = ""
+		_check(
+			not generator.validate(first).is_empty(),
+			"rechaza un destino de rejilla sin retorno de fuente"
+		)
 
 	var normal_counts := {"easy": 0, "hard": 0, "empty": 0, "closure": 0}
 	var grate_destinations := {"empty": 0, "combat": 0, "loot": 0}
@@ -124,6 +137,14 @@ func _run() -> void:
 				_check(not seen_grate_targets.has(grate_target), "destino único")
 				seen_grate_targets[grate_target] = true
 				var target_data: Dictionary = generated.room(grate_target)
+				_check(
+					String(target_data["grate_source"]) == room_id,
+					"seed %d, destino %s registra fuente %s" % [
+						seed_value,
+						grate_target,
+						room_id,
+					]
+				)
 				var target_content: String = String(target_data["content_type"])
 				if grate_destinations.has(target_content):
 					grate_destinations[target_content] = int(
