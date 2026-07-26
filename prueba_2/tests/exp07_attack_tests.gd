@@ -67,10 +67,23 @@ func _check_state_contract() -> void:
 	var sprite: AnimatedSprite2D = enemy.get_node("Sprite")
 	enemy.set("facing", Vector2.LEFT)
 	enemy._update_sprite()
-	_check(sprite.flip_h, "el arte mira a la izquierda con el enemigo")
+	_check(not sprite.flip_h, "el arte mira a la izquierda con el enemigo")
 	enemy.set("facing", Vector2.RIGHT)
 	enemy._update_sprite()
-	_check(not sprite.flip_h, "el arte mira a la derecha con el enemigo")
+	_check(sprite.flip_h, "el arte mira a la derecha con el enemigo")
+
+	var player := Node2D.new()
+	add_child(player)
+	player.global_position = enemy.global_position + Vector2(100.0, 0.0)
+	enemy.set("_player", player)
+	enemy.set("_pinch_cd", 1.0)
+	enemy.velocity = Vector2.ZERO
+	enemy._advance(0.1)
+	_check(
+		enemy.velocity.is_zero_approx(),
+		"EXP07 no persigue al jugador dentro del alcance durante el cooldown"
+	)
+	player.queue_free()
 	enemy.queue_free()
 	await get_tree().process_frame
 

@@ -69,16 +69,22 @@ func _advance(delta: float) -> void:
 		return
 	var offset := player_offset()
 	var to_player := offset.normalized()
+	# Dentro del alcance mantiene su espacio: espera el próximo ataque sin
+	# perseguir al jugador durante el cooldown ni invadir su posición.
+	if offset.length() <= PINCH_RANGE:
+		facing = to_player
+		brake(delta, 10.0)
+		if _pinch_cd <= 0.0:
+			_state = State.PINCH_WINDUP
+			_timer = PINCH_WINDUP
+		return
+
 	# El desplazamiento lateral es lo que lo hace un muro móvil en vez de un
 	# saco de vida: te empuja hacia los bordes de la sala.
 	var side := Vector2(-to_player.y, to_player.x) * _strafe_sign * STRAFE_MIX
 	move_towards(to_player + side, speed_now(), delta, 3.5)
 	# La cara escudada siempre mira al jugador.
 	facing = to_player
-
-	if offset.length() <= PINCH_RANGE and _pinch_cd <= 0.0:
-		_state = State.PINCH_WINDUP
-		_timer = PINCH_WINDUP
 
 # La guardia frontal: un ataque que llega dentro del cono de la tenaza no entra.
 func _blocks_from(attack_position: Vector2) -> bool:
