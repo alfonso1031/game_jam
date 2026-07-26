@@ -17,7 +17,7 @@ max_health = 4
 contact_damage = 1
 move_speed = 75.0
 detect_range = 1100.0
-drop_parts = Array[String](["bone_plate", "crusher_claw"])
+drop_parts = Array[String](["crusher_claw"])
 drop_rate = 0.30
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
