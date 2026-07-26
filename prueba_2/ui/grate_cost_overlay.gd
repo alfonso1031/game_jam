@@ -55,7 +55,7 @@ func confirm_selection() -> void:
 			_close()
 			Transition.go_via_grate(_target_id)
 		&"death":
-			_close()
+			_close(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -139,10 +139,10 @@ func _card_style(border: Color) -> StyleBoxFlat:
 	return style
 
 
-func _close() -> void:
+func _close(release_pause: bool = true) -> void:
 	visible = false
 	_confirming_lethal = false
 	warning.text = ""
-	if _owns_pause:
+	if release_pause and _owns_pause:
 		get_tree().paused = false
 	_owns_pause = false

@@ -85,6 +85,8 @@ func _run() -> void:
 	player.queue_free()
 	fade.queue_free()
 	await get_tree().process_frame
+	await _test_main_death_keeps_summary_paused()
+	await _test_main_hp_payment_via_grate()
 	_finish()
 
 
@@ -100,6 +102,68 @@ func _prepare_run() -> void:
 	map.set_grate("SOURCE", "TARGET")
 	RunManager.current_map = map
 	GameState.current_room = "SOURCE"
+
+
+func _test_main_death_keeps_summary_paused() -> void:
+	var main := await _mount_main(1)
+	var overlay: Control = await _open_grate(main)
+	_check(overlay.visible, "interactuar con la rejilla abre el selector integrado")
+	overlay.confirm_selection()
+	overlay.confirm_selection()
+	await get_tree().process_frame
+	var summary: Control = main.get_node("SummaryLayer/RunSummary")
+	_check(summary.visible, "morir desde la rejilla muestra el resumen")
+	_check(get_tree().paused, "morir desde la rejilla deja el arbol pausado")
+	_check(not overlay.visible, "morir desde la rejilla oculta el selector")
+	get_tree().paused = false
+	main.queue_free()
+	await get_tree().process_frame
+
+
+func _test_main_hp_payment_via_grate() -> void:
+	var main := await _mount_main(2)
+	var overlay: Control = await _open_grate(main)
+	overlay.confirm_selection()
+	await get_tree().create_timer(0.6, true, false, true).timeout
+	_check(GameState.health_halves == 1, "la rejilla cobra medio corazon no letal")
+	_check(GameState.is_grate_unlocked("SOURCE"), "el pago de vida desbloquea el origen")
+	_check(GameState.current_room == "TARGET", "el pago de vida viaja al destino")
+	_check(not get_tree().paused, "el pago no letal reanuda la partida")
+	main.queue_free()
+	await get_tree().process_frame
+
+
+func _mount_main(health_halves: int) -> Node2D:
+	get_tree().paused = false
+	GameState.reset_run()
+	Inventory.reset_run()
+	RunManager.parts_sacrificed.clear()
+	RunManager.active = true
+	RunManager.current_map = _grate_map()
+	GameState.health_halves = health_halves
+	var scene: PackedScene = load("res://game/main.tscn")
+	var main := scene.instantiate() as Node2D
+	add_child(main)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	return main
+
+
+func _open_grate(main: Node2D) -> Control:
+	var grate := main.get_node("RoomHost").get_child(0).get_node("Grate") as Area2D
+	grate.body_entered.emit(main.get_node("Player"))
+	get_viewport().push_input(_action_event(&"interact"))
+	await get_tree().process_frame
+	return main.get_node("GrateLayer/GrateCostOverlay") as Control
+
+
+func _grate_map() -> RefCounted:
+	var map := RunMap.new(9, 0)
+	map.add_room("SOURCE", Vector2i.ZERO, &"normal", &"easy")
+	map.add_room("TARGET", Vector2i.RIGHT, &"grate_destination", &"loot")
+	map.set_grate("SOURCE", "TARGET")
+	map.entry_room_id = "SOURCE"
+	return map
 
 
 func _action_event(action: StringName) -> InputEventAction:
