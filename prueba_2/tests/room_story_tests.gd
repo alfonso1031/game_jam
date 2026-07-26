@@ -136,7 +136,28 @@ func _test_story_rooms() -> void:
 		_check(body.get_node_or_null("BodySource") != null, "%s pone cuerpo segundo" % direction)
 		_check(normal.get_node_or_null("BloodTrail") == null, "%s no sangra en sala normal" % direction)
 		_check(normal.get_node_or_null("BodySource") == null, "%s no repite el cuerpo" % direction)
-		_check(entry.get_node_or_null("Prop_broken_glass_tube_0") != null, "%s deja el tubo roto en la entrada" % direction)
+		var broken_tube := entry.get_node_or_null("Prop_broken_glass_tube_0") as Node2D
+		_check(broken_tube != null, "%s deja el tubo roto en la entrada" % direction)
+		if broken_tube != null:
+			_check(
+				broken_tube.get_meta("prop_id", "") == "broken_glass_tube",
+				"%s conserva el id narrativo del tubo roto" % direction
+			)
+			_check(
+				broken_tube.position == Vector2(960, 500),
+				"%s centra el tubo roto en la entrada" % direction
+			)
+			_check(
+				broken_tube.scene_file_path == "res://world/props/containment/broken_glass_tube.tscn",
+				"%s instancia la escena del tubo roto" % direction
+			)
+			_check(broken_tube.has_method("footprint"), "%s expone la huella del tubo roto" % direction)
+			if broken_tube.has_method("footprint"):
+				var broken_footprint: Rect2 = broken_tube.call("footprint")
+				_check(
+					broken_footprint.size.x > 0.0 and broken_footprint.size.y > 0.0,
+					"%s mantiene una huella positiva del tubo roto" % direction
+				)
 		_check(body.get_node_or_null("Prop_broken_glass_tube_0") == null, "%s no repite el tubo roto en el cuerpo" % direction)
 		_check(normal.get_node_or_null("Prop_broken_glass_tube_0") == null, "%s no repite el tubo roto en sala normal" % direction)
 		var mural := entry.get_node_or_null("TutorialMural") as Node2D
