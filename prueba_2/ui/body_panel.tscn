@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://ui/body_panel.gd" id="1"]
 [ext_resource type="PackedScene" path="res://ui/part_tooltip.tscn" id="2"]
@@ -26,6 +26,18 @@ corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="CardSelected"]
+bg_color = Color(0.188235, 0.454902, 0.45098, 0.98)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.92549, 0.952941, 0.690196, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
 
 [node name="BodyPanel" type="Control"]
 custom_minimum_size = Vector2(960, 1080)
@@ -69,52 +81,81 @@ grow_vertical = 2
 mouse_filter = 1
 
 [node name="Slot1" type="Button" parent="Slots"]
+focus_mode = 0
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 0.843137, 1)
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("CardNormal")
 theme_override_styles/hover = SubResource("CardHover")
 theme_override_styles/focus = SubResource("CardHover")
+theme_override_styles/pressed = SubResource("CardSelected")
 text = "SLOT 1"
 
 [node name="Slot2" type="Button" parent="Slots"]
+focus_mode = 0
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 0.843137, 1)
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("CardNormal")
 theme_override_styles/hover = SubResource("CardHover")
 theme_override_styles/focus = SubResource("CardHover")
+theme_override_styles/pressed = SubResource("CardSelected")
 text = "SLOT 2"
 
 [node name="Slot3" type="Button" parent="Slots"]
+focus_mode = 0
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 0.843137, 1)
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("CardNormal")
 theme_override_styles/hover = SubResource("CardHover")
 theme_override_styles/focus = SubResource("CardHover")
+theme_override_styles/pressed = SubResource("CardSelected")
 text = "SLOT 3"
 
 [node name="Slot4" type="Button" parent="Slots"]
+focus_mode = 0
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 0.843137, 1)
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("CardNormal")
 theme_override_styles/hover = SubResource("CardHover")
 theme_override_styles/focus = SubResource("CardHover")
+theme_override_styles/pressed = SubResource("CardSelected")
 text = "SLOT 4"
 
 [node name="Slot5" type="Button" parent="Slots"]
+focus_mode = 0
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 0.843137, 1)
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("CardNormal")
 theme_override_styles/hover = SubResource("CardHover")
 theme_override_styles/focus = SubResource("CardHover")
+theme_override_styles/pressed = SubResource("CardSelected")
 text = "SLOT 5"
 
 [node name="Slot6" type="Button" parent="Slots"]
+focus_mode = 0
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 0.843137, 1)
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("CardNormal")
 theme_override_styles/hover = SubResource("CardHover")
 theme_override_styles/focus = SubResource("CardHover")
+theme_override_styles/pressed = SubResource("CardSelected")
 text = "SLOT 6"
+
+[node name="ConsumeHint" type="Label" parent="."]
+offset_left = 250.0
+offset_top = 1000.0
+offset_right = 710.0
+offset_bottom = 1040.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_font_sizes/font_size = 22
+text = "F · COMER (+½ CORAZÓN)"
+horizontal_alignment = 1
 
 [node name="PartTooltip" parent="." instance=ExtResource("2")]
 z_index = 100

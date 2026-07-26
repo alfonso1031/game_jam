@@ -3,8 +3,8 @@ extends Area2D
 signal collected(part_id: String)
 
 # Parte soltada por un experimento. Si hay hueco compatible libre se equipa sola
-# al pasar por encima; si no, se queda en el suelo avisando. Con `interact` se
-# fuerza a mano: la parte pasa a "pendiente" y se resuelve desde el inventario.
+# al pasar por encima; si no, se queda en el suelo hasta que el jugador consume
+# una de sus seis partes desde el panel corporal de `TAB`.
 
 const Palette := preload("res://core/palette.gd")
 const PartsDB := preload("res://core/parts_db.gd")
@@ -32,24 +32,18 @@ func _process(delta: float) -> void:
 
 	if not _player_inside:
 		return
-	# Se consulta el hueco antes de llamar a `pick_up`: si no hay sitio, esa
-	# llamada dejaría la parte como pendiente y seguiría en el suelo, duplicada.
-	# Reintenta cada frame, así liberar un hueco desde el inventario la recoge
-	# sin tener que salir y volver a entrar.
+	# Reintenta cada frame: liberar un hueco desde el mapa corporal recoge la
+	# parte sin obligar al jugador a salir y volver a entrar.
 	if Inventory.first_free_slot(part_id) >= 0:
 		_collect()
 		return
 
-	if Inventory.pending != "":
-		hint.text = "SLOTS LLENOS · RESUELVE LA PARTE PENDIENTE [I]"
-		return
-	hint.text = "SLOTS LLENOS · [E] GESTIONAR"
-	if Input.is_action_just_pressed("interact"):
-		_collect()
+	hint.text = "CUERPO LLENO · [TAB] COME UNA PARTE"
 
 
 func _collect() -> void:
-	Inventory.pick_up(part_id)
+	if not Inventory.pick_up(part_id):
+		return
 	collected.emit(part_id)
 	queue_free()
 

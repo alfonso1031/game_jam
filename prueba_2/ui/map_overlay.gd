@@ -9,6 +9,8 @@ const ROOM_GAP := 24.0
 const DOOR_LENGTH := 9.0
 const DOOR_THICKNESS := 5.0
 
+@onready var body_panel: Control = $BodyPanel
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -24,15 +26,32 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		_toggle()
 		get_viewport().set_input_as_handled()
-	elif visible and event.is_action_pressed("pause"):
+		return
+	if not visible:
+		return
+
+	if event.is_action_pressed("pause"):
 		_toggle()
-		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("move_left"):
+		body_panel.call("move_selection", Vector2.LEFT)
+	elif event.is_action_pressed("move_right"):
+		body_panel.call("move_selection", Vector2.RIGHT)
+	elif event.is_action_pressed("move_up"):
+		body_panel.call("move_selection", Vector2.UP)
+	elif event.is_action_pressed("move_down"):
+		body_panel.call("move_selection", Vector2.DOWN)
+	elif event.is_action_pressed("consume"):
+		body_panel.call("consume_selected")
+	else:
+		return
+	get_viewport().set_input_as_handled()
 
 
 func _toggle() -> void:
 	visible = not visible
 	get_tree().paused = visible
 	if visible:
+		body_panel.call("select_first_equipped")
 		queue_redraw()
 
 

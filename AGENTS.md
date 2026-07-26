@@ -134,7 +134,7 @@ lo detectan al instante.
    documentación usar siempre rutas relativas a la raíz del repositorio (`prueba_2/…`) o
    rutas de recurso (`res://…`), nunca rutas absolutas de una máquina concreta.
 
-8. **Los overlays comparten `get_tree().paused`** (mapa, inventario, ruta de piso, pausa y
+8. **Los overlays comparten `get_tree().paused`** (mapa corporal, ruta de piso, pausa y
    final). Cualquier overlay nuevo debe comprobar el estado antes de abrirse y usar
    `PROCESS_MODE_ALWAYS`, o queda uno encima de otro y sin forma de cerrarse.
 
@@ -197,13 +197,20 @@ lo detectan al instante.
 
 20. **La primera sala enseña movimiento dentro del mundo.** `TutorialMural` aparece solo
     en `entry/tutorial` y explica mantener dirección, cargar y soltar. La portada no
-    enumera controles; inventario, pausa, mapa, pantalla completa y DASH esperan el futuro
-    menú con botones. El mural es pasivo, no pausa y no puede bloquear spawn ni puertas.
+    enumera controles; pausa, pantalla completa y DASH esperan el futuro menú con botones.
+    El mapa corporal se abre con `TAB`. El mural es pasivo, no pausa y no puede bloquear
+    spawn ni puertas.
 
 21. **El cuerpo es el segundo hito, no contenido aleatorio.** `main_path[1]` usa rol
     `body`, contenido `body_reward`, dos puertas y ninguna rejilla. El rastro se orienta
     desde las conexiones de `RunMap`; la parte se reclama al recogerla y no reaparece
     durante esa partida. No fijar IDs de sala ni una dirección cardinal.
+
+22. **Solo existen las seis partes equipadas.** `Inventory` mantiene exactamente seis
+    slots por compatibilidad interna, pero no hay `pending`, séptimo espacio ni pantalla
+    separada con `I`. Si el cuerpo está lleno, el pickup permanece en el mundo. Consumir
+    se hace únicamente desde `TAB`: flechas para elegir una tarjeta ocupada y `F` para
+    comerla.
 
 ---
 

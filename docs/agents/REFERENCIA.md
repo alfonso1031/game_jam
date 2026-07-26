@@ -129,7 +129,9 @@ añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **so
 - Nombres y resúmenes: `PartsDB.display_name()` / `PartsDB.description()`. No copiar texto
   a un `.tscn`.
 - Tarjetas: `body_panel.gd` escucha `Inventory.slots_changed`; un slot vacío no conserva
-  ni tarjeta ni curva.
+  ni tarjeta ni curva. Con `TAB` abierto, las flechas recorren solo tarjetas ocupadas y
+  `F` consume la seleccionada. La selección debe conservar escala, borde y conexión
+  resaltados como una sola señal visual.
 - Mapa local: `map_overlay.gd` lee `RunManager.current_map`, no `RoomDB.ROOMS`.
   `build_layout()` debe aceptar cruces cardinales sin solaparlas y solo recibir IDs
   visitados.
@@ -181,8 +183,11 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
 
 - Nueva partida: `RunManager.start_new_run(seed)`; máximo 15 HP, inicio 5 HP.
 - Completar Contención: `RunManager.complete_floor(&"contencion")`, cura +2 HP una vez.
-- Comer: `Inventory.consume_slot()`, cura +1 HP y libera el slot.
+- Comer: `TAB` abre el mapa corporal, las flechas seleccionan y `F` llama
+  `Inventory.consume_slot()`. Cura +1 HP y libera el slot.
 - Perder/sacrificar: liberan slot y no curan.
+- Cuerpo lleno: el séptimo pickup permanece en el mundo; no existe parte pendiente ni
+  pantalla separada con `I`.
 - Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP.
 - A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
 

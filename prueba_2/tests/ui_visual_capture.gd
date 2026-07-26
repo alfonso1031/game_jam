@@ -50,6 +50,7 @@ func _ready() -> void:
 			var overlay: Control = MapOverlayScene.instantiate()
 			add_child(overlay)
 			overlay.visible = true
+			overlay.get_node("BodyPanel").call("select_first_equipped")
 
 
 func _prepare_tutorial_room() -> void:

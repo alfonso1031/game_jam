@@ -34,6 +34,11 @@ func _run() -> void:
 	_check(not map.has_node("Hint"), "el mapa elimina ayuda")
 	map.queue_free()
 
+	var main: Node = load("res://game/main.tscn").instantiate()
+	_check(not main.has_node("InventoryLayer"), "la partida elimina la UI de inventario")
+	main.free()
+	_check(not InputMap.has_action("inventory"), "I deja de abrir un inventario separado")
+
 	_finish()
 
 

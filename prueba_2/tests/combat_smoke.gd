@@ -150,6 +150,10 @@ func _test_inventory_rules() -> void:
 	GameState.reset_run()
 
 	_check(Inventory.SLOT_COUNT == 6, "el inventario tiene exactamente 6 huecos")
+	_check(
+		not _has_property(Inventory, &"pending"),
+		"las seis partes no tienen una reserva pendiente"
+	)
 
 	# Los huecos son genéricos: cualquier parte entra en cualquiera.
 	for i in range(Inventory.SLOT_COUNT):
@@ -158,6 +162,24 @@ func _test_inventory_rules() -> void:
 	Inventory.pick_up("acid_stinger")
 	_check(Inventory.has_part("acid_stinger"), "recoger equipa en el primer hueco libre")
 	_check(not Inventory.can_place("acid_stinger", 2), "no se puede llevar la misma parte dos veces")
+
+	# Al llenar el cuerpo, una séptima parte se rechaza sin crear estado oculto.
+	Inventory.reset_run()
+	for part_id: String in [
+		"acid_stinger",
+		"serrated_jaw",
+		"hydraulic_legs",
+		"bio_netcaster",
+		"whip_tail",
+		"scaled_skin",
+	]:
+		_check(Inventory.pick_up(part_id), "equipa %s mientras existe espacio" % part_id)
+	var full_body: Array[String] = Inventory.slots.duplicate()
+	_check(
+		not Inventory.pick_up("electric_gland"),
+		"rechaza una séptima parte cuando los seis slots están llenos"
+	)
+	_check(Inventory.slots == full_body, "rechazar la séptima parte no altera el cuerpo")
 
 	# Zona corporal: dos partes que ocupan el mismo sitio no conviven.
 	Inventory.reset_run()
@@ -191,6 +213,13 @@ func _test_inventory_rules() -> void:
 	)
 	Inventory.reset_run()
 	await get_tree().process_frame
+
+
+func _has_property(object: Object, property_name: StringName) -> bool:
+	for property: Dictionary in object.get_property_list():
+		if property["name"] == property_name:
+			return true
+	return false
 
 func _test_every_part() -> void:
 	Inventory.reset_run()

@@ -42,6 +42,8 @@ para leer la salida de debug, `stop_project` para cerrarlo.
 |---|---|
 | Cargar impulso / lanzarse | mantener `WASD` / flechas y **soltar** |
 | Mapa completo | `TAB` |
+| Seleccionar parte (con `TAB` abierto) | flechas |
+| Comer parte seleccionada (con `TAB` abierto) | `F` |
 | Interactuar | `E` |
 | Dash (tras vencer al boss) | `Shift` / `Espacio` |
 | Pausa / cerrar mapa | `Esc` |
@@ -464,13 +466,19 @@ desde `_process()`.
 - Mitad izquierda: `BodyPanel` distribuye las seis partes equipadas alrededor del slime.
   Cada tarjeta y la habilidad DASH tienen una curva orgánica hasta el borde del cuerpo.
   `Inventory.slots_changed` retira de inmediato tarjeta, curva y tooltip al liberar slot.
-- El hover o foco abre `PartTooltip` con nombre/descripción de `PartsDB`; sigue el cursor
-  por eventos de entrada y se limita a un margen de 8 px del viewport.
+- Al abrirlo selecciona la primera parte equipada. Las flechas navegan espacialmente
+  entre tarjetas ocupadas y `F` consume la seleccionada para curar medio corazón. La
+  tarjeta activa se amplía, ilumina su borde y resalta su conexión al slime.
+- El hover abre `PartTooltip` con nombre/descripción de `PartsDB`; la selección por
+  teclado lo mantiene anclado a su tarjeta.
 - Mitad derecha: **solo el mapa local de Contención** desde
   `RunManager.current_map`. Admite cruces N/E/S/O y calcula escala/origen por los extremos
   reales del `grid`; nunca asume una lista fija.
 - Muestra exclusivamente salas visitadas. Las puertas hacia espacios desconocidos no
   revelan nodos ni destinos de rejilla por anticipado.
+- No existe una pantalla de inventario ni una parte pendiente. `Inventory` conserva el
+  nombre de autoload como autoridad interna de los seis slots. Si el cuerpo está lleno,
+  un pickup permanece en el suelo hasta que el jugador consume o pierde una parte.
 
 **Tutorial ambiental**
 - La portada conserva nombre, slime y `PULSA CUALQUIER TECLA`; los controles secundarios
@@ -587,7 +595,7 @@ title.tscn ──cualquier tecla──▶ main.tscn ──morir──▶ run_sum
   decisiones de la partida, y ofrece nueva partida o título.
 
 **Los overlays comparten `get_tree().paused`**, así que cada uno comprueba el estado antes
-de abrirse: mapa, inventario, ruta, pausa y resumen no se apilan entre sí. Todos usan
+de abrirse: mapa corporal, ruta, pausa y resumen no se apilan entre sí. Todos usan
 `PROCESS_MODE_ALWAYS` para poder cerrarse con el juego pausado.
 
 `F11` lo maneja `GameState._unhandled_input` — es autoload, así que funciona en todas las

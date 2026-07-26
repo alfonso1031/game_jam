@@ -3,10 +3,8 @@ extends Node
 const PartsDB := preload("res://core/parts_db.gd")
 
 signal slots_changed
-signal pending_changed(part_id: String)
 signal part_consumed(part_id: String)
 signal part_equipped(part_id: String, index: int)
-signal rejected(reason: String)
 
 # Seis huecos genéricos: cualquier parte entra en cualquiera. El catálogo sigue
 # guardando de qué parte del cuerpo salió cada pieza, pero eso es sabor, no una
@@ -19,8 +17,6 @@ const SLOT_COUNT := 6
 const BOSS_ACTIVE_LOCK := 0.6
 
 var slots: Array[String] = ["", "", "", "", "", ""]
-# Parte recogida que no cabe en ningún hueco libre: espera decisión del jugador.
-var pending: String = ""
 
 var _cooldowns: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var _boss_lock := 0.0
@@ -106,8 +102,8 @@ func first_free_slot(part_id: String) -> int:
 
 # --- Mutación ---
 
-# Intenta guardar una parte recién recogida. Si no hay hueco libre queda
-# pendiente y la interfaz de inventario decide qué hacer con ella.
+# Intenta asimilar una parte recién recogida. Si no hay hueco libre, no altera
+# el cuerpo: el pickup permanece en el mundo hasta que el jugador libere uno.
 func pick_up(part_id: String) -> bool:
 	if not PartsDB.exists(part_id):
 		return false
@@ -115,24 +111,7 @@ func pick_up(part_id: String) -> bool:
 	if index >= 0:
 		_set_slot(index, part_id)
 		return true
-	_set_pending(part_id)
 	return false
-
-# Coloca una parte en un hueco concreto. La parte que estuviera ahí pasa a
-# pendiente en vez de perderse.
-func place_in_slot(part_id: String, index: int) -> bool:
-	var error := placement_error(part_id, index)
-	if error != "":
-		rejected.emit(error)
-		return false
-	var displaced := slots[index]
-	_set_slot(index, part_id)
-	# La parte desplazada ocupa el lugar de la que acaba de entrar: nada se
-	# pierde sin que el jugador decida. Solo se pisa la pendiente si era
-	# justamente la que se estaba colocando.
-	if pending == part_id or displaced != "":
-		_set_pending(displaced)
-	return true
 
 func clear_slot(index: int) -> String:
 	var removed := part_at(index)
@@ -159,25 +138,11 @@ func consume_slot(index: int) -> bool:
 	_digest(id)
 	return true
 
-func consume_pending() -> bool:
-	if pending == "":
-		return false
-	var id := pending
-	_set_pending("")
-	_digest(id)
-	return true
-
 func _digest(part_id: String) -> void:
 	GameState.heal_half_heart()
 	if PartsDB.is_boss_part(part_id):
 		GameState.register_boss_part_consumed(part_id)
 	part_consumed.emit(part_id)
-
-func _set_pending(part_id: String) -> void:
-	if pending == part_id:
-		return
-	pending = part_id
-	pending_changed.emit(pending)
 
 func _set_slot(index: int, part_id: String) -> void:
 	slots[index] = part_id
@@ -301,11 +266,9 @@ func reset_run() -> void:
 	for i in range(SLOT_COUNT):
 		slots[i] = ""
 		_cooldowns[i] = 0.0
-	pending = ""
 	_boss_lock = 0.0
 	_death_save_used_once = false
 	_death_save_floor = 9999
 	_room_uses.clear()
 	_refresh_passives()
 	slots_changed.emit()
-	pending_changed.emit("")

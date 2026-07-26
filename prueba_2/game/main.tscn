@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://actors/player/slime.tscn" id="1"]
 [ext_resource type="Script" path="res://game/main.gd" id="2"]
@@ -6,7 +6,6 @@
 [ext_resource type="PackedScene" path="res://ui/map_overlay.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://ui/run_summary.tscn" id="6"]
-[ext_resource type="PackedScene" path="res://ui/inventory_ui.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://ui/floor_route_overlay.tscn" id="8"]
 
 [node name="Main" type="Node2D"]
@@ -32,11 +31,6 @@ enabled = true
 layer = 5
 
 [node name="MapOverlay" parent="MapLayer" instance=ExtResource("4")]
-
-[node name="InventoryLayer" type="CanvasLayer" parent="."]
-layer = 8
-
-[node name="InventoryUI" parent="InventoryLayer" instance=ExtResource("7")]
 
 [node name="PauseLayer" type="CanvasLayer" parent="."]
 layer = 20

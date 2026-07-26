@@ -59,6 +59,23 @@ func _run() -> void:
 	visible_ids = overlay.visible_room_ids()
 	_check(visible_ids == ["CENTER", "N"], "entrar descubre la segunda sala")
 
+	Inventory.reset_run()
+	Inventory.slots[0] = "serrated_jaw"
+	Inventory.slots[2] = "scaled_skin"
+	Inventory.slots_changed.emit()
+	GameState.health_halves = GameState.max_health_halves - 1
+	overlay.call("_toggle")
+	await get_tree().process_frame
+	var body_panel: Control = overlay.get_node("BodyPanel")
+	_check(body_panel.get("selected_slot") == 0, "TAB selecciona la primera parte")
+
+	overlay.call("_unhandled_input", _action_event(&"move_right"))
+	_check(body_panel.get("selected_slot") == 2, "TAB entrega las flechas al cuerpo")
+	overlay.call("_unhandled_input", _action_event(&"consume"))
+	_check(Inventory.is_empty(2), "TAB entrega F para consumir la selección")
+	overlay.call("_toggle")
+	_check(not get_tree().paused, "cerrar TAB reanuda el juego")
+
 	overlay.queue_free()
 	await get_tree().process_frame
 	_finish()
@@ -100,6 +117,13 @@ func _method_argument_count(object: Object, method_name: StringName) -> int:
 		if method["name"] == method_name:
 			return method["args"].size()
 	return -1
+
+
+func _action_event(action: StringName) -> InputEventAction:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	return event
 
 
 func _check(condition: bool, message: String) -> void:
