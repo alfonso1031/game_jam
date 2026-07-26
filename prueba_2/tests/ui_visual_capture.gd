@@ -63,6 +63,8 @@ func _ready() -> void:
 			_prepare_exp07_attack()
 		"lighting":
 			_prepare_lighting()
+		"boss":
+			_prepare_boss_room()
 		_:
 			var overlay: Control = MapOverlayScene.instantiate()
 			add_child(overlay)
@@ -150,6 +152,30 @@ func _prepare_lighting() -> void:
 	RunManager.start_new_run(1785033756)
 	var main: Node2D = MainScene.instantiate()
 	add_child(main)
+
+
+func _prepare_boss_room() -> void:
+	$Background.visible = false
+	GameState.reset_run()
+	var map := RunMap.new(9001, 0)
+	map.add_room("BOSS", Vector2i.ZERO, &"boss_choice", &"boss_choice")
+	map.boss_room_id = "BOSS"
+	RunManager.current_map = map
+	RunManager.active = true
+	GameState.current_room = "BOSS"
+	GameState.visited["BOSS"] = true
+
+	var player := Node2D.new()
+	player.name = "PlayerTarget"
+	player.position = Vector2(960, 540)
+	player.add_to_group("player")
+	add_child(player)
+	var room: Node2D = RoomAssembler.build(map.room("BOSS"))
+	add_child(room)
+	var boss := room.get_node("BossCore") as CharacterBody2D
+	boss.set_physics_process(false)
+	boss.position = Vector2(330, 270)
+	boss.call("_enter_corner_aim")
 
 
 func _prepare_fixture(mode: String) -> void:

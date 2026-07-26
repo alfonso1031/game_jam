@@ -45,6 +45,21 @@ func _draw() -> void:
 func _draw_minimap() -> void:
 	draw_rect(MINIMAP_PANEL, Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.75), true)
 	draw_rect(MINIMAP_PANEL, Palette.WALL, false, 2.0)
+	draw_line(
+		MINIMAP_PANEL.position + Vector2(10, 28),
+		MINIMAP_PANEL.position + Vector2(MINIMAP_PANEL.size.x - 10, 28),
+		Color(Palette.WALL, 0.45),
+		1.0
+	)
+	draw_string(
+		ThemeDB.fallback_font,
+		MINIMAP_PANEL.position + Vector2(12, 21),
+		"CONTENCIÓN / MAPA",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		MINIMAP_PANEL.size.x - 24.0,
+		13,
+		Color(Palette.SLIME_CORE, 0.85)
+	)
 
 	var rooms: Dictionary = _active_rooms()
 	var visible_ids := visible_room_ids()

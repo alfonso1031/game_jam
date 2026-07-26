@@ -7,6 +7,7 @@ const MENU_FADE_TIME := 0.35
 @onready var background_contained: TextureRect = $BackgroundContained
 @onready var background_escaped: TextureRect = $BackgroundEscaped
 @onready var flash: ColorRect = $Flash
+@onready var menu_plate: Panel = $MenuPlate
 @onready var menu: VBoxContainer = $Menu
 @onready var play_button: Button = $Menu/PlayButton
 @onready var quit_button: Button = $Menu/QuitButton
@@ -60,9 +61,13 @@ func _finish_intro() -> void:
 	background_contained.modulate.a = 0.0
 	background_escaped.modulate.a = 1.0
 	flash.modulate.a = 0.0
+	menu_plate.show()
 	menu.show()
 	var menu_tween := create_tween()
+	menu_tween.set_parallel(true)
+	menu_tween.tween_property(menu_plate, "modulate:a", 1.0, MENU_FADE_TIME)
 	menu_tween.tween_property(menu, "modulate:a", 1.0, MENU_FADE_TIME)
+	menu_tween.set_parallel(false)
 	play_button.grab_focus()
 
 
