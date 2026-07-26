@@ -8,6 +8,7 @@ signal health_changed(halves: int)
 signal died
 signal death_saved
 signal grate_discovered(source_id: String)
+signal infinite_health_changed(enabled: bool)
 
 # La vida se contabiliza en MEDIOS corazones, porque consumir una parte cura
 # exactamente medio. `max_health` / `health` siguen expuestos en corazones para
@@ -35,6 +36,7 @@ var claimed_room_rewards: Dictionary = {}
 
 var max_health_halves: int = BASE_MAX_HEALTH_HALVES
 var health_halves: int = STARTING_HEALTH_HALVES
+var infinite_health := false
 
 # Modificador de vida máxima que aportan las partes equipadas (ej. Tentáculo
 # resta un corazón). Se guarda aparte para poder recalcular al desequipar.
@@ -78,6 +80,7 @@ func reset_run() -> void:
 	_max_health_mod = 0
 	max_health_halves = _base_max_halves
 	health_halves = STARTING_HEALTH_HALVES
+	set_infinite_health(false)
 
 func gain_ability(id: String) -> void:
 	if abilities.has(id):
@@ -92,6 +95,8 @@ func damage(amount: int) -> void:
 
 func damage_halves(halves: int) -> void:
 	if health_halves <= 0:
+		return
+	if infinite_health:
 		return
 	health_halves = max(0, health_halves - halves)
 	health_changed.emit(health_halves)
@@ -114,6 +119,18 @@ func heal_halves(halves: int) -> void:
 
 func heal_half_heart() -> void:
 	heal_halves(1)
+
+
+func set_infinite_health(enabled: bool) -> void:
+	if infinite_health == enabled:
+		return
+	infinite_health = enabled
+	infinite_health_changed.emit(infinite_health)
+
+
+func toggle_infinite_health() -> bool:
+	set_infinite_health(not infinite_health)
+	return infinite_health
 
 func is_low_health() -> bool:
 	return health_halves <= HALVES_PER_HEART

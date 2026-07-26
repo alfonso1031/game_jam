@@ -15,6 +15,34 @@ func _run() -> void:
 	_check(GameState.max_health_halves == 15, "máximo son 15 HP")
 	_check(GameState.health_halves == 7, "inicia con 7 HP")
 	_check(Inventory.equipped_ids().is_empty(), "inicia sin partes")
+	var has_infinite_health := _has_property(GameState, &"infinite_health")
+	var has_infinite_health_api := (
+		GameState.has_method("set_infinite_health")
+		and GameState.has_method("toggle_infinite_health")
+	)
+	_check(has_infinite_health, "GameState expone vida infinita")
+	_check(has_infinite_health_api, "GameState expone el control de vida infinita")
+	if has_infinite_health and has_infinite_health_api:
+		_check(not GameState.infinite_health, "la run inicia sin vida infinita")
+		GameState.set_infinite_health(true)
+		var protected_health: int = GameState.health_halves
+		GameState.damage_halves(4)
+		_check(
+			GameState.health_halves == protected_health,
+			"vida infinita bloquea pérdida de HP"
+		)
+		_check(
+			GameState.toggle_infinite_health() == false,
+			"el toggle desactiva el modo"
+		)
+		GameState.damage_halves(1)
+		_check(
+			GameState.health_halves == protected_health - 1,
+			"al apagarlo vuelve el daño"
+		)
+		GameState.set_infinite_health(true)
+		GameState.reset_run()
+		_check(not GameState.infinite_health, "nueva run apaga vida infinita")
 	GameState.unlock_grate("R1")
 	_check(GameState.is_grate_unlocked("R1"), "desbloquea la rejilla de origen")
 	RunManager.start_new_run(777)
@@ -116,6 +144,13 @@ func _run() -> void:
 	summary_ui.queue_free()
 	await get_tree().process_frame
 	_finish()
+
+
+func _has_property(object: Object, property_name: StringName) -> bool:
+	for property: Dictionary in object.get_property_list():
+		if property["name"] == property_name:
+			return true
+	return false
 
 
 func _check(condition: bool, message: String) -> void:
