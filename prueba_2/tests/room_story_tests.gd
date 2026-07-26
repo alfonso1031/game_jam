@@ -51,6 +51,7 @@ func _run() -> void:
 
 	_test_story_rooms()
 	_test_lamp_reach()
+	_test_tutorial_mural_contract()
 
 	_finish()
 
@@ -145,6 +146,29 @@ func _test_lamp_reach() -> void:
 	_check(is_equal_approx(light.energy, 1.6), "la intensidad de los focos se conserva")
 	_check(is_equal_approx(light.texture_scale, 1.35), "el radio de los focos aumenta 35 por ciento")
 	lamp.free()
+
+
+func _test_tutorial_mural_contract() -> void:
+	var texture_path := "res://assets/environment/tutorial/charged_movement_mural.png"
+	var texture_exists := ResourceLoader.exists(texture_path)
+	_check(texture_exists, "existe el mural de movimiento cargado")
+	if texture_exists:
+		_check(load(texture_path) is Texture2D, "el mural importa como textura")
+
+	var scene_path := "res://world/props/tutorial_mural.tscn"
+	var scene_exists := ResourceLoader.exists(scene_path)
+	_check(scene_exists, "existe la escena pasiva del mural")
+	if not scene_exists:
+		return
+	var mural: Node = load(scene_path).instantiate()
+	add_child(mural)
+	_check(mural.has_method("footprint"), "el mural expone su huella")
+	_check(not (mural is CanvasLayer), "el tutorial pertenece al mundo")
+	_check(
+		mural.process_mode != Node.PROCESS_MODE_ALWAYS,
+		"el mural no opera durante pausa"
+	)
+	mural.queue_free()
 
 
 func _check(condition: bool, message: String) -> void:
