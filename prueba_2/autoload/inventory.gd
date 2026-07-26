@@ -60,6 +60,15 @@ func equipped_ids() -> Array[String]:
 			out.append(id)
 	return out
 
+
+func equipped_count_for_slot(slot_type: String) -> int:
+	var count := 0
+	for part_id in slots:
+		if part_id != "" and PartsDB.slot_of(part_id) == slot_type:
+			count += 1
+	return count
+
+
 func cooldown_left(index: int) -> float:
 	return _cooldowns[index] if index >= 0 and index < SLOT_COUNT else 0.0
 
