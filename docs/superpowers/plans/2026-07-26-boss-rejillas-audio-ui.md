@@ -1,12 +1,15 @@
 # Boss, Rejillas, Audio y UI de Contención Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Entregar Contención con boss Quimera procedural, rejillas utilizables, dos pistas musicales y una presentación visual unificada.
 
 **Architecture:** `BossCore` conserva su escena y contratos externos, pero adopta una máquina de estados de embestida y la interfaz de daño usada por el grupo `enemies`. `ProceduralRoom` ensambla boss, arena y recompensas según el rol. Las rejillas corrigen solo su sensor. Música y tema se componen desde las escenas de título/partida, sin autoload nuevo.
 
 **Tech Stack:** Godot 4.7.1, GDScript tipado, escenas `.tscn`, PNG transparente, audio Ogg/Opus y pruebas headless.
+
+**Estado:** implementado y verificado el 26-07-2026. Importación limpia, 28/28 suites
+verdes y arranque Godot MCP con `errors: []`.
 
 ## Global Constraints
 
@@ -25,21 +28,23 @@
 - Create: `prueba_2/assets/bosses/containment_chimera/source/chimera_reference.png`
 - Create: `prueba_2/assets/bosses/containment_chimera/chimera.png`
 - Create: `prueba_2/assets/environment/containment/chimera_arena.png`
-- Create: `prueba_2/assets/audio/music/main_menu.opus`
-- Create: `prueba_2/assets/audio/music/containment_ambience.opus`
+- Create: `prueba_2/assets/audio/music/main_menu.ogg`
+- Create: `prueba_2/assets/audio/music/containment_ambience.ogg`
+- Preserve: `prueba_2/assets/audio/music/source/main_menu.opus`
+- Preserve: `prueba_2/assets/audio/music/source/containment_ambience.opus`
 - Test: `prueba_2/tests/music_asset_tests.gd`
 - Test: `prueba_2/tests/music_asset_tests.tscn`
 
 **Interfaces:**
 - Produces: recursos `Texture2D` y `AudioStream` cargables mediante las rutas anteriores.
 
-- [ ] **Step 1: Escribir el test de carga**
+- [x] **Step 1: Escribir el test de carga**
 
 ```gdscript
 extends Node
 
-const MENU := preload("res://assets/audio/music/main_menu.opus")
-const GAMEPLAY := preload("res://assets/audio/music/containment_ambience.opus")
+const MENU := preload("res://assets/audio/music/main_menu.ogg")
+const GAMEPLAY := preload("res://assets/audio/music/containment_ambience.ogg")
 const CHIMERA := preload("res://assets/bosses/containment_chimera/chimera.png")
 const ARENA := preload("res://assets/environment/containment/chimera_arena.png")
 
@@ -49,23 +54,23 @@ func _ready() -> void:
 	get_tree().quit()
 ```
 
-- [ ] **Step 2: Verificar RED**
+- [x] **Step 2: Verificar RED**
 
 Run: `godot --headless --path prueba_2 res://tests/music_asset_tests.tscn`
 Expected: FAIL porque los recursos todavía no existen.
 
-- [ ] **Step 3: Copiar fuentes, generar PNG transparentes e importar audio**
+- [x] **Step 3: Copiar fuentes, generar PNG transparentes e importar audio**
 
 Usar la ilustración recibida como referencia de identidad. El runtime no lleva fondo ni
 texto; la arena es cenital y deja libre el centro. Copiar los dos `.opus` con nombres sin
 espacios y ejecutar `godot --headless --path prueba_2 --import`.
 
-- [ ] **Step 4: Verificar GREEN**
+- [x] **Step 4: Verificar GREEN**
 
 Run: `godot --headless --path prueba_2 res://tests/music_asset_tests.tscn`
 Expected: `PASS: music and presentation assets`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add prueba_2/assets/bosses prueba_2/assets/environment/containment/chimera_arena.png prueba_2/assets/audio/music prueba_2/tests/music_asset_tests.*
@@ -82,28 +87,28 @@ git commit -m "feat: incorpora arte y musica de contencion"
 - Create: `prueba_2/tests/containment_boss_tests.tscn`
 
 **Interfaces:**
-- Produces: `signal died(boss)`, `take_damage(amount, from, knockback, break_shield)`,
-  `push_away(from, force)` y estados `SEEK_CORNER`, `CORNER_AIM`, `POUNCE`, `RECOVER`.
+- Produces: `signal died(boss)`, `take_damage(amount, from, knockback, break_shield)` y
+  estados `SEEK_CORNER`, `CORNER_AIM`, `POUNCE`, `RECOVER`.
 - Consumes: grupo `player`, `GameState`, `RunManager`, `AbilityPickup` y `PartPickup`.
 
-- [ ] **Step 1: Escribir el test del ciclo**
+- [x] **Step 1: Escribir el test del ciclo**
 
 Instanciar boss y jugador. Comprobar que `CORNER_AIM` deja velocidad cero, que
 `_pounce_target` conserva la instantánea aunque el jugador se mueva y que `POUNCE` usa
 una velocidad no nula hacia esa instantánea.
 
-- [ ] **Step 2: Escribir el test de daño y recompensas**
+- [x] **Step 2: Escribir el test de daño y recompensas**
 
 Aplicar `12` puntos de daño, capturar `died`, comprobar
 `GameState.bosses_defeated[room_id]`, DASH, `silent_claws` y
 `RunManager.completed_floors["contencion"]`.
 
-- [ ] **Step 3: Verificar RED**
+- [x] **Step 3: Verificar RED**
 
 Run: `godot --headless --path prueba_2 res://tests/containment_boss_tests.tscn`
 Expected: FAIL por estados e interfaz ausentes.
 
-- [ ] **Step 4: Reescribir `BossCore` con la máquina mínima**
+- [x] **Step 4: Reescribir `BossCore` con la máquina mínima**
 
 ```gdscript
 enum State {SEEK_CORNER, CORNER_AIM, POUNCE, RECOVER, DEAD}
@@ -122,17 +127,17 @@ func _enter_corner_aim() -> void:
 El lanzamiento no recalcula `_pounce_target`. `_draw()` muestra la línea telegráfica y
 el sprite usa escala/rotación para comunicar ráfaga, espera e impacto.
 
-- [ ] **Step 5: Habilitar ataques existentes contra capa boss**
+- [x] **Step 5: Habilitar ataques existentes contra capa boss**
 
 Cambiar `PlayerProjectile.collision_mask` de `9` a `11`; BossCore pertenece al grupo
 `enemies`, conserva `collision_layer = 2` y expone la misma firma de daño.
 
-- [ ] **Step 6: Verificar GREEN**
+- [x] **Step 6: Verificar GREEN**
 
 Run: `godot --headless --path prueba_2 res://tests/containment_boss_tests.tscn`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add prueba_2/actors/boss prueba_2/actors/player/abilities/player_projectile.tscn prueba_2/tests/containment_boss_tests.*
@@ -149,26 +154,26 @@ git commit -m "feat: implementa embestidas de la quimera"
 - Consumes: descriptor `role = &"boss_choice"`.
 - Produces: hijos `ChimeraArena` y `Boss` solo en la última sala.
 
-- [ ] **Step 1: Añadir fixture procedural al test**
+- [x] **Step 1: Añadir fixture procedural al test**
 
 Construir una sala `boss_choice`, añadirla al árbol y comprobar un solo Boss, decal
 debajo de actores y ausencia de enemigos normales.
 
-- [ ] **Step 2: Verificar RED**
+- [x] **Step 2: Verificar RED**
 
 Run: `godot --headless --path prueba_2 res://tests/containment_boss_tests.tscn`
 Expected: FAIL porque `ProceduralRoom` no instancia el boss.
 
-- [ ] **Step 3: Ensamblar boss y decal por rol**
+- [x] **Step 3: Ensamblar boss y decal por rol**
 
 `configure()` crea el decal; `_ready()` llama `_spawn_boss()` antes de enemigos. El boss
 recibe el ID generado y posición `ROOM_CENTER`.
 
-- [ ] **Step 4: Verificar GREEN y mapa**
+- [x] **Step 4: Verificar GREEN y mapa**
 
 Run: test del boss y `godot --headless --path prueba_2 --script res://tests/run_map_tests.gd`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add prueba_2/world/rooms/procedural_room.gd prueba_2/tests/containment_boss_tests.gd
@@ -184,18 +189,18 @@ git commit -m "feat: integra la quimera al final procedural"
 **Interfaces:**
 - Produces: sensor de interacción desplazado hacia el interior según `wall_direction`.
 
-- [ ] **Step 1: Extender el test con jugador físico**
+- [x] **Step 1: Extender el test con jugador físico**
 
 Añadir `CharacterBody2D` grupo `player`, capa `1`, círculo de colisión y colocarlo en
 `grate.position + SENSOR_OFFSETS[direction]`. Tras dos frames comprobar
 `_player_near == true`.
 
-- [ ] **Step 2: Verificar RED**
+- [x] **Step 2: Verificar RED**
 
 Run: `godot --headless --path prueba_2 res://tests/grate_flow_tests.tscn`
 Expected: FAIL porque el sensor sigue dentro del muro.
 
-- [ ] **Step 3: Desplazar solo el sensor**
+- [x] **Step 3: Desplazar solo el sensor**
 
 ```gdscript
 const SENSOR_OFFSETS := {
@@ -207,11 +212,11 @@ func _fit_visual() -> void:
 	$CollisionShape2D.position = SENSOR_OFFSETS[wall_direction]
 ```
 
-- [ ] **Step 4: Verificar GREEN y costo**
+- [x] **Step 4: Verificar GREEN y costo**
 
 Run: `grate_flow_tests.tscn` y `grate_cost_ui_tests.tscn`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add prueba_2/world/props/grate.gd prueba_2/tests/grate_flow_tests.gd
@@ -230,25 +235,25 @@ git commit -m "fix: acerca la interaccion de las rejillas"
 **Interfaces:**
 - Produces: nodo `Music` en ambas escenas y bucle por señal `finished`.
 
-- [ ] **Step 1: Extender test de escenas**
+- [x] **Step 1: Extender test de escenas**
 
 Instanciar título y main, comprobar `Music.stream != null`, pista correcta y volumen
 menor o igual a `-8 dB`.
 
-- [ ] **Step 2: Verificar RED**
+- [x] **Step 2: Verificar RED**
 
 Run: `music_asset_tests.tscn`; esperado FAIL por nodos ausentes.
 
-- [ ] **Step 3: Añadir reproductores**
+- [x] **Step 3: Añadir reproductores**
 
-Título usa `main_menu.opus` a `-10 dB`; partida usa `containment_ambience.opus` a
+Título usa `main_menu.ogg` a `-10 dB`; partida usa `containment_ambience.ogg` a
 `-13 dB`. Los scripts reconectan `finished` a `play`.
 
-- [ ] **Step 4: Verificar GREEN**
+- [x] **Step 4: Verificar GREEN**
 
 Run: `music_asset_tests.tscn`; esperado PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add prueba_2/ui/title.* prueba_2/game/main.* prueba_2/tests/music_asset_tests.gd
@@ -268,36 +273,37 @@ git commit -m "feat: ambienta menu y partida con musica"
 - Modify: `prueba_2/ui/grate_cost_overlay.tscn`
 - Modify: `prueba_2/ui/run_summary.tscn`
 - Modify: `prueba_2/ui/floor_route_overlay.tscn`
-- Modify: `prueba_2/tests/ui_cleanup_tests.gd`
+- Create: `prueba_2/tests/ui_theme_tests.gd`
+- Create: `prueba_2/tests/ui_theme_tests.tscn`
 
 **Interfaces:**
 - Produces: tema compartido y paneles legibles sin añadir controles explicativos a la
   portada.
 
-- [ ] **Step 1: Escribir contratos visuales**
+- [x] **Step 1: Escribir contratos visuales**
 
 Comprobar que las escenas usan `game_theme.tres`, que título mantiene solo JUGAR/SALIR,
 que HUD conserva salud/minimapa y que mapa muestra el encabezado local.
 
-- [ ] **Step 2: Verificar RED**
+- [x] **Step 2: Verificar RED**
 
-Run: `ui_cleanup_tests.tscn`; esperado FAIL por tema y encabezado ausentes.
+Run: `ui_theme_tests.tscn`; esperado FAIL por tema y encabezado ausentes.
 
-- [ ] **Step 3: Crear tema y aplicar jerarquía**
+- [x] **Step 3: Crear tema y aplicar jerarquía**
 
 Definir StyleBoxFlat para botones/paneles/focus y asignar `theme` en raíces. Añadir panel
 de menú, marco de HUD y encabezado dibujado `MAPA LOCAL · CONTENCIÓN`.
 
-- [ ] **Step 4: Verificar suites de UI**
+- [x] **Step 4: Verificar suites de UI**
 
 Run: HUD, tooltip, body panel, map overlay, floor route, title y ui cleanup.
 
-- [ ] **Step 5: Capturar 1920×1080 y 1280×720**
+- [x] **Step 5: Capturar 1920×1080 y 1280×720**
 
 Generar portada, HUD, mapa, rejilla y arena con `ui_visual_capture.tscn`; inspeccionar que
 no haya solapamientos ni texto fuera del viewport.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add prueba_2/ui prueba_2/tests/ui_cleanup_tests.gd
@@ -310,11 +316,11 @@ git commit -m "feat: unifica la interfaz de contencion"
 - Modify: `docs/ARQUITECTURA.md`
 - Modify: `docs/agents/REFERENCIA.md`
 
-- [ ] **Step 1: Documentar boss, música, sensor y tema**
+- [x] **Step 1: Documentar boss, música, sensor y tema**
 
 Actualizar ciclo del boss, recompensas, rutas de assets, sensor interior y comandos.
 
-- [ ] **Step 2: Ejecutar verificación completa**
+- [x] **Step 2: Ejecutar verificación completa**
 
 ```powershell
 godot --headless --path prueba_2 --import
@@ -327,11 +333,11 @@ godot --headless --path prueba_2 res://tests/music_asset_tests.tscn
 godot --headless --path prueba_2 res://tests/combat_smoke.tscn
 ```
 
-- [ ] **Step 3: Arranque con Godot MCP**
+- [x] **Step 3: Arranque con Godot MCP**
 
 `run_project` → `get_debug_output` → confirmar errores vacíos → dejar versión jugable.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add docs/ARQUITECTURA.md docs/agents/REFERENCIA.md
