@@ -1,5 +1,7 @@
 extends Area2D
 
+signal collected(part_id: String)
+
 # Parte soltada por un experimento. Si hay hueco compatible libre se equipa sola
 # al pasar por encima; si no, se queda en el suelo avisando. Con `interact` se
 # fuerza a mano: la parte pasa a "pendiente" y se resuelve desde el inventario.
@@ -35,8 +37,7 @@ func _process(delta: float) -> void:
 	# Reintenta cada frame, así liberar un hueco desde el inventario la recoge
 	# sin tener que salir y volver a entrar.
 	if Inventory.first_free_slot(part_id) >= 0:
-		Inventory.pick_up(part_id)
-		queue_free()
+		_collect()
 		return
 
 	if Inventory.pending != "":
@@ -44,8 +45,13 @@ func _process(delta: float) -> void:
 		return
 	hint.text = "SLOTS LLENOS · [E] GESTIONAR"
 	if Input.is_action_just_pressed("interact"):
-		Inventory.pick_up(part_id)
-		queue_free()
+		_collect()
+
+
+func _collect() -> void:
+	Inventory.pick_up(part_id)
+	collected.emit(part_id)
+	queue_free()
 
 func _slot_color() -> Color:
 	match PartsDB.slot_of(part_id):
