@@ -27,6 +27,12 @@ const GRATE_CONTENT: Array = [
 	[&"combat", 20],
 	[&"loot", 40],
 ]
+const FIRST_PART_POOL: Array[String] = [
+	"acid_stinger",
+	"serrated_jaw",
+	"hydraulic_legs",
+	"bio_netcaster",
+]
 
 
 func generate(run_seed: int) -> RefCounted:
@@ -50,6 +56,8 @@ func generate_attempt(run_seed: int, attempt: int) -> RefCounted:
 		var role: StringName = &"normal"
 		if index == 0:
 			role = &"entry"
+		elif index == 1:
+			role = &"body"
 		elif index == target_length - 2:
 			role = &"preboss"
 		elif index == target_length - 1:
@@ -95,6 +103,18 @@ func validate(run_map: RefCounted) -> PackedStringArray:
 		return errors
 	if run_map.room(run_map.main_path[0])["role"] != &"entry":
 		errors.append("la entrada no es el primer hito")
+	var body_id: String = run_map.main_path[1]
+	var body_data: Dictionary = run_map.room(body_id)
+	if body_data["role"] != &"body" or body_data["content_type"] != &"body_reward":
+		errors.append("el cuerpo no ocupa el segundo hito")
+	if not FIRST_PART_POOL.has(String(body_data["reward_part_id"])):
+		errors.append("el cuerpo tiene recompensa inválida")
+	if not run_map.room(run_map.main_path[0])["doors"].values().has(body_id):
+		errors.append("el tutorial no conecta directamente con el cuerpo")
+	if not String(body_data["grate_target"]).is_empty():
+		errors.append("el cuerpo no puede originar una rejilla")
+	if body_data["doors"].size() != 2:
+		errors.append("el cuerpo solo conecta los hitos anterior y siguiente")
 	if run_map.room(run_map.main_path[-2])["role"] != &"preboss":
 		errors.append("el preboss no es el penúltimo hito")
 	if run_map.room(run_map.main_path[-1])["role"] != &"boss_choice":
@@ -214,6 +234,8 @@ func _add_reconnections(run_map: RefCounted, rng: RandomNumberGenerator) -> void
 	for first_index in range(ids.size()):
 		var first_id: String = ids[first_index]
 		var first_data: Dictionary = run_map.room(first_id)
+		if first_data["role"] == &"body":
+			continue
 		var first_grid: Vector2i = first_data["grid"]
 		var first_doors: Dictionary = first_data["doors"]
 		for second_index in range(first_index + 1, ids.size()):
@@ -221,6 +243,8 @@ func _add_reconnections(run_map: RefCounted, rng: RandomNumberGenerator) -> void
 			if first_doors.values().has(second_id):
 				continue
 			var second_data: Dictionary = run_map.room(second_id)
+			if second_data["role"] == &"body":
+				continue
 			var second_grid: Vector2i = second_data["grid"]
 			var delta: Vector2i = second_grid - first_grid
 			if absi(delta.x) + absi(delta.y) != 1:
@@ -236,6 +260,11 @@ func _populate_content(
 ) -> bool:
 	var entry_data: Dictionary = run_map.room(run_map.entry_room_id)
 	entry_data["content_type"] = &"tutorial"
+	var body_data: Dictionary = run_map.room(run_map.main_path[1])
+	body_data["content_type"] = &"body_reward"
+	body_data["reward_part_id"] = FIRST_PART_POOL[
+		rng.randi_range(0, FIRST_PART_POOL.size() - 1)
+	]
 	var preboss_id: String = run_map.main_path[-2]
 	var preboss_data: Dictionary = run_map.room(preboss_id)
 	preboss_data["content_type"] = &"preboss"
@@ -244,7 +273,7 @@ func _populate_content(
 
 	var branches_requiring_grate: Array[String] = []
 	var branch_index := 0
-	for path_index in range(1, run_map.main_path.size() - 2):
+	for path_index in range(2, run_map.main_path.size() - 2):
 		var room_id: String = run_map.main_path[path_index]
 		var data: Dictionary = run_map.room(room_id)
 		var content: StringName = _weighted_choice(rng, NORMAL_CONTENT)
@@ -341,27 +370,32 @@ func _add_grates(
 	if eligible.is_empty():
 		return true
 
-	var optional_selected: Array[String] = []
+	var optional_sources: Array[String] = []
 	for source_id in eligible:
 		if required_sources.has(source_id):
 			continue
-		if rng.randf() < GRATE_CHANCE:
-			optional_selected.append(source_id)
-	_shuffle_strings(optional_selected, rng)
+		optional_sources.append(source_id)
+	_shuffle_strings(optional_sources, rng)
 
 	var capacity: int = MAX_ROOMS - run_map.rooms.size()
 	if required_sources.size() > capacity:
 		return false
 	var selected: Array[String] = required_sources.duplicate()
-	var optional_capacity: int = capacity - selected.size()
-	for index in range(mini(optional_capacity, optional_selected.size())):
-		selected.append(optional_selected[index])
-	if selected.is_empty():
-		if capacity <= 0:
-			return false
-		var promoted: Array[String] = eligible.duplicate()
-		_shuffle_strings(promoted, rng)
-		selected.append(promoted[0])
+	if capacity <= 0:
+		return false
+
+	# El mínimo de una rejilla sesga hacia arriba un roll independiente cuando
+	# hay pocos combates. El redondeo estocástico conserva 60 % en el conjunto,
+	# sin perder el mínimo ni las fuentes obligatorias de cierres.
+	var exact_target: float = float(eligible.size()) * GRATE_CHANCE
+	var target_count: int = floori(exact_target)
+	if rng.randf() < exact_target - float(target_count):
+		target_count += 1
+	target_count = maxi(1, maxi(target_count, required_sources.size()))
+	target_count = mini(target_count, mini(capacity, eligible.size()))
+	var optional_count: int = target_count - selected.size()
+	for index in range(mini(optional_count, optional_sources.size())):
+		selected.append(optional_sources[index])
 
 	for grate_index in range(selected.size()):
 		var source_id: String = selected[grate_index]
@@ -402,6 +436,8 @@ func _adjacent_candidates(
 	var source_doors: Dictionary = source_data["doors"]
 	for room_id in run_map.room_ids():
 		if room_id == source_id or room_id == excluded_id:
+			continue
+		if run_map.room(room_id)["role"] == &"body":
 			continue
 		if source_doors.values().has(room_id):
 			continue

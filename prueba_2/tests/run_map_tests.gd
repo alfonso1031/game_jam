@@ -3,6 +3,12 @@ extends SceneTree
 const RunMap := preload("res://core/run_map.gd")
 const MapGenerator := preload("res://core/map_generator.gd")
 const RoomBackgrounds := preload("res://core/room_backgrounds.gd")
+const FIRST_PART_POOL: Array[String] = [
+	"acid_stinger",
+	"serrated_jaw",
+	"hydraulic_legs",
+	"bio_netcaster",
+]
 
 var _failures: Array[String] = []
 
@@ -43,6 +49,20 @@ func _run() -> void:
 	_check(first.main_path.size() >= 6 and first.main_path.size() <= 8, "camino de 6 a 8")
 	_check(first.rooms.size() <= 12, "respeta máximo de 12")
 	_check(first.room(first.main_path[0])["role"] == &"entry", "entrada primero")
+	var body_data: Dictionary = first.room(first.main_path[1])
+	_check(body_data["role"] == &"body", "el cuerpo es el segundo hito")
+	_check(body_data["content_type"] == &"body_reward", "el cuerpo tiene recompensa")
+	_check(
+		FIRST_PART_POOL.has(String(body_data.get("reward_part_id", ""))),
+		"la primera parte pertenece al pool"
+	)
+	_check(
+		body_data.get("reward_part_id", "") == second.room(second.main_path[1]).get(
+			"reward_part_id",
+			""
+		),
+		"la misma seed conserva la primera parte"
+	)
 	_check(first.room(first.main_path[-2])["role"] == &"preboss", "preboss penúltimo")
 	_check(first.room(first.main_path[-1])["role"] == &"boss_choice", "boss al final")
 	_check(generator.validate(first).is_empty(), "la propuesta aceptada es válida")
@@ -64,6 +84,15 @@ func _run() -> void:
 			seed_value,
 			", ".join(validation_errors),
 		])
+		var generated_body: Dictionary = generated.room(generated.main_path[1])
+		_check(
+			generated_body["role"] == &"body",
+			"seed %d fija el cuerpo segundo" % seed_value
+		)
+		_check(
+			FIRST_PART_POOL.has(String(generated_body.get("reward_part_id", ""))),
+			"seed %d elige recompensa válida" % seed_value
+		)
 		var seen_grate_targets: Dictionary = {}
 		var map_eligible_combats := 0
 		var map_grates := 0

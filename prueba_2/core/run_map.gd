@@ -33,6 +33,7 @@ func add_room(
 		"one_way": {},
 		"grate_target": "",
 		"closure_keep_direction": "",
+		"reward_part_id": "",
 	}
 
 
