@@ -252,12 +252,18 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
 - Completar Contención: `RunManager.complete_floor(&"contencion")`, cura +2 HP una vez.
 - Comer: `TAB` abre el mapa corporal, las flechas seleccionan y `F` llama
   `Inventory.consume_slot()`. Cura +2 HP y libera el slot; `Tab` solo muestra `F · COMER`.
+- Duplicado en el suelo: si `Inventory.has_part(part_id)`, el pickup muestra
+  `F · COMER` y llama `consume_loose_duplicate()`. Cura +2 HP, emite `collected` y no
+  modifica slot, cooldown ni usos de la copia equipada.
 - Perder/sacrificar: liberan slot y no curan.
 - Cuerpo lleno: el séptimo pickup permanece en el mundo; no existe parte pendiente ni
   pantalla separada con `I`.
 - Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP. Pagar
   ejecuta `GameState.unlock_grate(source_id)` para la partida actual; entrar por la fuente
   desbloqueada viaja una sola vez hacia delante. `grate_source` es solo metadato.
+- Generación: `_add_grates()` procesa fuentes por capa ascendente; una sala futura recibe
+  todas sus `entrances` antes de elegir `grate_direction`. `validate()` rechaza paredes
+  compartidas entre una abertura y una rejilla.
 - A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
 - Penumbra global: `main.tscn::Darkness = Color(0.32, 0.35, 0.37, 1)`. No aclarar
   fondos individuales. Las lámparas conservan energía `1.6`, radio `1.85`, parpadeo y

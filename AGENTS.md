@@ -188,7 +188,9 @@ lo detectan al instante.
     Toda sala normal de combate y el preboss tienen exactamente una; caben en `120 × 120`
     y sus destinos exclusivos se eligen `40 %` vacío, `40 %` loot y `20 %` combate
     obligatorio. Cruzarla consume la conexión: el destino solo crea `GrateSpawn`, nunca
-    otra rejilla ni un retorno. Una sala loot entrega una parte aleatoria una sola vez.
+    otra rejilla ni un retorno. Las fuentes se procesan por capa ascendente para registrar
+    entradas antes de reservar `grate_direction`; el validador rechaza cualquier pared
+    compartida. Una sala loot entrega una parte aleatoria una sola vez.
 
 18. **El mapa de `TAB` es local y procedural.** Lee `RunManager.current_map`, nunca
     `RoomDB.ROOMS`, y debe admitir vecinos N/E/S/O simultáneos. Solo muestra salas
@@ -215,9 +217,10 @@ lo detectan al instante.
 
 22. **Solo existen las seis partes equipadas.** `Inventory` mantiene exactamente seis
     slots por compatibilidad interna, pero no hay `pending`, séptimo espacio ni pantalla
-    separada con `I`. Si el cuerpo está lleno, el pickup permanece en el mundo. Consumir
-    se hace únicamente desde `TAB`: `WASD` o flechas para elegir una tarjeta ocupada y
-    `F` para comerla.
+    separada con `I`. Si el cuerpo está lleno, el pickup permanece en el mundo. Desde
+    `TAB`, `WASD` o flechas eligen una tarjeta ocupada y `F` la come. Si el pickup del
+    suelo es un duplicado exacto de una parte equipada, `F` digiere la copia suelta,
+    cura `2 HP` y conserva intacta la equipada.
 
 23. **La Quimera cierra Contención.** La sala `boss_choice` instancia un solo
     `BossCore` de `12 HP` y el ciclo `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`.
