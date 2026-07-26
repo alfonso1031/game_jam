@@ -164,14 +164,16 @@ propuestas y no relaja reglas. Contrato de Contención:
   cuerpo y reconvergencia obligatoria;
 - entrada/tutorial, cuerpo con primera parte en la segunda sala, preboss penúltimo y
   elección de boss al final;
-- salas normales: fácil 50 %, difícil 30 %, vacía 20 %;
+- salas normales: fácil 60 % (1–3 enemigos), difícil 30 % (4–7 enemigos), vacía 10 %;
 - `doors` guarda únicamente salidas y `entrances` las aberturas selladas ya consumidas;
 - toda sala distinta del jefe tiene un camino futuro al jefe, que es el único sumidero;
 - toda sala normal de combate y el preboss tienen una rejilla irreversible;
 - destino de rejilla: vacío 40 %, combate 20 %, loot 40 %.
 
 `RunMap.canonical_snapshot()` permite comparar generaciones y reproducir bugs con la seed.
-`res://tests/run_map_tests.gd` valida invariantes y distribuciones sobre 1.000 seeds.
+`res://tests/run_map_tests.gd` valida invariantes y distribuciones históricas sobre 1.000
+seeds; `res://tests/map_balance_tests.gd` fija el balance vigente con 10.000 elecciones
+ponderadas y 2.000 intentos generados.
 `core/room_backgrounds.gd` es el catálogo canónico de las 16 configuraciones cardinales:
 sin puertas normales, 1, 2, 3 o 4 puertas. Las esquinas `NE` y `SO` espejan
 horizontalmente los PNG `NO` y `ES`; el destino exclusivo de rejilla reserva una abertura

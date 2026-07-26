@@ -222,9 +222,9 @@ Probabilidades de contenido normal:
 
 | Tipo | Probabilidad | Enemigos |
 |---|---:|---:|
-| Combate fácil | 50 % | 1 |
-| Combate difícil | 30 % | 2–3 |
-| Vacía | 20 % | 0 |
+| Combate fácil | 60 % | 1–3 |
+| Combate difícil | 30 % | 4–7 |
+| Vacía | 10 % | 0 |
 
 Las puertas normales de una sala con enemigos se sellan hasta limpiar el combate. Las
 salas ya limpias no regeneran enemigos durante esa run.

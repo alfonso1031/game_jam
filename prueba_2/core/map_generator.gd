@@ -15,9 +15,9 @@ const DELTAS: Dictionary = {
 	"O": Vector2i.LEFT,
 }
 const NORMAL_CONTENT: Array = [
-	[&"easy", 50],
+	[&"easy", 60],
 	[&"hard", 30],
-	[&"empty", 20],
+	[&"empty", 10],
 ]
 const GRATE_CONTENT: Array = [
 	[&"empty", 40],
@@ -162,10 +162,10 @@ func validate(run_map: RefCounted) -> PackedStringArray:
 		var content: StringName = data.get("content_type", &"empty")
 		if role in [&"normal", &"branch"] and not content in [&"easy", &"hard", &"empty"]:
 			errors.append("%s tiene contenido normal inválido" % room_id)
-		if content == &"easy" and int(data.get("enemy_count", 0)) != 1:
-			errors.append("%s fácil necesita un enemigo" % room_id)
-		if content == &"hard" and int(data.get("enemy_count", 0)) not in [2, 3]:
-			errors.append("%s difícil necesita dos o tres enemigos" % room_id)
+		if content == &"easy" and int(data.get("enemy_count", 0)) not in [1, 2, 3]:
+			errors.append("%s fácil necesita de uno a tres enemigos" % room_id)
+		if content == &"hard" and int(data.get("enemy_count", 0)) not in [4, 5, 6, 7]:
+			errors.append("%s difícil necesita de cuatro a siete enemigos" % room_id)
 
 		var must_have_grate := (
 			role == &"preboss"
@@ -230,9 +230,9 @@ func _populate_content(run_map: RefCounted, rng: RandomNumberGenerator) -> void:
 		var content := _weighted_choice(rng, NORMAL_CONTENT)
 		data["content_type"] = content
 		if content == &"easy":
-			data["enemy_count"] = 1
+			data["enemy_count"] = rng.randi_range(1, 3)
 		elif content == &"hard":
-			data["enemy_count"] = rng.randi_range(2, 3)
+			data["enemy_count"] = rng.randi_range(4, 7)
 
 
 func _add_grates(
