@@ -2,6 +2,7 @@ extends Node
 
 const RunMap := preload("res://core/run_map.gd")
 const RoomAssembler := preload("res://world/rooms/room_assembler.gd")
+const ContainmentPropCatalog := preload("res://core/containment_prop_catalog.gd")
 
 var _failures: Array[String] = []
 var _checks := 0
@@ -50,6 +51,7 @@ func _run() -> void:
 		_test_blood_trail(trail_path)
 
 	_test_story_rooms()
+	_test_containment_prop_recipe()
 	_test_lamp_reach()
 	_test_tutorial_mural_contract()
 
@@ -134,6 +136,9 @@ func _test_story_rooms() -> void:
 		_check(body.get_node_or_null("BodySource") != null, "%s pone cuerpo segundo" % direction)
 		_check(normal.get_node_or_null("BloodTrail") == null, "%s no sangra en sala normal" % direction)
 		_check(normal.get_node_or_null("BodySource") == null, "%s no repite el cuerpo" % direction)
+		_check(entry.get_node_or_null("Prop_broken_glass_tube_0") != null, "%s deja el tubo roto en la entrada" % direction)
+		_check(body.get_node_or_null("Prop_broken_glass_tube_0") == null, "%s no repite el tubo roto en el cuerpo" % direction)
+		_check(normal.get_node_or_null("Prop_broken_glass_tube_0") == null, "%s no repite el tubo roto en sala normal" % direction)
 		var mural := entry.get_node_or_null("TutorialMural") as Node2D
 		_check(mural != null, "%s siempre incluye mural" % direction)
 		_check(body.get_node_or_null("TutorialMural") == null, "%s no repite mural" % direction)
@@ -154,6 +159,23 @@ func _test_story_rooms() -> void:
 		entry.free()
 		body.free()
 		normal.free()
+
+
+func _test_containment_prop_recipe() -> void:
+	var fixture := {
+		"id": "NORMAL_FIXTURE",
+		"role": &"normal",
+	}
+	var first: Array[Dictionary] = ContainmentPropCatalog.placements_for(fixture)
+	var second: Array[Dictionary] = ContainmentPropCatalog.placements_for(fixture)
+	_check(first == second, "la misma sala conserva props")
+	_check(first.size() >= 1 and first.size() <= 3, "una sala normal recibe entre uno y tres props")
+	var used_cells: Array[Vector2i] = []
+	for item: Dictionary in first:
+		var cell: Vector2i = item["cell"] as Vector2i
+		_check(cell.x != 6 and cell.y != 3, "deja carriles de puerta")
+		_check(not used_cells.has(cell), "no repite la celda de un prop")
+		used_cells.append(cell)
 
 
 func _test_lamp_reach() -> void:

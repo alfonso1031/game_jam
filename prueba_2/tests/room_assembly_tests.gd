@@ -33,8 +33,29 @@ func _run() -> void:
 				room.has_node("Spawn%s" % direction) == expected,
 				"%s materializa Spawn%s" % [room_id, direction]
 			)
+		_test_containment_prop_clearance(room, room_id)
 		room.free()
 	_finish()
+
+
+func _test_containment_prop_clearance(room: Node2D, room_id: String) -> void:
+	var protected_positions: Array[Vector2] = [Vector2(1060, 540)]
+	for direction: String in ["N", "E", "S", "O"]:
+		var door := room.get_node_or_null("Door%s" % direction) as Node2D
+		if door != null:
+			protected_positions.append(door.position)
+		var spawn := room.get_node_or_null("Spawn%s" % direction) as Node2D
+		if spawn != null:
+			protected_positions.append(spawn.position)
+	for child: Node in room.get_children():
+		if not child.has_meta("prop_id") or not child.has_method("footprint"):
+			continue
+		var footprint: Rect2 = child.call("footprint")
+		for protected_position: Vector2 in protected_positions:
+			_check(
+				not footprint.has_point(protected_position),
+				"%s deja libre %s" % [room_id, protected_position]
+			)
 
 
 func _check(condition: bool, message: String) -> void:

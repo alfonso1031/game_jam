@@ -1,6 +1,7 @@
 extends Node2D
 
 const EnemyDB := preload("res://core/enemy_db.gd")
+const ContainmentPropCatalog := preload("res://core/containment_prop_catalog.gd")
 const DoorScene := preload("res://world/props/door.tscn")
 const LampScene := preload("res://world/props/lamp.tscn")
 const BloodTrailScene := preload("res://world/props/blood_trail.tscn")
@@ -45,6 +46,7 @@ func configure(room_data: Dictionary) -> void:
 	_build_background()
 	_build_walls_and_doors()
 	_build_lighting()
+	_build_environment_props()
 	_build_story_content()
 	_build_tutorial_mural()
 
@@ -142,6 +144,19 @@ func _build_lighting() -> void:
 		lamp.position = data[2]
 		lamp.rotation = float(data[3])
 		add_child(lamp)
+
+
+func _build_environment_props() -> void:
+	var placements: Array[Dictionary] = ContainmentPropCatalog.placements_for(_room_data)
+	for index: int in range(placements.size()):
+		var placement: Dictionary = placements[index]
+		var scene: PackedScene = placement["scene"] as PackedScene
+		var prop: Node2D = scene.instantiate()
+		var prop_id: String = String(placement["id"])
+		prop.name = "Prop_%s_%d" % [prop_id, index]
+		prop.position = placement["position"] as Vector2
+		prop.set_meta("prop_id", prop_id)
+		add_child(prop)
 
 
 func _build_story_content() -> void:
