@@ -7,6 +7,15 @@ const PROMPT_POSITIONS := {
 	"O": Vector2(150, -15),
 	"E": Vector2(-150, -15),
 }
+# La textura permanece montada en la pared. Solo el sensor se acerca al cuarto:
+# así el muro sigue siendo sólido, pero el jugador puede usar la rejilla desde
+# el mismo punto interior donde reaparece al regresar.
+const SENSOR_POSITIONS := {
+	"N": Vector2(0, 105),
+	"S": Vector2(0, -105),
+	"O": Vector2(105, 0),
+	"E": Vector2(-105, 0),
+}
 
 var source_room_id: String = ""
 var target_room_id: String = ""
@@ -18,6 +27,7 @@ var _player_near := false
 
 @onready var prompt: Label = $Prompt
 @onready var sprite: Sprite2D = $Sprite
+@onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
 
 func configure(
@@ -53,6 +63,7 @@ func _fit_visual() -> void:
 	)
 	sprite.scale = Vector2.ONE * factor
 	prompt.position = PROMPT_POSITIONS.get(wall_direction, Vector2.ZERO)
+	collision_shape.position = SENSOR_POSITIONS.get(wall_direction, Vector2.ZERO)
 
 
 func _unhandled_input(event: InputEvent) -> void:

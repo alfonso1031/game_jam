@@ -43,6 +43,7 @@ func _run() -> void:
 		Vector2(120, 540),
 		Vector2(240, 540)
 	)
+	await _test_grate_reachable_from_spawn(source_room)
 	source_room.queue_free()
 	target_room.queue_free()
 	await get_tree().process_frame
@@ -111,6 +112,30 @@ func _test_grate_assembly(
 		is_equal_approx(maxf(visual_size.x, visual_size.y), 120.0),
 		"%s aprovecha el tamaño de una puerta" % source_id
 	)
+
+
+func _test_grate_reachable_from_spawn(room: Node2D) -> void:
+	var player := CharacterBody2D.new()
+	player.name = "PhysicalPlayer"
+	player.position = Vector2(1640, 540)
+	player.collision_layer = 1
+	player.collision_mask = 1
+	player.add_to_group("player")
+	var shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 36.0
+	shape.shape = circle
+	player.add_child(shape)
+	room.add_child(player)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var grate := room.get_node("Grate") as Area2D
+	_check(
+		bool(grate.get("_player_near")),
+		"el sensor de la rejilla alcanza GrateSpawn sin atravesar el muro"
+	)
+	player.queue_free()
+	await get_tree().process_frame
 
 
 func _check(condition: bool, message: String) -> void:
