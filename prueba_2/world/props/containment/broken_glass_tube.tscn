@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://world/props/containment/containment_prop.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/environment/containment/broken_glass_tube.png" id="2_texture"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_broken_glass_tube"]
+size = Vector2(74, 24)
+
+[node name="BrokenGlassTube" type="StaticBody2D"]
+collision_layer = 1
+collision_mask = 1
+metadata/story_prop = true
+script = ExtResource("1_script")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture = ExtResource("2_texture")
+scale = Vector2(0.5, 0.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 118)
+shape = SubResource("RectangleShape2D_broken_glass_tube")
