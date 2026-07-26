@@ -6,18 +6,18 @@ const PartsDB := preload("res://core/parts_db.gd")
 const ZoneScene := preload("res://world/props/hazard_zone.tscn")
 const RadialPulseScene := preload("res://actors/player/abilities/radial_pulse.tscn")
 
-# --- Impulso cargado: movimiento base del slime (todavía no tiene piernas) ---
+# --- Movimiento base: impulso cargado sin piernas, continuo con piernas ---
 # Portado de prototypes/slime_charge_movement. Se mantiene la dirección para
 # cargar y se suelta para lanzarse; durante el vuelo no se puede girar.
 const MAX_CHARGE_TIME := 1.0
 # Por debajo de este tiempo no hay impulso: machacar teclas no es movimiento.
-# El desplazamiento continuo es una habilidad futura (piernas).
 const MIN_CHARGE_TIME := 0.12
 const MIN_DISTANCE := 112.0
 const MAX_DISTANCE := 520.0
 
 # El arrastre base avanza uniforme: la carga aumenta distancia y duración.
 const CRAWL_SPEED := 480.0
+const CONTINUOUS_MOVE_SPEED := 280.0
 
 const RECOVERY_TIME := 0.12
 # Chocar contra una pared cuesta caro: el slime queda aplastado y aturdido.
@@ -100,6 +100,8 @@ var _breathe := 0.0
 var _body_base := PackedVector2Array()
 var _core_base := PackedVector2Array()
 var _crawl_phase := 0.0
+var _leg_count := 0
+var _continuous_moving := false
 
 # --- Partes equipadas ---
 # Buff activo (Piel Escamada, Garras Silenciosas, Placa de Cadera...).
@@ -126,7 +128,9 @@ func _ready() -> void:
 	_core_base = core.polygon.duplicate()
 	GameState.room_changed.connect(_on_room_changed)
 	Inventory.slots_changed.connect(_refresh_dash_charges)
+	Inventory.slots_changed.connect(_refresh_leg_mobility)
 	_refresh_dash_charges()
+	_refresh_leg_mobility()
 
 func _physics_process(delta: float) -> void:
 	_dash_cd = max(0.0, _dash_cd - delta)
@@ -138,24 +142,34 @@ func _physics_process(delta: float) -> void:
 	_apply_knockback(delta)
 
 	if _state == State.PART_DASH:
+		_continuous_moving = false
 		_advance_part_dash(delta)
 	elif _state == State.DASHING:
+		_continuous_moving = false
 		_advance_dash(delta)
 	elif not _try_dash():
-		match _state:
-			State.IDLE:
-				var input_dir := _input_direction()
-				if input_dir != Vector2.ZERO:
-					_begin_charge(input_dir)
-			State.CHARGING:
-				if _has_direction_held():
-					_update_charge(delta)
-				else:
-					_release_charge()
-			State.LAUNCHING:
-				_advance_launch(delta)
-			State.RECOVERING:
+		if uses_continuous_movement():
+			if _state == State.RECOVERING:
 				_advance_recovery(delta)
+			else:
+				_state = State.IDLE
+				_advance_continuous(delta)
+		else:
+			_continuous_moving = false
+			match _state:
+				State.IDLE:
+					var input_dir := _input_direction()
+					if input_dir != Vector2.ZERO:
+						_begin_charge(input_dir)
+				State.CHARGING:
+					if _has_direction_held():
+						_update_charge(delta)
+					else:
+						_release_charge()
+				State.LAUNCHING:
+					_advance_launch(delta)
+				State.RECOVERING:
+					_advance_recovery(delta)
 
 	_update_visual(delta)
 	queue_redraw()
@@ -167,6 +181,31 @@ func is_dashing() -> bool:
 
 func aim_direction() -> Vector2:
 	return _facing
+
+
+func leg_count() -> int:
+	return _leg_count
+
+
+func uses_continuous_movement() -> bool:
+	return _leg_count > 0
+
+
+func _refresh_leg_mobility() -> void:
+	var previous := _leg_count
+	_leg_count = Inventory.equipped_count_for_slot(PartsDB.SLOT_PIERNA)
+	if previous == 0 and _leg_count > 0 and _state == State.CHARGING:
+		slime_audio.stop_charge()
+		_state = State.IDLE
+		_charge_time = 0.0
+		_speed_ratio = 0.0
+		velocity = Vector2.ZERO
+	if previous > 0 and _leg_count == 0:
+		_continuous_moving = false
+		if _state == State.IDLE or _state == State.CHARGING:
+			_state = State.IDLE
+			velocity = Vector2.ZERO
+
 
 # Los experimentos preguntan esto al tocarlo: si viene lanzado, el que cobra
 # es el experimento, no el slime.
@@ -250,6 +289,23 @@ func _has_direction_held() -> bool:
 		or Input.is_action_pressed("move_up")
 		or Input.is_action_pressed("move_down")
 	)
+
+
+func _advance_continuous(delta: float) -> void:
+	if has_status(PartsDB.STATUS_ROOT) or not _knockback.is_zero_approx():
+		_continuous_moving = false
+		velocity = Vector2.ZERO
+		return
+	var direction := _input_direction()
+	_continuous_moving = direction != Vector2.ZERO
+	if not _continuous_moving:
+		velocity = Vector2.ZERO
+		return
+	direction = direction.normalized()
+	_facing = direction
+	velocity = direction * CONTINUOUS_MOVE_SPEED
+	move_and_collide(velocity * delta)
+
 
 # Tiempo real que cuesta llegar a carga plena. La Pierna de Pálido y el
 # Robovigilante lo alargan; el Corazón lo acorta cuando queda un corazón.
@@ -377,6 +433,7 @@ func _begin_recovery(time: float) -> void:
 	_remaining = 0.0
 	_charge_time = 0.0
 	_speed_ratio = 0.0
+	_continuous_moving = false
 	velocity = Vector2.ZERO
 
 func _advance_recovery(delta: float) -> void:
@@ -702,12 +759,13 @@ func _update_visual(delta: float) -> void:
 	var target_offset := Vector2.ZERO
 	var charge := pow(_charge_power(), 0.75) if _state == State.CHARGING else 0.0
 	var launching := _state == State.LAUNCHING
-	if launching:
+	var crawling := launching or _continuous_moving
+	if crawling:
 		_crawl_phase += delta * 9.0
 
-	if _state == State.CHARGING or launching:
-		body.polygon = _deform_points(_body_base, charge, _crawl_phase, launching)
-		core.polygon = _deform_points(_core_base, charge * 0.65, _crawl_phase, launching)
+	if _state == State.CHARGING or crawling:
+		body.polygon = _deform_points(_body_base, charge, _crawl_phase, crawling)
+		core.polygon = _deform_points(_core_base, charge * 0.65, _crawl_phase, crawling)
 	else:
 		var point_smoothing := 1.0 - exp(-18.0 * delta)
 		body.polygon = _lerp_points(body.polygon, _body_base, point_smoothing)
@@ -728,10 +786,17 @@ func _update_visual(delta: float) -> void:
 			var settle: float = clampf(_recovery / WALL_RECOVERY_TIME, 0.0, 1.0)
 			target_scale = Vector2(1.0 + settle * 0.24, 1.0 - settle * 0.2)
 		_:
-			_breathe += delta
-			var breathe: float = sin(_breathe * 2.0) * 0.04
-			target_scale = Vector2(1.0 + breathe, 1.0 - breathe)
-			body.rotation = lerp_angle(body.rotation, 0.0, 1.0 - exp(-6.0 * delta))
+			if _continuous_moving:
+				body.rotation = lerp_angle(
+					body.rotation,
+					_facing.angle(),
+					1.0 - exp(-14.0 * delta)
+				)
+			else:
+				_breathe += delta
+				var breathe: float = sin(_breathe * 2.0) * 0.04
+				target_scale = Vector2(1.0 + breathe, 1.0 - breathe)
+				body.rotation = lerp_angle(body.rotation, 0.0, 1.0 - exp(-6.0 * delta))
 
 	# Suavizado exponencial: independiente del framerate.
 	var smoothing: float = 1.0 - exp(-18.0 * delta)
