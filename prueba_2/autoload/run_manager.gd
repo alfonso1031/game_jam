@@ -48,6 +48,15 @@ func complete_floor(floor_id: StringName) -> bool:
 	return true
 
 
+func end_run(reason: StringName) -> Dictionary:
+	if not active:
+		return {}
+	active = false
+	var result := {"reason": reason}
+	run_ended.emit(result)
+	return result
+
+
 func pay_grate_cost(slot_index: int, confirm_lethal: bool = false) -> StringName:
 	if not Inventory.is_empty(slot_index):
 		var sacrificed_id: String = Inventory.sacrifice_slot(slot_index)

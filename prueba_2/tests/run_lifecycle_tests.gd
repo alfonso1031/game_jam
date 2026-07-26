@@ -50,6 +50,39 @@ func _run() -> void:
 	)
 	_check(GameState.health_halves == 1, "pedir confirmación no muta la vida")
 	_check(RunManager.pay_grate_cost(-1, true) == &"death", "confirmar permite morir")
+
+	RunManager.start_new_run(777)
+	var room_host := Node2D.new()
+	var player := Node2D.new()
+	var fade := ColorRect.new()
+	add_child(room_host)
+	add_child(player)
+	add_child(fade)
+	Transition.setup(room_host, player, fade)
+	Transition.load_initial(RunManager.current_map.entry_room_id)
+	_check(
+		GameState.current_room == RunManager.current_map.entry_room_id,
+		"carga entrada procedural"
+	)
+	var first_data: Dictionary = RunManager.current_map.room(GameState.current_room)
+	var first_directions: Array = first_data["doors"].keys()
+	var first_direction: String = first_directions[0]
+	var first_target: String = first_data["doors"][first_direction]
+	await Transition.go_to(first_target, first_direction)
+	_check(GameState.current_room == first_target, "cruza a descriptor generado")
+	_check(
+		room_host.get_child(0).get_meta("room_id") == first_target,
+		"ensambla el destino de RunMap"
+	)
+	var has_respawn := false
+	for method: Dictionary in Transition.get_method_list():
+		if method["name"] == "respawn":
+			has_respawn = true
+	_check(not has_respawn, "Transition ya no ofrece respawn")
+	room_host.queue_free()
+	player.queue_free()
+	fade.queue_free()
+	await get_tree().process_frame
 	_finish()
 
 

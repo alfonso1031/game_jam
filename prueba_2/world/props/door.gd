@@ -42,7 +42,10 @@ func _on_body_exited(_body: Node) -> void:
 func _on_body_entered(body: Node) -> void:
 	if _sealed or not _armed or not body.is_in_group("player"):
 		return
-	var doors: Dictionary = RoomDB.ROOMS[GameState.current_room]["doors"]
+	if RunManager.current_map == null:
+		return
+	var room_data: Dictionary = RunManager.current_map.room(GameState.current_room)
+	var doors: Dictionary = room_data.get("doors", {})
 	if not doors.has(direction):
 		return
 	_armed = false

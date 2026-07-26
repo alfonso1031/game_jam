@@ -25,9 +25,18 @@ func _on_room_changed(_room_id: String) -> void:
 	queue_redraw()
 
 func _refresh_labels() -> void:
-	var room_data: Dictionary = RoomDB.ROOMS[GameState.current_room]
-	level_label.text = "NIVEL %d · %s" % [room_data["level"], room_data["level_name"]]
-	room_label.text = room_data["room_name"]
+	var room_data: Dictionary = _current_room_data()
+	if room_data.is_empty():
+		return
+	var level: int = int(room_data.get("level", -3))
+	var level_name: String = String(room_data.get("level_name", "CONTENCIÓN"))
+	level_label.text = "NIVEL %d · %s" % [level, level_name]
+	if room_data.has("room_name"):
+		room_label.text = room_data["room_name"]
+	else:
+		var role: String = String(room_data.get("role", &"normal"))
+		var content: String = String(room_data.get("content_type", &"empty"))
+		room_label.text = "%s · %s" % [role.capitalize(), content.capitalize()]
 
 func _draw() -> void:
 	if GameState.current_room == "":
@@ -38,7 +47,7 @@ func _draw() -> void:
 func _draw_health() -> void:
 	# La vida se lleva en medios corazones: consumir una parte cura exactamente
 	# medio, así que el HUD tiene que poder mostrar mitades.
-	var hearts: int = GameState.max_health_halves / 2
+	var hearts: int = ceili(float(GameState.max_health_halves) / 2.0)
 	for i in range(hearts):
 		var pos: Vector2 = HEALTH_ORIGIN + Vector2(i * HEALTH_GAP, 0)
 		var filled: int = clampi(GameState.health_halves - i * 2, 0, 2)
@@ -59,16 +68,21 @@ func _draw_minimap() -> void:
 	draw_rect(MINIMAP_PANEL, Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.75), true)
 	draw_rect(MINIMAP_PANEL, Palette.WALL, false, 2.0)
 
-	var current_data: Dictionary = RoomDB.ROOMS[GameState.current_room]
-	var level: int = current_data["level"]
+	var rooms: Dictionary = _active_rooms()
+	var current_data: Dictionary = _current_room_data()
+	var level: int = int(current_data.get("level", -3))
+	var procedural := (
+		RunManager.current_map != null
+		and rooms == RunManager.current_map.rooms
+	)
 
 	var min_x := 999
 	var max_x := -999
 	var min_y := 999
 	var max_y := -999
-	for room_id in RoomDB.ROOMS:
-		var data: Dictionary = RoomDB.ROOMS[room_id]
-		if data["level"] != level:
+	for room_id in rooms:
+		var data: Dictionary = rooms[room_id]
+		if not procedural and int(data.get("level", -3)) != level:
 			continue
 		var grid: Vector2i = data["grid"]
 		min_x = min(min_x, grid.x)
@@ -83,9 +97,9 @@ func _draw_minimap() -> void:
 	cell = min(cell, MINIMAP_MAX_CELL)
 	var origin: Vector2 = MINIMAP_PANEL.position + (MINIMAP_PANEL.size - Vector2(cols, rows) * cell) * 0.5
 
-	for room_id in RoomDB.ROOMS:
-		var data: Dictionary = RoomDB.ROOMS[room_id]
-		if data["level"] != level:
+	for room_id in rooms:
+		var data: Dictionary = rooms[room_id]
+		if not procedural and int(data.get("level", -3)) != level:
 			continue
 		var grid: Vector2i = data["grid"]
 		var pos: Vector2 = origin + Vector2(grid.x - min_x, grid.y - min_y) * cell
@@ -97,3 +111,16 @@ func _draw_minimap() -> void:
 			color = Palette.WALL
 		draw_rect(Rect2(pos, cell_size), color, true)
 		draw_rect(Rect2(pos, cell_size), Palette.FLOOR, false, 1.0)
+
+
+func _active_rooms() -> Dictionary:
+	if (
+		RunManager.current_map != null
+		and RunManager.current_map.rooms.has(GameState.current_room)
+	):
+		return RunManager.current_map.rooms
+	return RoomDB.ROOMS
+
+
+func _current_room_data() -> Dictionary:
+	return _active_rooms().get(GameState.current_room, {})

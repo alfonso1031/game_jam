@@ -27,7 +27,6 @@ const ROOMS := {
 		"scene": "res://world/rooms/l3_celda.tscn",
 		"doors": {"E": "L3_PASILLO"},
 		"is_safe": true,
-		"is_checkpoint": true,
 	},
 	"L3_PASILLO": {
 		"level": -3,
@@ -61,7 +60,6 @@ const ROOMS := {
 		"grid": Vector2i(0, 0),
 		"scene": "res://world/rooms/l2_ascensor.tscn",
 		"doors": {"S": "L3_NUCLEO", "E": "L2_BIOLAB"},
-		"is_checkpoint": true,
 	},
 	"L2_BIOLAB": {
 		"level": -2,
@@ -91,7 +89,6 @@ const ROOMS := {
 		"grid": Vector2i(2, 0),
 		"scene": "res://world/rooms/l1_ascensor.tscn",
 		"doors": {"S": "L2_ESCLUSA", "E": "L1_TALLER"},
-		"is_checkpoint": true,
 	},
 	"L1_TALLER": {
 		"level": -1,
@@ -126,7 +123,6 @@ const ROOMS := {
 		"grid": Vector2i(4, 0),
 		"scene": "res://world/rooms/l0_vestibulo.tscn",
 		"doors": {"S": "L1_COMPUERTA", "E": "L0_SALIDA"},
-		"is_checkpoint": true,
 	},
 	"L0_SALIDA": {
 		"level": 0,
