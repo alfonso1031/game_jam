@@ -7,9 +7,14 @@ const LampScene := preload("res://world/props/lamp.tscn")
 const BloodTrailScene := preload("res://world/props/blood_trail.tscn")
 const BodySourceScene := preload("res://world/props/body_source.tscn")
 const TutorialMuralScene := preload("res://world/props/tutorial_mural.tscn")
+const GrateScene := preload("res://world/props/grate.tscn")
 
 const ROOM_CENTER := Vector2(960, 540)
 const BODY_POSITION := Vector2(1060, 540)
+const GRATE_SOURCE_POSITION := Vector2(1650, 540)
+const GRATE_SOURCE_SPAWN_POSITION := Vector2(1470, 540)
+const GRATE_DESTINATION_POSITION := Vector2(960, 540)
+const GRATE_DESTINATION_SPAWN_POSITION := Vector2(1140, 540)
 const INTERIOR_ORIGIN := Vector2(180, 120)
 const CELL := 120.0
 const DOOR_POSITIONS := {
@@ -49,6 +54,7 @@ func configure(room_data: Dictionary) -> void:
 	_build_environment_props()
 	_build_story_content()
 	_build_tutorial_mural()
+	_build_grate()
 
 
 func _ready() -> void:
@@ -183,6 +189,29 @@ func _build_story_content() -> void:
 			String(_room_data.get("reward_part_id", ""))
 		)
 		add_child(source)
+
+
+func _build_grate() -> void:
+	var room_id: String = String(_room_data["id"])
+	var target_id: String = String(_room_data.get("grate_target", ""))
+	var requires_cost := not target_id.is_empty()
+	if target_id.is_empty():
+		target_id = String(_room_data.get("grate_source", ""))
+	if target_id.is_empty():
+		return
+
+	var grate: Area2D = GrateScene.instantiate()
+	grate.name = "Grate"
+	grate.position = GRATE_SOURCE_POSITION if requires_cost else GRATE_DESTINATION_POSITION
+	grate.configure(room_id, target_id, requires_cost)
+	add_child(grate)
+
+	var spawn := Marker2D.new()
+	spawn.name = "GrateSpawn"
+	spawn.position = (
+		GRATE_SOURCE_SPAWN_POSITION if requires_cost else GRATE_DESTINATION_SPAWN_POSITION
+	)
+	add_child(spawn)
 
 
 func _direction_to(target_id: String) -> String:
