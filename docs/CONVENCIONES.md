@@ -26,7 +26,7 @@ acordarse de mover su gemelo.
 |---|---|---|
 | `assets/` | Arte, audio, fuentes | Escenas ni scripts |
 | `autoload/` | Los singletons registrados en `project.godot` | Cualquier cosa que no necesite sobrevivir al cambio de escena |
-| `core/` | Utilidades sin dependencias del juego (`palette`, `layers`) | Referencias a escenas, nodos o autoloads |
+| `core/` | Utilidades y modelos puros (`palette`, `layers`, `RunMap`, `MapGenerator`) | Referencias a escenas, nodos o autoloads |
 | `game/` | El ensamblaje de la partida (`main`) | Lógica de una entidad concreta |
 | `actors/` | Lo que se mueve y decide: jugador, bosses, enemigos | Escenografía |
 | `world/` | El escenario: `rooms/`, `props/` | Nada que persiga o decida |
@@ -57,8 +57,8 @@ sentido**:
 
 - `core/` **no importa nada**. Si un archivo de `core/` necesita conocer el juego, no es
   `core/`.
-- `autoload/` puede usar `core/`. No conoce escenas concretas: las rutas viven como **datos**
-  en `RoomDB`, no cableadas en el código.
+- `autoload/` puede usar `core/`. `Transition` es la única excepción que delega la
+  materialización de sala a `RoomAssembler`; ningún otro autoload conoce escenas de sala.
 - `actors/` y `world/` usan `core/` y los autoloads. **No importan `ui/`.**
 - `ui/` lee estado de los autoloads y escucha sus señales. **No toca actores ni salas.**
 - `game/` es el **único** lugar donde se ensambla todo (`main.gd` conecta `Transition` con
@@ -88,13 +88,12 @@ redibuja cuando pasa algo. Sondear cada frame significa desincronizaciones y tra
 
 Si algo se va a repetir, va como **dato**, no como caso especial:
 
-- El grafo de salas es un diccionario en `RoomDB`. Añadir una sala es una entrada más, no
-  tocar la lógica de transición.
+- El grafo de la partida es un `RunMap` generado. `RoomDB` cataloga fondos por conjunto de
+  puertas; no es la autoridad de la navegación activa.
 - La decoración se declara por **coordenada de celda** en la raíz del `.tscn` de cada sala.
   Añadir props no toca el árbol de nodos.
-- Todo dato que se pueda validar, se valida al arrancar. `RoomDB._validate()` hace
-  `push_error` si el grafo es incoherente: los errores de datos aparecen en la salida de
-  debug, no jugando.
+- Todo dato que se pueda validar, se valida. `MapGenerator.validate()` rechaza propuestas
+  incoherentes y `run_map_tests.gd` recorre 1.000 seeds.
 
 ---
 
@@ -111,12 +110,12 @@ Si algo se va a repetir, va como **dato**, no como caso especial:
 
 ## 6. Estado del jugador
 
-El estado que debe sobrevivir a un cambio de sala vive **solo** en `GameState`: vida, salas
-visitadas, habilidades, bosses derrotados. Un script de entidad no guarda copia propia.
+El estado que debe sobrevivir a un cambio de sala se reparte por autoridad:
+`RunManager` (seed, mapa, ciclo y resumen), `GameState` (vida, visitadas, habilidades) e
+`Inventory` (partes y slots). Un script de entidad no guarda copias.
 
-Al volver al título o reiniciar hay que llamar a `GameState.reset_run()`. Los autoloads
-sobreviven al cambio de escena: si no se limpia, la partida nueva arranca con el progreso
-de la anterior.
+Una partida nueva se inicia con `RunManager.start_new_run()`, que limpia las otras dos
+autoridades. No existe persistencia en disco, checkpoint ni respawn.
 
 ---
 
@@ -129,7 +128,7 @@ de la anterior.
 | Clases y tipos | `PascalCase` | `Layers`, `Palette` |
 | Constantes | `SCREAMING_SNAKE_CASE` | `WALL_RECOVERY_TIME` |
 | Miembros y métodos privados | prefijo `_` | `_charge_time`, `_begin_recovery()` |
-| Ids de sala | `SCREAMING_SNAKE_CASE`, con prefijo de nivel | `L3_NUCLEO` |
+| Ids de sala generada | prefijo de rol + índice estable | `C_00`, `B_00`, `G_00` |
 | Direcciones | `N` `S` `E` `O` | `doors = {"E": "L3_PASILLO"}` |
 
 ---
@@ -173,6 +172,13 @@ de la anterior.
 
 4. **Decir qué quedó sin verificar.** Es preferible "no probé que la partida se termine" a
    dar por bueno algo que nadie jugó.
+
+Para generación/ciclo de partida también son obligatorios:
+
+```bash
+godot --headless --path prueba_2 --script res://tests/run_map_tests.gd
+godot --headless --path prueba_2 res://tests/run_lifecycle_tests.tscn
+```
 
 ---
 

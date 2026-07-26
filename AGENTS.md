@@ -137,9 +137,10 @@ lo detectan al instante.
    nuevo debe comprobar el estado antes de abrirse y usar `PROCESS_MODE_ALWAYS`, o queda
    uno encima de otro y sin forma de cerrarse.
 
-9. **`GameState` sobrevive a los cambios de escena.** Al volver al título o reiniciar hay
-   que llamar a `GameState.reset_run()`, o la partida nueva arranca con las salas visitadas
-   y las habilidades de la anterior.
+9. **`RunManager` es la autoridad del ciclo de partida.** Una partida nueva siempre nace
+   con `RunManager.start_new_run(seed)`; ese método limpia `GameState` e `Inventory`,
+   genera `RunMap` y conserva la seed. No reiniciar autoloads por separado para empezar
+   una partida.
 
 10. **El slime se mueve con `move_and_collide()`, no con `move_and_slide()`.** El motor
     ya no usa `velocity` para desplazarlo, así que **asignar `player.velocity` no empuja
@@ -163,15 +164,25 @@ lo detectan al instante.
     `DASH_START` o `DASH_TIME`. En el impulso cargado esto no aplica: ahí la distancia la
     fija `_remaining` y la curva solo reparte el tiempo.
 
-14. **Los checkpoints son progreso de la partida actual, no guardado permanente.**
-    Se activan una sola vez al subir de piso, curan hasta un corazón y nunca retroceden.
-    El respawn usa la sala y el `Spawn` guardados para no aparecer encima de enemigos.
-    Cualquier ruta que empiece o abandone una partida debe pasar por `GameState.reset_run()`.
+14. **No existen checkpoints ni respawn.** La vida máxima es `15 HP`, se empieza con
+    `5 HP` y cada HP representa medio corazón. Completar Contención cura `+2 HP` una sola
+    vez durante la partida actual. Llegar a cero llama `RunManager.end_run()` y muestra
+    el resumen; continuar exige una partida nueva.
 
 15. **Cada sala mantiene al menos tres focos activos.** `dead_lamps_*` no cuenta como
     iluminación y un mismo lado/índice no puede estar activo y averiado a la vez. Respetar
     el carril central de las puertas; mejorar cobertura agregando o redistribuyendo focos,
     sin alterar energía, radio, color ni parpadeo de `lamp.tscn`.
+
+16. **Contención se genera, no se enumera en `RoomDB.ROOMS`.** `MapGenerator` y `RunMap`
+    viven en `core/`, son deterministas por `(seed, attempt)` y no pueden importar
+    autoloads ni escenas. Camino principal `6–8`, máximo `12` salas. Antes de cambiar sus
+    reglas, ejecutar `res://tests/run_map_tests.gd`, que valida 1.000 seeds.
+
+17. **Una rejilla nunca requiere `squeeze`.** Si se usa, el jugador elige sacrificar una
+    parte equipada o pagar `1 HP`; a `1 HP` la UI debe pedir confirmación y puede matar.
+    Máximo una rejilla por sala, destinos exclusivos y mínimo una si el mapa contiene
+    combate elegible.
 
 ---
 
@@ -187,3 +198,11 @@ lo detectan al instante.
 5. Reportar honestamente qué quedó sin verificar. El balance de combate y la sensación de
    movimiento **no se pueden validar leyendo la salida de debug** — decir explícitamente
    que hace falta que un humano lo juegue.
+
+Para cambios del ciclo procedural, correr además:
+
+```bash
+godot --headless --path prueba_2 --script res://tests/run_map_tests.gd
+godot --headless --path prueba_2 res://tests/run_lifecycle_tests.tscn
+godot --headless --path prueba_2 res://tests/combat_smoke.tscn
+```

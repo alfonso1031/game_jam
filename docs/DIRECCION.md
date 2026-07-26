@@ -4,8 +4,25 @@ Documento de diseño. Fija **de qué va el juego** y qué se recorta para llegar
 Es par de [`PLAN.md`](PLAN.md): el PLAN describe el MVP que ya se construyó, este
 describe hacia dónde gira. Donde se contradigan, manda este.
 
-Estado: **propuesta cerrada, pendiente de implementar.** Las decisiones marcadas
-como PENDIENTE son las únicas que faltan.
+Estado: **Contención procedural en implementación.** Las secciones de humanidad y cuatro
+zonas se conservan como exploración futura; no reemplazan el contrato jugable actual.
+
+## 0 · Contrato vigente del primer piso
+
+- Alcance: solo `NIVEL -3 · CONTENCIÓN`; -2, -1 y 0 quedan para iteraciones futuras.
+- Se mantienen **seis slots genéricos**. Comer, perder o sacrificar una parte libera el
+  slot; el jugador vuelve a elegir con lo siguiente que encuentre.
+- Máximo `15 HP`, inicio `5 HP`; cada HP equivale a medio corazón. Comer cura `+1 HP`.
+- Morir termina la partida actual y muestra un resumen; no hay checkpoint ni respawn.
+- Las rejillas **no usan `squeeze` ni un ítem adicional**: cuestan una parte equipada o
+  `1 HP`. A `1 HP` se confirma y el jugador puede elegir morir.
+- Ruta principal de 6–8 salas, máximo 12. Contenido normal: fácil 40 %, difícil 30 %,
+  vacía 20 %, cierre 10 %.
+- Rejilla en 60 % de combates elegibles, máximo una por origen, mínimo una si hay combate
+  y destinos sin compartir. Destino: vacío 40 %, combate 20 %, loot 40 %.
+
+Este bloque manda sobre cualquier propuesta anterior que hable de cuatro slots fijos,
+irreversibilidad, coste permanente o requisito `squeeze`.
 
 ---
 
@@ -45,10 +62,10 @@ Sin cinemáticas. La historia es el cuerpo del jugador.
 
 ---
 
-## 2 · Las cuatro zonas
+## 2 · Exploración futura: las cuatro zonas
 
-Se acaban los seis huecos genéricos. **Cuatro zonas del cuerpo, una parte cada
-una, dos opciones por zona.** Ocho partes en todo el juego.
+Esta variante **no rige el primer piso actual**. Se evaluó como posible evolución:
+cuatro zonas del cuerpo, una parte cada una, dos opciones por zona.
 
 Cuatro decisiones por partida. Dieciséis cuerpos posibles. Un solo eje.
 
@@ -144,7 +161,7 @@ agujero central que cierra este documento.
 |---|---|---|
 | `master_key` | Manos | paneles, terminales, palancas, ascensores, puertas con cerradura |
 | `break_walls` | Garra | muros agrietados, barricadas, vitrinas |
-| `squeeze` | Masa Gelatinosa | rejillas, tuberías, pasos angostos |
+| `squeeze` | — | **No se usa:** las rejillas cobran parte equipada o 1 HP |
 | `read` | Rostro | carteles, mapa del piso, códigos |
 | `see_through` | Sentidos | enemigos y trampas tras las paredes |
 | `walk` | Piernas Recuperadas | movimiento continuo (sustituye al impulso cargado) |
@@ -241,7 +258,7 @@ el jugador ya está pagándolo sin saberlo.
 
 ---
 
-## 6 · Finales
+## 6 · Exploración futura: finales
 
 `ui/ending.gd` ya existe. Ramifica por signo:
 
@@ -253,9 +270,10 @@ el jugador ya está pagándolo sin saberlo.
 
 ---
 
-## 7 · Qué se recorta
+## 7 · Propuesta archivada de recorte
 
-Migración desde el estado actual. Todo es borrar, salvo el punto 3.
+Esta tabla se conserva como historial de la variante de cuatro zonas. **No ejecutar estos
+cambios en el prototipo actual**: contradicen el contrato vigente de seis slots.
 
 | # | Archivo | Cambio |
 |---|---|---|

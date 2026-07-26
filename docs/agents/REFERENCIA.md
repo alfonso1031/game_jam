@@ -13,9 +13,9 @@ escena vive junto a su script, nunca en árboles paralelos `scenes/` y `scripts/
 
 | Carpeta | Qué va |
 |---|---|
-| `assets/` | Arte, audio, fuentes. Hoy solo `icon.svg` |
-| `autoload/` | Los tres singletons: `game_state`, `room_db`, `transition` |
-| `core/` | Sin dependencias del juego: `palette.gd`, `layers.gd` |
+| `assets/` | Arte, audio y fuentes |
+| `autoload/` | `game_state`, `inventory`, `room_db`, `run_manager`, `transition` |
+| `core/` | Sin dependencias del juego: paleta/capas y modelo/generador de mapa |
 | `game/` | El ensamblaje de la partida: `main.tscn` + `main.gd` |
 | `actors/` | Lo que se mueve y decide: `player/`, `boss/` |
 | `world/` | El escenario: `rooms/`, `props/` |
@@ -61,18 +61,17 @@ Preguntas para ubicar algo nuevo:
 
 ### Añadir una sala
 
-1. Entrada en `RoomDB.ROOMS` (`autoload/room_db.gd`): `level`, `level_name`,
-   `room_name`, `grid`, `scene`, `doors`. Opcional `is_boss`.
-2. `.tscn` en `world/rooms/` con `world/rooms/room.gd` en la raíz, muros partidos donde
-   vayan las puertas y un `Marker2D` `SpawnN` / `SpawnS` / `SpawnE` / `SpawnO` por lado.
-3. Nada más. HUD y mapa se dibujan solos desde `RoomDB` + `GameState.visited`.
+No se añade una escena por sala generada. `MapGenerator` crea el descriptor y
+`RoomAssembler` usa `procedural_room.tscn` para abrir muros, puertas y `SpawnN/E/S/O`.
 
-`RoomDB._validate()` corre al arrancar y hace `push_error` si una puerta apunta a una sala
-inexistente o si la vuelta no es simétrica (`A.doors.E == B` exige `B.doors.O == A`).
+Para una combinación visual nueva:
 
-> **Cuidado:** si se añade una dirección al `doors` de una sala, hay que abrir el hueco y
-> la puerta en su `.tscn`. Declararlo solo en el `RoomDB` no crea nada. Este error ya se
-> cometió: el pasillo tenía tres salidas declaradas y una sola abierta.
+1. añadir el PNG 1920×1080 en `assets/environment/rooms/`;
+2. registrarlo en `RoomDB.TEMPLATES`;
+3. añadir el fixture a `_test_room_templates()` y correr `combat_smoke.tscn`.
+
+Cambiar topología o contenido exige actualizar `MapGenerator.validate()` y comprobar
+1.000 seeds con `res://tests/run_map_tests.gd`. `RoomDB.ROOMS` es legado.
 
 ### Añadir decoración
 
@@ -109,18 +108,14 @@ Para mejorar la cobertura se cambia la distribución, no las propiedades de `lam
 en `ui/hud.gd` para que aparezca el slot. El estado vive **solo** en `GameState`,
 nunca en el script del jugador — así sobrevive a los cambios de sala.
 
-### Marcar un checkpoint de piso
+### Ciclo de partida y rejillas
 
-Añadir `"is_checkpoint": true` a la sala de entrada del piso en `RoomDB.ROOMS`. La
-transición registra automáticamente el nivel y el `Spawn<opuesto>` usado al entrar; no
-se llama a `GameState.try_reach_checkpoint()` desde la sala.
-
-Reglas del contrato:
-
-- solo avanza si el `level` es mayor que el guardado;
-- cura como máximo 2 medios corazones y emite la cantidad realmente curada;
-- el respawn reutiliza el `Spawn` de entrada para no colocar al slime encima de enemigos;
-- `reset_run()` debe borrar sala, nivel y spawn: no hay persistencia entre partidas.
+- Nueva partida: `RunManager.start_new_run(seed)`; máximo 15 HP, inicio 5 HP.
+- Completar Contención: `RunManager.complete_floor(&"contencion")`, cura +2 HP una vez.
+- Comer: `Inventory.consume_slot()`, cura +1 HP y libera el slot.
+- Perder/sacrificar: liberan slot y no curan.
+- Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP.
+- A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
 
 ---
 
@@ -132,7 +127,7 @@ Reglas del contrato:
 - Comentarios en **español**, solo donde el "por qué" no se ve en el código. No comentar
   lo obvio.
 - Nada de `print()` de depuración en el código que se entrega.
-- Sin assets de arte: todo con `Polygon2D`, `ColorRect`, `_draw()` y `GradientTexture2D`.
+- Reutilizar los fondos y escenas existentes antes de crear assets nuevos.
 - Colores **siempre** desde `Palette`, nunca hardcodeados en scripts.
 
 ### Paleta (IcyWitch)

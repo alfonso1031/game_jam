@@ -62,7 +62,7 @@ prefab. La "arquitectura" de un proyecto Godot son cuatro decisiones:
 | **Organizar por feature, no por tipo** | Cada escena vive junto a su script (`door.tscn` + `door.gd` en la misma carpeta), en vez de árboles paralelos `scenes/` y `scripts/` |
 | **Composición sobre herencia** | Un actor se arma con nodos hijos (`Area2D` de contacto, `PointLight2D`, `CollisionShape2D`) en lugar de cadenas de clases |
 | **Señales hacia arriba, llamadas hacia abajo** | Un padre llama métodos de sus hijos; un hijo avisa con `signal`. El HUD nunca consulta la sala: escucha `room_changed` |
-| **Estado global en autoloads, datos en constantes/recursos** | `GameState`, `RoomDB` y `Transition` son los únicos singletons; el grafo de salas es un diccionario, no código |
+| **Estado global acotado, generación pura** | `RunManager` posee el ciclo/seed/mapa; `GameState` la vida/progreso; `Inventory` las partes; `Transition` cambia salas. `RunMap` y `MapGenerator` son `core/` puro |
 
 La convención de carpetas es la que recomienda la propia documentación de Godot:
 **agrupar por contexto del juego** (actores, mundo, ui) y no por extensión de archivo.
@@ -75,21 +75,25 @@ prueba_2/
 ├── assets/                  # icon.svg + audio/slime/ con los WAV procedurales
 ├── autoload/                # singletons registrados en project.godot
 │   ├── game_state.gd        #   sala actual, visitadas, habilidades, vida, F11
-│   ├── room_db.gd           #   grafo de salas + validador
-│   └── transition.gd        #   fade, swap de sala, reposicionado
+│   ├── inventory.gd         #   seis slots, partes, consumo y pasivas
+│   ├── room_db.gd           #   catálogo de plantillas; ROOMS queda como legado
+│   ├── run_manager.gd       #   seed, RunMap, recompensa de piso y resumen
+│   └── transition.gd        #   fade, ensamblado y reposicionado
 ├── core/                    # sin dependencias del juego, lo importa todo el mundo
 │   ├── palette.gd           #   colores IcyWitch (clase estática, NO autoload)
-│   └── layers.gd            #   capas de física por nombre en vez de números sueltos
+│   ├── layers.gd            #   capas de física por nombre en vez de números sueltos
+│   ├── run_map.gd           #   modelo serializable de una generación
+│   └── map_generator.gd     #   generación determinista + validador
 ├── game/                    # el ensamblaje de la partida
 │   ├── main.tscn            #   Darkness + RoomHost + Player + HUD + Map + Pausa + Fade
-│   └── main.gd              #   arranca en L3_CELDA, gestiona la muerte
+│   └── main.gd              #   inicia/reutiliza la partida y carga la entrada generada
 ├── actors/                  # cualquier cosa que se mueve y decide
 │   ├── player/              #   slime.tscn + slime.gd
 │   └── boss/                #   boss_core.tscn/gd + projectile.tscn/gd
 ├── world/                   # el escenario
-│   ├── rooms/               #   room.gd + las 7 salas
+│   ├── rooms/               #   ensamblador procedural + salas legacy
 │   └── props/               #   door, elevator, lamp, tank, debris, puddle, gap, pickup
-└── ui/                      # hud, map_overlay, title, pause_menu, ending
+└── ui/                      # hud, map_overlay, title, pause_menu, run_summary
 ```
 
 Dónde va cada cosa nueva:
@@ -146,57 +150,47 @@ a través de `enemy_base.gd`.
 
 ## 4. Sistema de salas (data-driven)
 
-Todo el grafo vive en `RoomDB.ROOMS`. Añadir una sala = una entrada + un `.tscn`.
+La partida activa usa `RunManager.current_map`, una instancia de `RunMap` creada por
+`MapGenerator`. `RoomDB.ROOMS` se conserva solo para escenas y pruebas legacy; la
+navegación nueva no lo consulta.
 
-```gdscript
-"L3_PASILLO": {
-    "level": -3,
-    "level_name": "CONTENCIÓN",
-    "room_name": "Pasillo de Servicio",
-    "grid": Vector2i(1, 0),          # posición en el minimapa del nivel
-    "scene": "res://world/rooms/l3_pasillo.tscn",
-    "doors": {"O": "L3_CELDA", "N": "L3_ALMACEN", "E": "L3_NUCLEO"},
-},
-```
+`MapGenerator` es determinista por `(run_seed, generation_attempt)`, prueba hasta 128
+propuestas y no relaja reglas. Contrato de Contención:
 
-Direcciones `N | S | E | O`. `RoomDB._validate()` corre al arrancar y hace `push_error`
-si una puerta apunta a una sala inexistente o si la vuelta no es simétrica.
+- camino principal de 6–8 salas y máximo 12 contando destinos de rejilla;
+- entrada/tutorial, preboss penúltimo y elección de boss al final;
+- salas normales: fácil 40 %, difícil 30 %, vacía 20 %, cierre 10 %;
+- cierre con exactamente tres puertas y conservación del camino al boss;
+- rejilla en 60 % de combates elegibles, mínimo una si existe combate, máximo una por
+  origen y destinos exclusivos;
+- destino de rejilla: vacío 40 %, combate 20 %, loot 40 %.
 
-### Mapa del MVP
-
-```
-NIVEL -3 · CONTENCIÓN
-      ALMACÉN
-         │ N
-CELDA ─E─ PASILLO ─E─ NÚCLEO (boss)
-                          │ N (ascensor)
-NIVEL -2 · BIO-LABORATORIOS
-                      ASCENSOR ─E─ BIOLAB ─E─ ESCLUSA
-```
+`RunMap.canonical_snapshot()` permite comparar generaciones y reproducir bugs con la seed.
+`res://tests/run_map_tests.gd` valida invariantes y distribuciones sobre 1.000 seeds.
+`RoomDB.template_for()` solo traduce el conjunto de puertas a uno de los 13 fondos.
 
 ### Flujo de transición (`transition.gd`)
 
 1. `Door`/`Elevator` detecta al jugador → `Transition.go_to(target_id, dir)`.
 2. Guard `_busy`: ignora llamadas concurrentes.
 3. Fade a negro (0.25 s).
-4. Se libera la sala vieja, se instancia la nueva.
+4. Se libera la sala vieja y `RoomAssembler` materializa el descriptor de `RunMap`.
 5. **El jugador se coloca en el `Spawn<opuesto>` ANTES de añadir la sala al árbol.**
 6. `GameState.current_room` / `visited` se actualizan y se emite `room_changed`.
 7. Fade in.
 
 El jugador vive en `main.tscn`, **no** dentro de la sala — sobrevive a los cambios.
 
-### Checkpoints por piso
+### Ciclo de partida y vida
 
-`RoomDB` marca `L3_CELDA`, `L2_ASCENSOR`, `L1_ASCENSOR` y `L0_VESTIBULO` con
-`is_checkpoint`. La celda registra el inicio sin premio; al alcanzar por primera vez un
-piso superior, `Transition` guarda en `GameState` la sala, su nivel y el `Spawn` por el
-que se entró. El checkpoint nunca retrocede ni vuelve a curar al reentrar.
+`RunManager.start_new_run(seed)` limpia `GameState`/`Inventory`, genera Contención y
+mantiene todo solo en memoria. Máximo `15 HP`, inicio `5 HP`; cada HP es medio corazón.
+Completar Contención cura `+2 HP` una sola vez. Comer parte cura `+1 HP`; comer, perder o
+sacrificar libera el slot.
 
-Cada checkpoint nuevo cura hasta **2 medios corazones (1 corazón)** y emite
-`checkpoint_reached`. `ui/checkpoint_notice.tscn` muestra la recompensa durante 3 s.
-Todo vive solo en memoria: `GameState.reset_run()` borra el progreso al abandonar o
-reiniciar la partida.
+Una rejilla cuesta una parte equipada elegida o `1 HP`, sin bandera `squeeze`. Con `1 HP`
+la UI debe pedir confirmación y el jugador puede elegir morir. A cero no hay respawn:
+`RunManager.end_run()` emite un resumen con zona, salas, consumidas, sacrificadas y seed.
 
 ---
 
@@ -517,8 +511,8 @@ llega a la esclusa. La habilidad abre progresión real, no es decorado.
 ### Daño y muerte
 
 `GameState.damage()` emite `health_changed` (el HUD se redibuja) y `died` al llegar a 0.
-`main.gd` escucha `died` → restaura la vida y reaparece en la sala y el `Spawn` del
-checkpoint más alto alcanzado. Si todavía no existe uno, usa `L3_CELDA`.
+`main.gd` escucha `died` → `RunManager.end_run(&"death")`. `run_summary.tscn` pausa y
+permite iniciar una partida nueva o volver al título; nunca restaura vida ni reaparece.
 El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 
 ---
@@ -539,17 +533,17 @@ El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 ## 11. Flujo de pantallas y pausa
 
 ```
-title.tscn ──cualquier tecla──▶ main.tscn ──llegar a L2_ESCLUSA──▶ ending (CONTINUARÁ…)
-     ▲                             │                                      │
-     └──────── TÍTULO ─────────────┴──── pausa (Esc) ─── REINICIAR ───────┘
+title.tscn ──cualquier tecla──▶ main.tscn ──morir──▶ run_summary
+     ▲                             │                      │
+     └──────── TÍTULO ─────────────┴── pausa ─────────────┘
 ```
 
 - **Título** (`ui/title.gd`): llama a `GameState.reset_run()` al entrar, así que volver al
   título siempre limpia la partida. Ignora la acción `fullscreen` para que `F11` no
   arranque el juego.
 - **Pausa** (`ui/pause_menu.gd`, `Esc`): CONTINUAR / REINICIAR / TÍTULO.
-- **Final** (`ui/ending.gd`): escucha `room_changed`; al entrar en `L2_ESCLUSA` espera 0.9 s
-  y muestra `CONTINUARÁ…` con las estadísticas de la partida.
+- **Resumen** (`ui/run_summary.gd`): escucha `RunManager.run_ended`, muestra seed y
+  decisiones de la partida, y ofrece nueva partida o título.
 
 **Tres overlays comparten `get_tree().paused`**, así que cada uno comprueba el estado
 antes de abrirse: el mapa no se abre si algo ya pausó, y la pausa no se abre si el mapa
@@ -569,22 +563,22 @@ podrían haber quedado trabados a mitad de una transición.
 |---|---|---|
 | 1 | `project.godot` + paleta + autoloads | ✅ |
 | 2 | `main.tscn` + slime + sala de prueba | ✅ |
-| 3 | `room.gd`, puertas, transiciones, `room_db` | ✅ |
-| 4 | Las 7 salas + ascensor + validador | ✅ |
+| 3 | `RunMap`, generador, ensamblador y transiciones procedurales | ✅ |
+| 4 | Contención: 6–8 hitos, cierres, reconexiones y rejillas | ✅ |
 | 5 | HUD + overlay de mapa | ✅ |
 | 6 | Ambientación: oscuridad, mínimo 3 lámparas activas por sala, props, carteles | ✅ |
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
-| 8 | Pulido: pausa, título, "CONTINUARÁ" | ✅ |
+| 8 | Ciclo de muerte sin respawn y resumen reproducible | ✅ |
 
-**MVP completo.** Partida jugable de principio a fin: título → 13 salas en 4 niveles →
-boss → DASH → hueco de Biolab → esclusa → "CONTINUARÁ…".
+**Alcance actual:** Contención procedural (nivel -3). Los niveles -2, -1 y 0 son contratos
+futuros y no se simulan con salas fijas durante la partida activa.
 
 ---
 
 ## 13. Notas de mantenimiento
 
-- **Añadir una sala:** entrada en `RoomDB.ROOMS` + `.tscn` con muros partidos donde vayan
-  las puertas + `Marker2D` `SpawnN/S/E/O`. El HUD y el mapa se actualizan solos.
+- **Añadir una plantilla:** registrar el fondo en `RoomDB.TEMPLATES`; el generador crea
+  descriptores y `RoomAssembler` abre muros/puertas/spawns.
 - **Añadir un prop:** escena en `world/props/` + `preload` y un array `@export` en
   `world/rooms/room.gd`.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
