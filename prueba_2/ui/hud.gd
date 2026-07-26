@@ -1,8 +1,10 @@
 extends Control
 
 const Palette := preload("res://core/palette.gd")
+const MinimapFrame := preload("res://assets/ui/cuadroMapa.png")
 
-const MINIMAP_PANEL := Rect2(1660, 20, 240, 180)
+const MINIMAP_PANEL := Rect2(1640, 20, 240, 240)
+const MINIMAP_FRAME_INSET := 0.141
 const MINIMAP_MAX_CELL := 42.0
 const HEALTH_FILL_WIDTH := 356.0
 
@@ -43,8 +45,9 @@ func _draw() -> void:
 	_draw_minimap()
 
 func _draw_minimap() -> void:
-	draw_rect(MINIMAP_PANEL, Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.75), true)
-	draw_rect(MINIMAP_PANEL, Palette.WALL, false, 2.0)
+	draw_texture_rect(MinimapFrame, MINIMAP_PANEL, false)
+
+	var inner: Rect2 = MINIMAP_PANEL.grow(-MINIMAP_PANEL.size.x * MINIMAP_FRAME_INSET)
 
 	var rooms: Dictionary = _active_rooms()
 	var visible_ids := visible_room_ids()
@@ -73,10 +76,10 @@ func _draw_minimap() -> void:
 
 	var cols := max_x - min_x + 1
 	var rows := max_y - min_y + 1
-	var padding := 20.0
-	var cell: float = min((MINIMAP_PANEL.size.x - padding * 2) / cols, (MINIMAP_PANEL.size.y - padding * 2) / rows)
+	var padding := 10.0
+	var cell: float = min((inner.size.x - padding * 2) / cols, (inner.size.y - padding * 2) / rows)
 	cell = min(cell, MINIMAP_MAX_CELL)
-	var origin: Vector2 = MINIMAP_PANEL.position + (MINIMAP_PANEL.size - Vector2(cols, rows) * cell) * 0.5
+	var origin: Vector2 = inner.position + (inner.size - Vector2(cols, rows) * cell) * 0.5
 
 	for room_id: String in visible_ids:
 		var data: Dictionary = rooms[room_id]
