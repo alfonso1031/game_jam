@@ -18,7 +18,9 @@ El cambio también corrige dos problemas de lectura:
 
 - el mapa local no debe revelar salas ni puertas antes de visitarlas;
 - las puertas físicas, las conexiones del mapa y las pistas ambientales deben
-  provenir del mismo descriptor de `RunMap`.
+  provenir del mismo descriptor de `RunMap`;
+- los controles básicos deben aprenderse dentro del mundo, no mediante un bloque
+  de instrucciones en la portada.
 
 ## 1. Ruta inicial y cuerpo
 
@@ -134,7 +136,59 @@ El layout se calcula con el subconjunto visible, no con todas las salas de la
 seed. De ese modo el tamaño, posición y escala del mapa no filtran la extensión
 del piso todavía oculto.
 
-## 5. Movimiento de arrastre
+## 5. Limpieza de UI y tutorial ambiental
+
+La interfaz conserva información necesaria para actuar o tomar una decisión y
+elimina texto explicativo redundante.
+
+### Portada
+
+En esta iteración la portada conserva únicamente:
+
+- el nombre del juego;
+- la representación del slime;
+- `PULSA CUALQUIER TECLA`, porque comunica la acción necesaria para comenzar.
+
+Se eliminan el subtítulo del objetivo y el bloque de controles. El futuro
+rediseño de portada con botones y una posible pantalla de controles queda fuera
+de este alcance.
+
+### HUD y overlays
+
+- El HUD conserva la barra de vida, su valor numérico y la barra de carga.
+- Se eliminan el rótulo `BIOMASA`, el nivel y el nombre de la sala.
+- El mapa conserva el diagrama local, el cuerpo asimilado y los tooltips de
+  habilidades.
+- Se eliminan del mapa el título, la leyenda y la indicación de cierre con
+  `TAB`.
+- Inventario, pausa, pickups, recompensas y resumen final conservan nombres,
+  efectos, valores, botones y teclas cuando son necesarios para operar la
+  pantalla o tomar una decisión.
+- Los mensajes contextuales de error, coste, peligro o interacción permanecen
+  porque afectan una acción inmediata del jugador.
+
+### Mural de la primera sala
+
+La sala `main_path[0]`, y solo ella, instancia siempre un mural ambiental que
+enseña el movimiento cargado:
+
+```text
+WASD / flechas mantenidas
+    → slime estirándose + barra llenándose
+    → soltar
+    → desplazamiento
+```
+
+El mural se integra en suelo o pared como parte del laboratorio; no es un
+`CanvasLayer`, no pausa el juego y no desaparece durante la partida. Prioriza
+iconos, siluetas y flechas sobre frases. No enseña `TAB`, inventario, pausa,
+pantalla completa ni DASH.
+
+Su orientación y posición dejan libres el spawn del jugador, la ruta de sangre
+y todas las puertas posibles. Se instancia por el rol `entry`/contenido
+`tutorial`, no por el ID concreto de una seed.
+
+## 6. Movimiento de arrastre
 
 ### Control conservado
 
@@ -185,7 +239,7 @@ La deformación es presentación. `move_and_collide()` conserva la autoridad de
 posición y colisión, y el estiramiento visual se limita para no atravesar muros
 de forma engañosa.
 
-## 6. Iluminación
+## 7. Iluminación
 
 Las lámparas de sala amplían su cobertura aproximadamente un 35 %:
 
@@ -197,7 +251,7 @@ Las lámparas de sala amplían su cobertura aproximadamente un 35 %:
 No se agregan focos nuevos en esta iteración. El objetivo es reducir huecos
 oscuros ampliando el radio, sin aumentar la intensidad declarada de cada foco.
 
-## 7. Estructura propuesta
+## 8. Estructura propuesta
 
 | Componente | Responsabilidad |
 |---|---|
@@ -208,6 +262,9 @@ oscuros ampliando el radio, sin aumentar la intensidad declarada de cada foco.
 | `world/props/blood_trail.*` | Distribuir decals sin lógica de navegación propia |
 | `autoload/game_state.gd` | Recordar recompensas de sala reclamadas durante la partida |
 | `ui/map_overlay.gd` | Mostrar únicamente salas y enlaces descubiertos |
+| `ui/title.tscn` | Dejar solo identidad del juego y acción para comenzar |
+| `ui/hud.*` | Conservar vida/carga y retirar rótulos redundantes |
+| `world/props/tutorial_mural.*` | Enseñar visualmente mantener, cargar y soltar |
 | `actors/player/slime.gd` | Aplicar velocidad uniforme y deformación peristáltica |
 | `world/props/lamp.tscn` | Ampliar radio sin cambiar energía |
 
@@ -216,9 +273,10 @@ Los assets finales viven en:
 ```text
 prueba_2/assets/environment/blood/
 prueba_2/assets/environment/body/
+prueba_2/assets/environment/tutorial/
 ```
 
-## 8. Verificación
+## 9. Verificación
 
 ### Generación y puertas
 
@@ -233,6 +291,19 @@ prueba_2/assets/environment/body/
 - Al entrar al cuerpo aparecen exactamente tutorial, cuerpo y su enlace.
 - Una vecina no visitada no aparece como `?` ni altera el layout.
 - Rejillas permanecen ocultas hasta descubrirlas.
+- No quedan título, leyenda ni ayuda de cierre sobre el mapa.
+
+### UI y tutorial
+
+- La portada no muestra subtítulo ni controles y todavía permite iniciar con
+  teclado o ratón.
+- El HUD conserva vida/carga sin `BIOMASA`, nivel ni nombre de sala.
+- Las pantallas de decisión conservan los textos y controles necesarios.
+- La primera sala siempre contiene exactamente un mural de movimiento.
+- El mural no aparece en la segunda sala ni en las demás.
+- Las cuatro configuraciones cardinales de la entrada mantienen libre el acceso
+  a sus puertas, al spawn y al rastro de sangre.
+- Capturas a 1920×1080 verifican que el mural se lee sin comportarse como UI.
 
 ### Cuerpo y sangre
 
@@ -264,3 +335,5 @@ prueba_2/assets/environment/body/
   primeras salas.
 - Cambiar el alcance del DASH o el balance de partes.
 - Generar los pisos -2, -1 y 0.
+- Diseñar o implementar los futuros botones de la portada y su pantalla de
+  controles.
