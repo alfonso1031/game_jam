@@ -39,15 +39,20 @@ Estado visual de los enemigos del piso:
 
 | Entidad | Mecánica | Arte actual |
 |---|---|---|
-| EXP01 · Ciempiés de Agujas | Implementada | `Polygon2D` provisional |
-| EXP02 · Arácnido Blindado | Implementada | `Polygon2D` provisional |
-| EXP03 · Saurio Escamado | Implementada | `Polygon2D` provisional |
-| EXP07 · Crustáceo Triturador | Implementada | `AnimatedSprite2D` final funcional |
-| Quimera Albina · boss | Implementada | `Sprite2D` estático |
+| EXP01 · Ciempiés de Agujas | Implementada | `AnimatedSprite2D`, 6 poses |
+| EXP02 · Arácnido Blindado | Implementada | `AnimatedSprite2D`, 6 poses |
+| EXP03 · Saurio Escamado | Implementada | `AnimatedSprite2D`, 6 poses |
+| EXP07 · Crustáceo Triturador | Implementada | `AnimatedSprite2D`, arte ilustrado entregado |
+| Quimera Albina · boss | Implementada | `AnimatedSprite2D`, 6 poses |
 
-Está **aprobado pero no implementado** generar e integrar animaciones para EXP01, EXP02,
-EXP03 y la Quimera Albina sin cambiar sus mecánicas. La especificación vigente es
-`docs/superpowers/specs/2026-07-26-assets-enemigos-contencion-design.md`.
+Ningún enemigo de Contención usa ya `Polygon2D` como cuerpo final. Las poses de EXP01,
+EXP02, EXP03 y la Quimera se componen con formas vectoriales desde
+`tools/art/gen_containment_enemy_sheets.gd` y se procesan con
+`tools/art/process_containment_enemy_sheets.gd`. **Son arte funcional, no una entrega
+ilustrada a mano:** cuando diseño entregue hojas pintadas, se sustituye
+`art_raw/enemigos/containment/<personaje>/source_sheet.png` respetando la rejilla 3 × 2 y
+el orden de poses, y se vuelve a correr el procesador. El arte de EXP07 llegó de diseño y
+no se ha redibujado.
 
 ## 3. Flujo de partida y controles
 
@@ -329,6 +334,13 @@ no bloquea la fila 3 ni la columna 6.
 - La orientación fuente estándar es hacia la derecha, salvo EXP07, cuyo arte existente
   está invertido y se corrige solo en su script.
 - El arte no define daño, alcance ni tiempos; los scripts siguen siendo autoridad.
+- El arte crudo de enemigos vive en `art_raw/enemigos/containment/`, fuera del proyecto
+  Godot; solo entran las poses procesadas.
+- Cada experimento con arte traduce su estado con `_visual_state()`; si el nombre no
+  existe en su `SpriteFrames`, `enemy_base.gd` cae al `autoplay` en vez de romper.
+- Las velocidades de los avisos están calculadas para que el último fotograma coincida
+  con la llamada que aplica el ataque. Cambiar el tiempo de un estado obliga a
+  recalcular la velocidad del `SpriteFrames`.
 
 ### Iluminación
 
@@ -408,15 +420,16 @@ Dirección de dependencias:
 
 ## 14. Estado de trabajo pendiente aprobado
 
-Único cambio de contenido aprobado y todavía no ejecutado:
+El cambio de assets animados de Contención está **ejecutado**: hojas de seis poses para
+EXP01, EXP02, EXP03 y Quimera Albina, procesadas a PNG con alfa, con sus `SpriteFrames`
+y sustituyendo solo los nodos visuales. Vidas, daños, velocidades, tiempos, colisiones,
+drops y probabilidades quedaron intactos; EXP07 no se redibujó; la fuente de recompensa
+de la segunda sala sigue siendo un prop, no un enemigo; no hay animaciones de muerte.
 
-- generar hojas de seis poses para EXP01, EXP02, EXP03 y Quimera Albina;
-- procesarlas a PNG con alfa;
-- crear sus `SpriteFrames`;
-- sustituir únicamente los nodos visuales provisionales;
-- conservar vidas, daños, velocidades, tiempos, colisiones, drops y probabilidades;
-- conservar EXP07 sin redibujarlo;
-- no convertir la fuente de recompensa de la segunda sala en enemigo;
-- no añadir animaciones de muerte.
+Queda pendiente, sin plazo ni especificación aprobada:
+
+- sustituir las poses generadas por una entrega ilustrada a mano cuando exista, cambiando
+  únicamente los `source_sheet.png` de `art_raw/enemigos/containment/`;
+- el diseño del monstruo que entrega la parte de la segunda sala.
 
 No hay ninguna otra especificación histórica que deba asumirse pendiente automáticamente.

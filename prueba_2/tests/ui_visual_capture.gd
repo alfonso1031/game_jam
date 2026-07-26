@@ -8,6 +8,9 @@ const FloorRouteScene := preload("res://ui/floor_route_overlay.tscn")
 const HUDScene := preload("res://ui/hud.tscn")
 const TitleScene := preload("res://ui/title.tscn")
 const GrateCostOverlayScene := preload("res://ui/grate_cost_overlay.tscn")
+const Exp01Scene := preload("res://actors/enemies/exp01_centipede.tscn")
+const Exp02Scene := preload("res://actors/enemies/exp02_spider.tscn")
+const Exp03Scene := preload("res://actors/enemies/exp03_saurian.tscn")
 const Exp07Scene := preload("res://actors/enemies/exp07_crustacean.tscn")
 const MainScene := preload("res://game/main.tscn")
 const RunSummaryScene := preload("res://ui/run_summary.tscn")
@@ -63,6 +66,8 @@ func _ready() -> void:
 			_prepare_grate_room()
 		"exp07_attack":
 			_prepare_exp07_attack()
+		"enemies":
+			_prepare_enemy_lineup()
 		"lighting":
 			_prepare_lighting()
 		"boss":
@@ -161,6 +166,35 @@ func _prepare_exp07_attack() -> void:
 	enemy.set("_state", states["PINCH_WINDUP"])
 	_exp07_sprite = enemy.get_node("Sprite") as AnimatedSprite2D
 	_exp07_sprite.play(&"pinch_windup")
+
+
+# Fila de control del arte de Contención: cada experimento aparece en su pose de
+# locomoción y en la de aviso, que son las dos que el jugador tiene que
+# distinguir. La IA queda congelada para que la captura sea reproducible.
+func _prepare_enemy_lineup() -> void:
+	var lineup: Array[Array] = [
+		[Exp01Scene, "APPROACH", "WINDUP"],
+		[Exp02Scene, "REPOSITION", "SLAM_WINDUP"],
+		[Exp03Scene, "WALK", "TAIL_WINDUP"],
+		[Exp07Scene, "ADVANCE", "PINCH_WINDUP"],
+	]
+	for column in range(lineup.size()):
+		var entry: Array = lineup[column]
+		for row in range(2):
+			var enemy: CharacterBody2D = entry[0].instantiate()
+			enemy.position = Vector2(420.0 + 360.0 * float(column), 380.0 + 340.0 * float(row))
+			add_child(enemy)
+			enemy.set_physics_process(false)
+			var states: Dictionary = enemy.get_script().get_script_constant_map().get("State", {})
+			var wanted: String = entry[row + 1]
+			assert(states.has(wanted), "%s debe declarar el estado %s" % [enemy.name, wanted])
+			enemy.set("_state", states[wanted])
+			var sprite := enemy.get_node("Sprite") as AnimatedSprite2D
+			sprite.play(enemy.call("_visual_state"))
+			# El último fotograma del aviso es el que tiene que verse antes del
+			# golpe: la captura lo fuerza para poder compararlo con la locomoción.
+			if row == 1:
+				sprite.frame = sprite.sprite_frames.get_frame_count(sprite.animation) - 1
 
 
 func _prepare_lighting() -> void:

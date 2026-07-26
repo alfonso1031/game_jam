@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://actors/enemies/exp02_spider.gd" id="1"]
+[ext_resource type="SpriteFrames" path="res://actors/enemies/exp02_spider_frames.tres" id="2"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 46
@@ -22,9 +23,10 @@ drop_rate = 0.35
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("1")
 
-[node name="Body" type="Polygon2D" parent="."]
-color = Color(0.42, 0.44, 0.52, 1)
-polygon = PackedVector2Array(46, 0, 33, 33, 0, 46, -33, 33, -46, 0, -33, -33, 0, -46, 33, -33)
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2")
+animation = &"reposition"
+autoplay = "reposition"
 
 [node name="Hitbox" type="Area2D" parent="."]
 collision_layer = 0

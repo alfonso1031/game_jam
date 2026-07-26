@@ -310,6 +310,54 @@ enemigo, no diez.
 |---|---|---|
 | 13 fondos de sala | `assets/environment/rooms/` | Cubren las variantes base; `NE` y `SO` reutilizan esquinas espejadas y la sala de rejilla reserva una abertura sin puerta normal. |
 | **07 Crustáceo Triturador** | `assets/enemies/exp07_crustacean/` | 3 poses de avance y 5 fotogramas ilustrados de pellizco. |
+| **01 Ciempiés de Agujas** | `assets/enemies/exp01_centipede/` | 6 poses, lienzo 160 × 160. |
+| **02 Arácnido Blindado** | `assets/enemies/exp02_spider/` | 6 poses, lienzo 160 × 160. |
+| **03 Saurio Escamado** | `assets/enemies/exp03_saurian/` | 6 poses, lienzo 160 × 160. |
+| **Quimera Albina** | `assets/bosses/containment_chimera/animations/` | 6 poses, lienzo 384 × 256, ocupación 335 × 205. |
+
+### Enemigos de Contención — pipeline de seis poses
+
+**Ninguno de los enemigos que aparecen en Contención usa ya `Polygon2D`.** EXP01,
+EXP02, EXP03 y la Quimera Albina salen de una hoja de **seis poses en rejilla
+3 × 2 con fondo croma `#ff00ff`**, guardada fuera del proyecto en
+`art_raw/enemigos/containment/<personaje>/source_sheet.png`.
+
+Dos herramientas reproducen el resultado completo:
+
+```bash
+godot --headless --path prueba_2 --script res://tools/art/gen_containment_enemy_sheets.gd
+godot --headless --path prueba_2 --script res://tools/art/process_containment_enemy_sheets.gd
+```
+
+- `gen_containment_enemy_sheets.gd` **compone** las cuatro hojas con formas
+  orgánicas superpuestas. Es arte funcional, no una entrega de diseño.
+- `process_containment_enemy_sheets.gd` quita el croma, separa las seis poses con
+  **un recorte común** y las centra en el lienzo de runtime. El recorte común es
+  lo que conserva la escala y el punto de apoyo entre fotogramas.
+
+**Para sustituirlo por arte pintado a mano basta con reemplazar el
+`source_sheet.png` de esa criatura** —misma rejilla 3 × 2, mismo orden de poses,
+mismo fondo magenta— y volver a correr el procesador. No hace falta tocar
+`SpriteFrames`, escenas ni scripts.
+
+Orden de poses por hoja, en lectura izquierda-derecha y arriba-abajo:
+
+| Personaje | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| EXP01 | onda arriba | onda abajo | segmentos comprimidos | espinas altas, cabeza baja | estirado | doblado, espinas caídas |
+| EXP02 | apoyo diagonal A | apoyo diagonal B | abdomen inflado | cabeza extendida | patas abiertas | cuerpo bajo, patas clavadas |
+| EXP03 | apoyo delantero | apoyo trasero | cola enrollándose | cola tensada | barrido lateral | cola caída |
+| Quimera | alas arriba | alas abajo | cuerpo comprimido | órgano frontal encendido | estirada al frente | aplastada, alas abiertas |
+
+Los `SpriteFrames` viven junto al actor
+(`actors/enemies/exp0{1,2,3}_*_frames.tres`, `actors/boss/boss_core_frames.tres`)
+y cada script traduce su estado con `_visual_state()`. **Las velocidades de los
+avisos están calculadas para que la última pose coincida con la llamada que
+aplica el ataque**; si cambia el tiempo de un estado hay que recalcularlas.
+`tests/check_enemy_animations.tscn` protege esa correspondencia.
+
+`assets/bosses/containment_chimera/chimera.png` se conserva como referencia de
+identidad del jefe, pero ya no es arte de runtime.
 
 El Crustáceo conserva sus tres poses originales para `advance`. El ataque usa
 cinco fuentes transparentes de 1920 × 1080 guardadas en
@@ -367,7 +415,12 @@ respeta la silueta, hay que tocar colisiones y equilibrio.
 
 ## 9 · Lo que ya pueden mirar hoy
 
-El juego funciona con formas primitivas de colores. Que lo ejecuten y lo
-jueguen: las siluetas, tamaños y tiempos de aviso ya están ajustados y son la
-referencia real. Todo lo de este documento se ve en movimiento en 5 minutos de
-partida.
+Contención ya corre entera con arte: fondos, props, los cuatro experimentos del
+piso y el jefe. Que lo ejecuten y lo jueguen: las siluetas, tamaños y tiempos de
+aviso ya están ajustados y son la referencia real. Todo lo de este documento se
+ve en movimiento en 5 minutos de partida.
+
+Los enemigos de EXP01, EXP02, EXP03 y la Quimera están compuestos con formas
+—suficiente para jugar y para validar legibilidad, no una entrega final. Es
+exactamente ahí donde una entrega ilustrada cambia más el juego, y entra
+reemplazando un solo PNG por criatura.

@@ -24,6 +24,22 @@ var _charge_dir := Vector2.RIGHT
 func _on_ready() -> void:
 	_wave = randf() * TAU
 
+
+# Las dos poses de `windup` ocupan exactamente los 0,65 s del aviso a 3,076923
+# FPS: la segunda —espinas levantadas y cabeza baja— se ve entre 0,325 y 0,65 s,
+# justo antes de que `_enter_charge()` congele la dirección. Si cambia
+# `WINDUP_TIME`, hay que recalcular esa velocidad en el SpriteFrames.
+func _visual_state() -> StringName:
+	match _state:
+		State.WINDUP:
+			return &"windup"
+		State.CHARGE:
+			return &"charge"
+		State.REST:
+			return &"rest"
+		_:
+			return &"approach"
+
 func _tick_ai(delta: float) -> void:
 	_timer -= delta
 	match _state:

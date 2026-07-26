@@ -19,6 +19,19 @@ var _state: int = State.WALK
 var _timer := 0.0
 var _tail_cd := 0.0
 
+# El aviso son tres poses en los 0,5 s de `TAIL_WINDUP` a 6 FPS: la cola extendida
+# aparece a 0,333 s y sigue en pantalla cuando `_swipe()` resuelve el cono. La
+# recuperación devuelve a la marcha dentro de los 0,55 s del estado.
+func _visual_state() -> StringName:
+	match _state:
+		State.TAIL_WINDUP:
+			return &"tail_windup"
+		State.RECOVER:
+			return &"recover"
+		_:
+			return &"walk"
+
+
 func _tick_ai(delta: float) -> void:
 	_timer -= delta
 	_tail_cd = max(0.0, _tail_cd - delta)

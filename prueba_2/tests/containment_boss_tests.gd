@@ -42,14 +42,23 @@ func _run() -> void:
 		"la Quimera conserva la barra de vida"
 	)
 
-	var sprite := boss.get_node_or_null("Sprite") as Sprite2D
-	_check(sprite != null, "la Quimera usa un Sprite2D")
-	_check(
-		sprite != null
-		and sprite.texture != null
-		and sprite.texture.resource_path.ends_with("containment_chimera/chimera.png"),
-		"la Quimera usa el asset entregado"
-	)
+	var sprite := boss.get_node_or_null("Sprite") as AnimatedSprite2D
+	_check(sprite != null, "la Quimera usa un AnimatedSprite2D")
+	var frames: SpriteFrames = sprite.sprite_frames if sprite != null else null
+	_check(frames != null, "la Quimera trae su SpriteFrames")
+	if frames != null:
+		for animation: StringName in [&"seek_corner", &"corner_aim", &"pounce", &"recover"]:
+			_check(
+				frames.has_animation(animation) and frames.get_frame_count(animation) > 0,
+				"la Quimera anima '%s'" % animation
+			)
+		_check(
+			sprite.autoplay != "" and frames.has_animation(StringName(sprite.autoplay)),
+			"la Quimera conserva una animación por defecto válida"
+		)
+	# El estado visual tiene que traducirse sin reiniciar la animación en cada
+	# fotograma: si `corner_aim` se relanzara, el aviso no avanzaría de pose.
+	_check(boss.has_method("_visual_state"), "la Quimera traduce su estado a animación")
 
 	var can_snapshot := (
 		boss.has_method("_enter_corner_aim")

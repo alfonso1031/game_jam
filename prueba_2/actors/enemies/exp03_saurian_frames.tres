@@ -1,0 +1,47 @@
+[gd_resource type="SpriteFrames" load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/enemies/exp03_saurian/exp03_walk_00.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/enemies/exp03_saurian/exp03_walk_01.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/enemies/exp03_saurian/exp03_tail_windup_00.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/enemies/exp03_saurian/exp03_tail_windup_01.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/enemies/exp03_saurian/exp03_tail_sweep_00.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/enemies/exp03_saurian/exp03_recover_00.png" id="6"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5")
+}],
+"loop": false,
+"name": &"tail_windup",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("1")
+}],
+"loop": false,
+"name": &"recover",
+"speed": 3.636364
+}]

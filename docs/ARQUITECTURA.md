@@ -557,6 +557,55 @@ temporizador, `_pinch()` aplica una sola vez el cono de 150 px, 50° y su
 retroceso; después `RECOVER` reproduce 04→00 a 8,333333 FPS durante 0,6 s. El
 sprite nunca aplica daño por señales y esta secuencia no pertenece al slime.
 
+### Arte animado de los enemigos de Contención
+
+Ningún enemigo del piso usa ya `Polygon2D` como cuerpo final. El flujo, de
+izquierda a derecha, es siempre el mismo:
+
+```
+máquina de estados → _visual_state() → AnimatedSprite2D → SpriteFrames
+```
+
+- El **arte crudo vive fuera de `prueba_2/`**, en
+  `art_raw/enemigos/containment/<personaje>/source_sheet.png`: cuatro hojas 3 × 2
+  con fondo croma `#ff00ff` y las seis poses en orden fijo.
+- Las **poses de runtime** viven en `assets/enemies/exp0{1,2,3}_*/` y
+  `assets/bosses/containment_chimera/animations/`, ya con alfa y centradas.
+- El **`SpriteFrames` vive junto al actor**: `actors/enemies/*_frames.tres` y
+  `actors/boss/boss_core_frames.tres`.
+- El **daño y los tiempos siguen en los scripts de IA.** Ningún fotograma
+  dispara un ataque; las animaciones solo tienen que terminar antes que el
+  temporizador que lo aplica.
+
+Dos herramientas reproducen el pipeline entero:
+
+| Herramienta | Qué hace |
+|---|---|
+| `tools/art/gen_containment_enemy_sheets.gd` | Compone las cuatro hojas fuente con formas orgánicas y las escribe en `art_raw/` |
+| `tools/art/process_containment_enemy_sheets.gd` | Quita el croma, separa las seis poses con **un recorte común** y las centra en el lienzo de runtime |
+
+El recorte común es lo que conserva la escala y el punto de apoyo entre poses:
+ajustar cada una por separado haría que la embestida estirada y la pose encogida
+salieran del mismo tamaño. Es el mismo criterio de
+`process_exp07_claw_frames.gd`.
+
+`enemy_base.gd` se sigue encargando del volteo horizontal, el destello de daño y
+los estados alterados, y cae al `autoplay` si `_visual_state()` pide un nombre
+que el `SpriteFrames` no trae. `tests/check_enemy_animations.tscn` recorre el
+enum `State` de cada experimento y falla si algún estado pide una animación que
+no existe.
+
+| Experimento | Locomoción | Aviso | Resto |
+|---|---|---|---|
+| EXP01 | `approach` 6 FPS | `windup` 3,076923 FPS = 0,65 s | `charge`, `rest` |
+| EXP02 | `reposition` 4 FPS | `shoot_windup` 2,666667 FPS = 0,75 s · `slam_windup` 2,222222 FPS = 0,9 s | `recover` |
+| EXP03 | `walk` 5 FPS | `tail_windup` 6 FPS = 0,5 s | `recover` 3,636364 FPS = 0,55 s |
+| EXP07 | `advance` 6 FPS | `pinch_windup` 6,25 FPS = 0,8 s | `recover` 8,333333 FPS = 0,6 s |
+
+Cada velocidad de aviso está calculada para que la última pose coincida con la
+llamada que aplica el ataque. **Si cambia el tiempo del estado, hay que
+recalcular la velocidad del `SpriteFrames`.**
+
 ## 8. HUD y mapa
 
 **`hud.tscn` (CanvasLayer, siempre visible)**
@@ -642,10 +691,17 @@ también es un `CharacterBody2D`).
 
 ### Ciclo del boss (`boss_core.gd`)
 
-La Quimera Albina usa el asset de `assets/bosses/containment_chimera/`, tiene `12 HP`,
-pertenece a los grupos `enemies` y `bosses`, y recibe la misma firma `take_damage()` que
-los experimentos normales. Los proyectiles del slime incluyen la capa 2 en su máscara
+La Quimera Albina anima con `actors/boss/boss_core_frames.tres` sobre las poses de
+`assets/bosses/containment_chimera/animations/`, tiene `12 HP`, pertenece a los grupos
+`enemies` y `bosses`, y recibe la misma firma `take_damage()` que los experimentos
+normales. Los proyectiles del slime incluyen la capa 2 en su máscara
 (`11 = mundo + boss + enemigos`).
+
+`_update_visual()` traduce el estado con `_visual_state()` y solo relanza la animación
+cuando cambia; el estiramiento mecánico se conserva, pero la escala base pasó de `0.22`
+a `1.0` porque las poses ya vienen al tamaño de juego (350 × 205 px, la misma huella que
+tenía el `Sprite2D` estático). `assets/bosses/containment_chimera/chimera.png` se
+conserva solo como referencia de identidad para redibujar; ya no es arte de runtime.
 
 ```
 BUSCA ESQUINA → FIJA POSICIÓN → EMBESTIDA → RECUPERA → BUSCA OTRA ESQUINA …
@@ -768,6 +824,7 @@ podrían haber quedado trabados a mitad de una transición.
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
 | 8 | Ciclo de muerte sin respawn y resumen reproducible | ✅ |
 | 9 | Barra 5/15, tooltips, cuerpo conectado y mapas local/global | ✅ |
+| 10 | Arte animado de EXP01, EXP02, EXP03 y Quimera Albina | ✅ |
 
 **Alcance actual:** Contención procedural (nivel -3). Los niveles -2, -1 y 0 son contratos
 futuros y no se simulan con salas fijas durante la partida activa.
@@ -785,8 +842,10 @@ futuros y no se simulan con salas fijas durante la partida activa.
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
 - `tests/ui_visual_capture.tscn` construye fixtures reproducibles y permite capturar
   `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route`, `tutorial`, `grate`,
-  `exp07_attack` o `lighting`; el tercer
+  `exp07_attack`, `enemies`, `lighting` o `boss`; el tercer
   argumento fija el tamaño físico final cuando el viewport lógico sigue siendo 1080p.
+  `enemies` congela EXP01, EXP02, EXP03 y EXP07 en su pose de locomoción y en el
+  último fotograma de su aviso, que es la comparación que hay que mirar.
   `grate` materializa `CENTER` con su conexión, muestra el prompt y abre el selector con dos
   partes sin cambiar `GameState.current_room`.
   Para registrar la portada a 1920×1080:
@@ -795,6 +854,7 @@ futuros y no se simulan con salas fijas durante la partida activa.
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- enemies user://containment-enemies.png 1920x1080
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
   ```
 - `combat_smoke.tscn` ensambla las 16 configuraciones cardinales, incluidas `NE`, `SO` y

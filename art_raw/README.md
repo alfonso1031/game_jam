@@ -51,6 +51,29 @@ comprobarlo**, no fiarse de esta tabla.
   3072 × 407. **No usar:** los fotogramas están empaquetados con anchos
   distintos (737, 768 y 754 px) y sin separación entre el segundo y el tercero,
   así que no se puede cortar en rejilla.
+- `containment/{exp01_centipede,exp02_spider,exp03_saurian,boss_chimera}/` — las
+  hojas de seis poses del primer piso. Cada `source_sheet.png` es una rejilla
+  **3 × 2 con fondo croma `#ff00ff`**; `source_sheet_alpha.png` es su versión
+  con transparencia y se regenera sola, no se edita.
+
+### Cómo se generan y procesan las hojas de `containment/`
+
+```bash
+godot --headless --path prueba_2 --script res://tools/art/gen_containment_enemy_sheets.gd
+godot --headless --path prueba_2 --script res://tools/art/process_containment_enemy_sheets.gd
+godot --headless --path prueba_2 --import
+```
+
+El generador compone las hojas actuales con formas; el procesador quita el croma,
+separa las seis poses con **un recorte común** —eso es lo que conserva la escala
+entre fotogramas— y las centra en el lienzo de runtime.
+
+**Si llega una entrega pintada a mano, solo hay que sobrescribir el
+`source_sheet.png` de esa criatura** y volver a correr el procesador. Requisitos
+de la hoja: rejilla 3 × 2 exacta, mismo personaje y escala en las seis celdas,
+orientación a la derecha, fondo magenta uniforme, sin líneas de rejilla, texto ni
+sombras. El orden de poses está en
+[`prueba_2/docs/ART_SPEC.md`](../prueba_2/docs/ART_SPEC.md) §8.
 
 ### Cómo se generó `assets/enemies/exp07_crustacean/`
 

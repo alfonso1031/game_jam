@@ -42,7 +42,7 @@ var _player: Node2D
 var _dead := false
 var _visual_time := 0.0
 
-@onready var sprite: Sprite2D = $Sprite
+@onready var sprite: AnimatedSprite2D = $Sprite
 @onready var hitbox: Area2D = $Hitbox
 @onready var health_fill: ColorRect = $HealthBar/Fill
 
@@ -208,7 +208,29 @@ func _refresh_health_bar() -> void:
 	health_fill.size.x = HEALTH_BAR_WIDTH * maxf(0.0, float(health) / float(MAX_HEALTH))
 
 
+func _visual_state() -> StringName:
+	match _state:
+		State.CORNER_AIM:
+			return &"corner_aim"
+		State.POUNCE:
+			return &"pounce"
+		State.RECOVER:
+			return &"recover"
+		_:
+			return &"seek_corner"
+
+
+# La animación solo se relanza al cambiar de estado: reiniciarla cada fotograma
+# dejaría `corner_aim` clavada en su primera pose durante todo el aviso.
+func _update_sprite_animation() -> void:
+	var wanted := _visual_state()
+	if sprite.animation != wanted:
+		sprite.play(wanted)
+
+
 func _update_visual() -> void:
+	_update_sprite_animation()
+
 	var direction := velocity
 	if _state == State.CORNER_AIM and _pounce_target != Vector2.ZERO:
 		direction = _pounce_target - global_position
@@ -223,7 +245,9 @@ func _update_visual() -> void:
 	elif _state == State.CORNER_AIM:
 		stretch = 0.96 + sin(_visual_time * 10.0) * 0.025
 		squash = 1.04 - sin(_visual_time * 10.0) * 0.025
-	sprite.scale = Vector2(0.22 * stretch, 0.22 * squash)
+	# El arte ya viene al tamaño de juego: la escala solo conserva el estiramiento
+	# mecánico que reforzaba la embestida.
+	sprite.scale = Vector2(stretch, squash)
 	sprite.rotation = clampf(direction.y / 3000.0, -0.08, 0.08)
 	sprite.modulate = Color(1.8, 1.8, 1.8) if _hurt_flash > 0.0 else Color.WHITE
 

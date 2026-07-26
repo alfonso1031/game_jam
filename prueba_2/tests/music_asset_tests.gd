@@ -2,7 +2,7 @@ extends Node
 
 const MENU_PATH := "res://assets/audio/music/main_menu.ogg"
 const GAMEPLAY_PATH := "res://assets/audio/music/containment_ambience.ogg"
-const CHIMERA_PATH := "res://assets/bosses/containment_chimera/chimera.png"
+const CHIMERA_PATH := "res://assets/bosses/containment_chimera/animations/chimera_seek_00.png"
 const ARENA_PATH := "res://assets/environment/containment/chimera_arena.png"
 const TitleScene := preload("res://ui/title.tscn")
 const MainScene := preload("res://game/main.tscn")

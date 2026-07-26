@@ -22,6 +22,22 @@ var _shoot_cd := 0.0
 var _slam_cd := 0.0
 var _aim := Vector2.RIGHT
 
+# Los dos avisos comparten estructura pero no silueta: `shoot_windup` infla el
+# abdomen durante 0,75 s a 2,666667 FPS y `slam_windup` levanta las ocho patas
+# durante 0,9 s a 2,222222 FPS. Cada secuencia termina en su último fotograma en
+# el mismo instante en que el script aplica el ataque.
+func _visual_state() -> StringName:
+	match _state:
+		State.SHOOT_WINDUP:
+			return &"shoot_windup"
+		State.SLAM_WINDUP:
+			return &"slam_windup"
+		State.RECOVER:
+			return &"recover"
+		_:
+			return &"reposition"
+
+
 func _tick_ai(delta: float) -> void:
 	_timer -= delta
 	_shoot_cd = max(0.0, _shoot_cd - delta)

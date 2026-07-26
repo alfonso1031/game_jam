@@ -1,0 +1,52 @@
+[gd_resource type="SpriteFrames" load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_seek_00.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_seek_01.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_aim_00.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_aim_01.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_pounce_00.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_recover_00.png" id="6"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2")
+}],
+"loop": true,
+"name": &"seek_corner",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4")
+}],
+"loop": true,
+"name": &"corner_aim",
+"speed": 3.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5")
+}],
+"loop": false,
+"name": &"pounce",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("1")
+}],
+"loop": false,
+"name": &"recover",
+"speed": 4.0
+}]

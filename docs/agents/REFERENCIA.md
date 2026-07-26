@@ -149,8 +149,12 @@ sensor, porque desde allí el jugador no puede alcanzarlo físicamente.
 - `player_projectile.tscn` conserva máscara `11` para incluir esa capa.
 - Muerte: `dash`, `silent_claws`, sala limpia, boss derrotado y
   `RunManager.complete_floor(&"contencion")`.
-- Arte runtime: `assets/bosses/containment_chimera/chimera.png` y
-  `assets/environment/containment/chimera_arena.png`.
+- Arte runtime: `actors/boss/boss_core_frames.tres` sobre
+  `assets/bosses/containment_chimera/animations/` y
+  `assets/environment/containment/chimera_arena.png`. `chimera.png` queda solo como
+  referencia de identidad.
+- `boss_core.gd` traduce el estado con `_visual_state()` y solo relanza la animación al
+  cambiar; la escala base del sprite es `1.0` porque las poses ya vienen a 350 × 205 px.
 
 ### Añadir una habilidad
 
@@ -201,7 +205,7 @@ godot --headless --path prueba_2 res://tests/music_asset_tests.tscn
 ```
 
 Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `tooltip`,
-`route`, `tutorial`, `grate`, `exp07_attack`, `lighting` o `boss`):
+`route`, `tutorial`, `grate`, `exp07_attack`, `enemies`, `lighting` o `boss`):
 
 ```powershell
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
@@ -210,9 +214,47 @@ Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `toolt
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- grate user://grate-wall-flow.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- enemies user://containment-enemies.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- boss user://chimera-arena.png 1920x1080
 ```
+
+### Arte animado de un enemigo de Contención
+
+Pipeline reproducible, de crudo a runtime:
+
+```bash
+godot --headless --path prueba_2 --script res://tools/art/gen_containment_enemy_sheets.gd
+godot --headless --path prueba_2 --script res://tools/art/process_containment_enemy_sheets.gd
+godot --headless --path prueba_2 --import
+godot --headless --path prueba_2 res://tests/check_enemy_animations.tscn
+```
+
+- El generador escribe cuatro hojas 3 × 2 con fondo `#ff00ff` en
+  `art_raw/enemigos/containment/<personaje>/source_sheet.png`. El orden de las seis
+  poses es contrato: cambiarlo obliga a cambiar `names` en el procesador.
+- Para sustituir una criatura por arte pintado a mano **basta con reemplazar su
+  `source_sheet.png`** respetando la rejilla 3 × 2 y el orden de poses; el resto del
+  pipeline no se toca.
+- El procesador usa **un recorte común a las seis poses**, no uno por pose: es lo que
+  conserva escala y punto de apoyo entre fotogramas. Mismo criterio que
+  `process_exp07_claw_frames.gd`.
+- El croma se retira midiendo `min(r, b) - g` y deshaciendo la composición sobre el
+  magenta; por eso no quedan orlas. Antes de escalar se premultiplica el alfa, o el
+  borde se ensucia de negro.
+
+Para integrarlo en el juego, por experimento:
+
+1. `expXX_*_frames.tres` junto al actor, con las animaciones nombradas igual que los
+   estados;
+2. en el `.tscn`, sustituir `Body: Polygon2D` por `Sprite: AnimatedSprite2D` con
+   `sprite_frames` y `autoplay`;
+3. en el `.gd`, un `_visual_state() -> StringName` que traduzca el enum `State`.
+
+Las velocidades de los avisos se calculan para que el último fotograma coincida con la
+llamada que aplica el ataque (`windup` de EXP01 a 3,076923 FPS = 0,65 s, `tail_windup`
+de EXP03 a 6 FPS = 0,5 s, etc.). **Si cambia el tiempo del estado, hay que recalcular la
+velocidad.** El arte nunca aplica daño.
 
 ### Ataque ilustrado del EXP07
 

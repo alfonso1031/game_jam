@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://actors/boss/boss_core.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/chimera.png" id="2"]
+[ext_resource type="SpriteFrames" path="res://actors/boss/boss_core_frames.tres" id="2"]
 
 [sub_resource type="CapsuleShape2D" id="1"]
 radius = 62.0
@@ -48,9 +48,10 @@ position = Vector2(0, 70)
 color = Color(0.00784314, 0.0156863, 0.0196078, 0.5)
 polygon = PackedVector2Array(-105, 0, -82, -25, 0, -35, 82, -25, 105, 0, 82, 25, 0, 35, -82, 25)
 
-[node name="Sprite" type="Sprite2D" parent="."]
-texture = ExtResource("2")
-scale = Vector2(0.22, 0.22)
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2")
+animation = &"seek_corner"
+autoplay = "seek_corner"
 
 [node name="Light" type="PointLight2D" parent="."]
 texture = SubResource("4")

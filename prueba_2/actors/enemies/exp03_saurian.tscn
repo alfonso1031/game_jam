@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://actors/enemies/exp03_saurian.gd" id="1"]
+[ext_resource type="SpriteFrames" path="res://actors/enemies/exp03_saurian_frames.tres" id="2"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 44
@@ -22,9 +23,10 @@ drop_rate = 0.40
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("1")
 
-[node name="Body" type="Polygon2D" parent="."]
-color = Color(0.47, 0.55, 0.5, 1)
-polygon = PackedVector2Array(48, 0, 12, 30, -30, 38, -48, 12, -48, -12, -30, -38, 12, -30)
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2")
+animation = &"walk"
+autoplay = "walk"
 
 [node name="Hitbox" type="Area2D" parent="."]
 collision_layer = 0
