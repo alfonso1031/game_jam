@@ -21,6 +21,7 @@ GameState="*res://autoload/game_state.gd"
 RoomDB="*res://autoload/room_db.gd"
 Inventory="*res://autoload/inventory.gd"
 Transition="*res://autoload/transition.gd"
+RunManager="*res://autoload/run_manager.gd"
 
 [display]
 

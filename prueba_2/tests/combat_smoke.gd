@@ -70,17 +70,18 @@ func _test_room_templates() -> void:
 
 func _test_health_halves() -> void:
 	GameState.reset_run()
-	_check(GameState.health_halves == 10, "vida inicial son 10 medios (5 corazones)")
+	_check(GameState.health_halves == 5, "la partida inicia con 5 HP")
+	_check(GameState.max_health_halves == 15, "la vida máxima es 15 HP")
 
 	GameState.damage(1)
-	_check(GameState.health_halves == 8, "un corazón de daño quita 2 medios")
+	_check(GameState.health_halves == 3, "un corazón de daño quita 2 HP")
 
 	GameState.heal_half_heart()
-	_check(GameState.health_halves == 9, "consumir una parte da medio corazón")
-	_check(GameState.health == 5, "9 medios se leen como 5 corazones hacia arriba")
+	_check(GameState.health_halves == 4, "consumir una parte da 1 HP")
+	_check(GameState.health == 2, "4 HP se leen como 2 corazones")
 
 	GameState.heal_halves(20)
-	_check(GameState.health_halves == 10, "la cura no pasa del máximo")
+	_check(GameState.health_halves == 15, "la cura no pasa del máximo")
 
 	GameState.damage(99)
 	_check(GameState.health_halves == 0, "el daño no baja de cero")
@@ -95,7 +96,7 @@ func _test_checkpoints() -> void:
 
 	GameState.set_initial_checkpoint("L3_CELDA", -3, "")
 	_check(GameState.checkpoint_room == "L3_CELDA", "la celda inicia el checkpoint de la partida")
-	_check(GameState.health_halves == GameState.max_health_halves, "el checkpoint inicial no cura")
+	_check(GameState.health_halves == 5, "el checkpoint inicial no cura")
 	_check(reached_events.is_empty(), "el checkpoint inicial no muestra recompensa")
 
 	GameState.damage(2)
@@ -103,12 +104,12 @@ func _test_checkpoints() -> void:
 	_check(advanced, "subir al piso -2 avanza el checkpoint")
 	_check(GameState.checkpoint_room == "L2_ASCENSOR", "se guarda la sala del piso alcanzado")
 	_check(GameState.checkpoint_spawn == "SpawnS", "se guarda la entrada segura del checkpoint")
-	_check(GameState.health_halves == 8, "un checkpoint nuevo cura un corazón")
+	_check(GameState.health_halves == 3, "un checkpoint nuevo cura 2 HP")
 	_check(reached_events.size() == 1 and reached_events[0] == ["L2_ASCENSOR", 2], "el checkpoint informa la cura aplicada")
 
 	GameState.damage_halves(1)
 	_check(not GameState.try_reach_checkpoint("L2_ASCENSOR", -2, "SpawnS"), "reentrar al mismo piso no reactiva el checkpoint")
-	_check(GameState.health_halves == 7, "reentrar al mismo piso no vuelve a curar")
+	_check(GameState.health_halves == 2, "reentrar al mismo piso no vuelve a curar")
 	_check(not GameState.try_reach_checkpoint("L3_CELDA", -3, ""), "volver a un piso inferior no mueve el checkpoint")
 	_check(GameState.checkpoint_room == "L2_ASCENSOR", "el checkpoint nunca retrocede")
 
@@ -168,7 +169,7 @@ func _test_checkpoint_transitions() -> void:
 	await Transition.go_to("L2_ASCENSOR", "N")
 	_check(GameState.checkpoint_room == "L2_ASCENSOR", "la transición de piso activa el checkpoint")
 	_check(GameState.checkpoint_spawn == "SpawnS", "la transición guarda la puerta por la que se entró")
-	_check(GameState.health_halves == 8, "la transición de piso aplica la cura")
+	_check(GameState.health_halves == 3, "la transición de piso aplica la cura")
 
 	GameState.reset_run()
 	GameState.set_initial_checkpoint("L2_ASCENSOR", -2, "SpawnS")

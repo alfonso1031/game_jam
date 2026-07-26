@@ -15,6 +15,8 @@ signal checkpoint_reached(room_id: String, healed_halves: int)
 const HALVES_PER_HEART := 2
 const CHECKPOINT_HEAL_HALVES := HALVES_PER_HEART
 const NO_CHECKPOINT_LEVEL := -999
+const BASE_MAX_HEALTH_HALVES := 15
+const STARTING_HEALTH_HALVES := 5
 
 # Cada parte de jefe distinta consumida da +0,5% de daño base, hasta 6 partes.
 const BOSS_PART_DAMAGE_BONUS := 0.005
@@ -32,13 +34,13 @@ var checkpoint_room: String = ""
 var checkpoint_level: int = NO_CHECKPOINT_LEVEL
 var checkpoint_spawn: String = ""
 
-var max_health_halves: int = 5 * HALVES_PER_HEART
-var health_halves: int = 5 * HALVES_PER_HEART
+var max_health_halves: int = BASE_MAX_HEALTH_HALVES
+var health_halves: int = STARTING_HEALTH_HALVES
 
 # Modificador de vida máxima que aportan las partes equipadas (ej. Tentáculo
 # resta un corazón). Se guarda aparte para poder recalcular al desequipar.
 var _max_health_mod: int = 0
-var _base_max_halves: int = 5 * HALVES_PER_HEART
+var _base_max_halves: int = BASE_MAX_HEALTH_HALVES
 
 var max_health: int:
 	get:
@@ -76,7 +78,7 @@ func reset_run() -> void:
 	checkpoint_spawn = ""
 	_max_health_mod = 0
 	max_health_halves = _base_max_halves
-	health_halves = max_health_halves
+	health_halves = STARTING_HEALTH_HALVES
 
 func gain_ability(id: String) -> void:
 	if abilities.has(id):
