@@ -22,24 +22,30 @@ func _run() -> void:
 
 	var source_room: Node2D = RoomAssembler.build(map.room("SOURCE"))
 	var target_room: Node2D = RoomAssembler.build(map.room("TARGET"))
+	add_child(source_room)
+	add_child(target_room)
+	await get_tree().process_frame
 	_test_grate_assembly(
 		source_room,
 		"SOURCE",
 		"TARGET",
 		true,
-		Vector2(1650, 540),
-		Vector2(1470, 540)
+		"E",
+		Vector2(1800, 540),
+		Vector2(1640, 540)
 	)
 	_test_grate_assembly(
 		target_room,
 		"TARGET",
 		"SOURCE",
 		false,
-		Vector2(960, 540),
-		Vector2(1140, 540)
+		"O",
+		Vector2(120, 540),
+		Vector2(240, 540)
 	)
-	source_room.free()
-	target_room.free()
+	source_room.queue_free()
+	target_room.queue_free()
+	await get_tree().process_frame
 
 	var room_host := Node2D.new()
 	var player := Node2D.new()
@@ -69,6 +75,7 @@ func _test_grate_assembly(
 	source_id: String,
 	target_id: String,
 	requires_cost: bool,
+	expected_direction: String,
 	expected_position: Vector2,
 	expected_spawn_position: Vector2
 ) -> void:
@@ -81,10 +88,28 @@ func _test_grate_assembly(
 	_check(grate.source_room_id == source_id, "%s conserva el origen" % source_id)
 	_check(grate.target_room_id == target_id, "%s apunta a %s" % [source_id, target_id])
 	_check(grate.requires_cost == requires_cost, "%s conserva la regla de coste" % source_id)
+	_check(
+		grate.get("wall_direction") == expected_direction,
+		"%s conserva pared %s" % [source_id, expected_direction]
+	)
+	_check(
+		not RunManager.current_map.room(source_id)["doors"].has(expected_direction),
+		"%s no comparte pared con una puerta" % source_id
+	)
 	_check(grate.position == expected_position, "%s ubica la rejilla" % source_id)
 	_check(
 		spawn != null and spawn.position == expected_spawn_position,
-		"%s coloca GrateSpawn 180 px hacia el interior" % source_id
+		"%s coloca GrateSpawn hacia el interior" % source_id
+	)
+	var sprite := grate.get_node("Sprite") as Sprite2D
+	var visual_size := sprite.texture.get_size() * sprite.scale
+	_check(
+		visual_size.x <= 120.01 and visual_size.y <= 120.01,
+		"%s cabe dentro de 120x120" % source_id
+	)
+	_check(
+		is_equal_approx(maxf(visual_size.x, visual_size.y), 120.0),
+		"%s aprovecha el tamaño de una puerta" % source_id
 	)
 
 

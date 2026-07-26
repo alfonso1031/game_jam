@@ -1,22 +1,39 @@
 extends Area2D
 
+const MAX_VISUAL_SIZE := Vector2(120.0, 120.0)
+const PROMPT_POSITIONS := {
+	"N": Vector2(0, 86),
+	"S": Vector2(0, -116),
+	"O": Vector2(150, -15),
+	"E": Vector2(-150, -15),
+}
+
 var source_room_id: String = ""
 var target_room_id: String = ""
 var requires_cost := true
+var wall_direction := ""
 
 var _armed := false
 var _player_near := false
 
 @onready var prompt: Label = $Prompt
+@onready var sprite: Sprite2D = $Sprite
 
 
-func configure(source_id: String, target_id: String, cost_required: bool) -> void:
+func configure(
+	source_id: String,
+	target_id: String,
+	cost_required: bool,
+	direction: String
+) -> void:
 	source_room_id = source_id
 	target_room_id = target_id
 	requires_cost = cost_required
+	wall_direction = direction
 
 
 func _ready() -> void:
+	_fit_visual()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_inside_tree():
@@ -26,6 +43,16 @@ func _ready() -> void:
 		if body.is_in_group("player"):
 			_player_near = true
 	_update_prompt()
+
+
+func _fit_visual() -> void:
+	var texture_size := sprite.texture.get_size()
+	var factor := minf(
+		MAX_VISUAL_SIZE.x / texture_size.x,
+		MAX_VISUAL_SIZE.y / texture_size.y
+	)
+	sprite.scale = Vector2.ONE * factor
+	prompt.position = PROMPT_POSITIONS.get(wall_direction, Vector2.ZERO)
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -11,10 +11,6 @@ const GrateScene := preload("res://world/props/grate.tscn")
 
 const ROOM_CENTER := Vector2(960, 540)
 const BODY_POSITION := Vector2(1060, 540)
-const GRATE_SOURCE_POSITION := Vector2(1650, 540)
-const GRATE_SOURCE_SPAWN_POSITION := Vector2(1470, 540)
-const GRATE_DESTINATION_POSITION := Vector2(960, 540)
-const GRATE_DESTINATION_SPAWN_POSITION := Vector2(1140, 540)
 const INTERIOR_ORIGIN := Vector2(180, 120)
 const CELL := 120.0
 const DOOR_POSITIONS := {
@@ -199,18 +195,22 @@ func _build_grate() -> void:
 		target_id = String(_room_data.get("grate_source", ""))
 	if target_id.is_empty():
 		return
+	var direction: String = String(_room_data.get("grate_direction", ""))
+	assert(DOOR_POSITIONS.has(direction), "Rejilla sin pared válida en %s" % room_id)
+	assert(
+		not _room_data["doors"].has(direction),
+		"Rejilla comparte pared en %s" % room_id
+	)
 
 	var grate: Area2D = GrateScene.instantiate()
 	grate.name = "Grate"
-	grate.position = GRATE_SOURCE_POSITION if requires_cost else GRATE_DESTINATION_POSITION
-	grate.configure(room_id, target_id, requires_cost)
+	grate.position = DOOR_POSITIONS[direction]
+	grate.configure(room_id, target_id, requires_cost, direction)
 	add_child(grate)
 
 	var spawn := Marker2D.new()
 	spawn.name = "GrateSpawn"
-	spawn.position = (
-		GRATE_SOURCE_SPAWN_POSITION if requires_cost else GRATE_DESTINATION_SPAWN_POSITION
-	)
+	spawn.position = SPAWN_POSITIONS[direction]
 	add_child(spawn)
 
 
