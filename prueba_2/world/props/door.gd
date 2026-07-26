@@ -12,6 +12,7 @@ var _armed := false
 var _sealed := false
 
 @onready var plate: ColorRect = $Plate
+@onready var seal_collision: CollisionShape2D = $SealBody/CollisionShape2D
 
 func _ready() -> void:
 	rotation = OUTWARD_ROTATION.get(direction, 0.0)
@@ -32,9 +33,10 @@ func set_sealed(value: bool) -> void:
 # paso. El diseño final del bloqueo lo define el arte más adelante.
 func _apply_seal_visual() -> void:
 	# set_sealed() puede llegar desde el boss antes de que corra este _ready.
-	if plate == null:
-		return
-	plate.visible = _sealed
+	if plate != null:
+		plate.visible = _sealed
+	if seal_collision != null:
+		seal_collision.set_deferred("disabled", not _sealed)
 
 func _on_body_exited(_body: Node) -> void:
 	_armed = true

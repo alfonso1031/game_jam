@@ -3,6 +3,7 @@ extends Node
 const MapGenerator := preload("res://core/map_generator.gd")
 const RoomAssembler := preload("res://world/rooms/room_assembler.gd")
 const ContainmentPropCatalog := preload("res://core/containment_prop_catalog.gd")
+const DoorScene := preload("res://world/props/door.tscn")
 
 var _failures: Array[String] = []
 var _checks := 0
@@ -36,6 +37,7 @@ func _run() -> void:
 			)
 		_test_containment_props(room, data, room_id)
 		room.free()
+	await _test_sealed_door_collision()
 	_finish()
 
 
@@ -86,6 +88,38 @@ func _test_containment_props(room: Node2D, room_data: Dictionary, room_id: Strin
 				not footprint.has_point(protected_position),
 				"%s deja libre %s" % [room_id, protected_position]
 			)
+
+
+func _test_sealed_door_collision() -> void:
+	var host := Node2D.new()
+	add_child(host)
+	var door := DoorScene.instantiate() as Area2D
+	door.direction = "E"
+	host.add_child(door)
+
+	var player := CharacterBody2D.new()
+	var collision := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 20.0
+	collision.shape = shape
+	player.add_child(collision)
+	player.position = Vector2(-140, 0)
+	host.add_child(player)
+	await get_tree().physics_frame
+
+	door.set_sealed(true)
+	await get_tree().physics_frame
+	var blocked := player.move_and_collide(Vector2(180, 0))
+	_check(blocked != null, "puerta sellada bloquea físicamente")
+
+	door.set_sealed(false)
+	await get_tree().physics_frame
+	player.position = Vector2(-140, 0)
+	var open_collision := player.move_and_collide(Vector2(180, 0))
+	_check(open_collision == null, "puerta abierta permite cruzar")
+
+	host.queue_free()
+	await get_tree().process_frame
 
 
 func _check(condition: bool, message: String) -> void:
