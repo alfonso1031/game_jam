@@ -533,9 +533,25 @@ proyecto, y solo después sus pruebas:
 
 ### Presentación
 
-- **Deformación peristáltica:** durante la carga se estira solo el frente; durante el
-  arrastre una onda longitudinal recorre el mismo cuerpo. Los puntos regresan al polígono
-  base en reposo y nunca gobiernan la colisión.
+- **Sprite animado entregado:** `slime.tscn::Sprite` consume
+  `actors/player/slime_frames.tres`. `slime.gd::_visual_animation()` traduce
+  `IDLE`/`CHARGING` a `idle`, movimiento continuo a `walk`,
+  `LAUNCHING`/`DASHING`/`PART_DASH` a `jump` y `RECOVERING` a `recover`.
+  `idle` y `walk` repiten; las otras dos secuencias no se reinician mientras no
+  cambie el nombre.
+- **Pipeline reproducible:** cuatro hojas RGBA de celdas 320 × 320 viven en
+  `art_raw/personaje/slime/`. `tools/art/process_slime_delivered_sheets.gd`
+  valida `5/2/6/12` frames, calcula un recorte común y produce 25 PNG centrados
+  en lienzos 128 × 128 con ajuste 96 × 96. Así la escala y el pivote no saltan
+  al cambiar de estado.
+- **Compatibilidad:** la fuente mira a la derecha y solo se usa `flip_h` desde
+  `_facing`. El cuerpo/núcleo vectoriales quedan ocultos como soporte interno;
+  la hitbox circular de radio 45, la barra, la luz y los tiempos no cambian.
+  `ScaleShell` sigue dibujándose por encima del sprite.
+- **Soporte vectorial oculto:** `Body` y `Core` conservan la deformación peristáltica
+  anterior para no romper referencias internas, pero ya no se dibujan. El jugador ve
+  `idle` durante la carga y `jump` durante el arrastre; ninguna de las dos presentaciones
+  gobierna la colisión.
 - Núcleo `#73efe8` con opacidad pulsante y `PointLight2D` propia → el slime es la
   fuente de luz principal.
 - Las habilidades se consultan con `GameState.has_ability("dash")`, nunca se guardan en
@@ -829,6 +845,7 @@ podrían haber quedado trabados a mitad de una transición.
 | 8 | Ciclo de muerte sin respawn y resumen reproducible | ✅ |
 | 9 | Barra 5/15, tooltips, cuerpo conectado y mapas local/global | ✅ |
 | 10 | Arte animado de EXP01, EXP02, EXP03 y Quimera Albina | ✅ |
+| 11 | Arte animado entregado del slime con pipeline reproducible | ✅ |
 
 **Alcance actual:** Contención procedural (nivel -3). Los niveles -2, -1 y 0 son contratos
 futuros y no se simulan con salas fijas durante la partida activa.
@@ -846,7 +863,7 @@ futuros y no se simulan con salas fijas durante la partida activa.
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
 - `tests/ui_visual_capture.tscn` construye fixtures reproducibles y permite capturar
   `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route`, `tutorial`, `grate`,
-  `exp07_attack`, `enemies`, `lighting` o `boss`; el tercer
+  `exp07_attack`, `enemies`, `lighting`, `boss` o `slime`; el tercer
   argumento fija el tamaño físico final cuando el viewport lógico sigue siendo 1080p.
   `enemies` congela EXP01, EXP02, EXP03 y EXP07 en su pose de locomoción y en el
   último fotograma de su aviso, que es la comparación que hay que mirar.
@@ -860,6 +877,7 @@ futuros y no se simulan con salas fijas durante la partida activa.
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- enemies user://containment-enemies.png 1920x1080
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- slime user://slime-animation.png 1920x1080
   ```
 - `combat_smoke.tscn` ensambla las 16 configuraciones cardinales, incluidas `NE`, `SO` y
   el destino de rejilla sin puertas normales. `run_map_tests.gd` comprueba además que cada

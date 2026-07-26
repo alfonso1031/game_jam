@@ -212,7 +212,7 @@ godot --headless --path prueba_2 res://tests/music_asset_tests.tscn
 ```
 
 Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `tooltip`,
-`route`, `tutorial`, `grate`, `exp07_attack`, `enemies`, `lighting` o `boss`):
+`route`, `tutorial`, `grate`, `exp07_attack`, `enemies`, `lighting`, `boss` o `slime`):
 
 ```powershell
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
@@ -224,6 +224,7 @@ Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `toolt
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- enemies user://containment-enemies.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- boss user://chimera-arena.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- slime user://slime-animation.png 1920x1080
 ```
 
 ### Arte animado de un enemigo de Contención
@@ -277,6 +278,24 @@ velocidad.** El arte nunca aplica daño.
   8,333333 FPS durante 0,6 s.
 - `_pinch()` es la única autoridad del daño. No conectar daño a frames ni
   reutilizar este arte en el slime o en el pickup `crusher_claw`.
+
+### Arte animado del slime
+
+- Fuentes: cuatro hojas RGBA en `art_raw/personaje/slime/`, con celdas exactas
+  de 320 × 320: `idle=5`, `walk=2`, `jump=6`, `recover=12`.
+- Regenerar runtime: `godot --headless --path prueba_2 --script
+  res://tools/art/process_slime_delivered_sheets.gd`; después ejecutar
+  `godot --headless --path prueba_2 --import`.
+- El procesador valida dimensiones, cantidad y alfa, calcula un único recorte
+  para los 25 frames y los centra en lienzos de 128 × 128 con ajuste 96 × 96.
+  No recortar ni escalar cada pose por separado.
+- `actors/player/slime_frames.tres` repite `idle`/`walk` y deja
+  `jump`/`recover` sin loop. `slime.gd::_visual_animation()` traduce el estado:
+  reposo/carga → `idle`, movimiento con piernas → `walk`,
+  lanzamiento/DASH → `jump`, recuperación → `recover`.
+- La fuente mira a la derecha; `_update_sprite_animation()` solo refleja
+  horizontalmente desde `_facing`. `ScaleShell` y la barra siguen sobre el
+  sprite. Los frames no gobiernan colisión, daño ni duración de estados.
 
 ### Cambiar movimiento base
 

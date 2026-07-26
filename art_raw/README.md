@@ -42,6 +42,34 @@ correspondencia se sacó muestreando los píxeles del hueco de puerta. Si llega
 una entrega nueva con el mismo esquema de nombres, **hay que volver a
 comprobarlo**, no fiarse de esta tabla.
 
+## `personaje/slime/` — protagonista
+
+Las cuatro hojas originales entregadas tienen fondo transparente y celdas de
+320 × 320. Se conservan sin recortar ni recomprimir:
+
+| Hoja normalizada | Animación | Frames |
+|---|---|---:|
+| `slime_idle_sheet.png` | `idle` | 5 |
+| `slime_walk_sheet.png` | `walk` | 2 |
+| `slime_jump_sheet.png` | `jump` | 6 |
+| `slime_recover_sheet.png` | `recover` | 12 |
+
+`slime_recover_sheet.png` corresponde a `spritesheet(8).png` en la entrega. El
+nombre se normalizó después de confirmar que su licuado y recomposición
+representan la recuperación.
+
+Para regenerar los 25 PNG de runtime:
+
+```bash
+godot --headless --path prueba_2 --script res://tools/art/process_slime_delivered_sheets.gd
+godot --headless --path prueba_2 --import
+```
+
+El procesador valida la rejilla y el alfa, usa un único recorte compartido y
+centra todas las poses en lienzos de 128 × 128 con ajuste máximo de 96 × 96.
+Eso conserva escala y pivote entre animaciones; los derivados de
+`prueba_2/assets/player/slime/animations/` no se editan a mano.
+
 ## `enemigos/` — experimentos
 
 - `Prueba_2/Timeline 1_000{1,2,3}.png` — tres poses del **Crustáceo Escudo**

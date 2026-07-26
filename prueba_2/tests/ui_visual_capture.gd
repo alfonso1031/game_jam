@@ -12,8 +12,10 @@ const Exp01Scene := preload("res://actors/enemies/exp01_centipede.tscn")
 const Exp02Scene := preload("res://actors/enemies/exp02_spider.tscn")
 const Exp03Scene := preload("res://actors/enemies/exp03_saurian.tscn")
 const Exp07Scene := preload("res://actors/enemies/exp07_crustacean.tscn")
+const SlimeScene := preload("res://actors/player/slime.tscn")
 const MainScene := preload("res://game/main.tscn")
 const RunSummaryScene := preload("res://ui/run_summary.tscn")
+const Palette := preload("res://core/palette.gd")
 
 var _frames := 0
 var _min_frames := 12
@@ -72,6 +74,8 @@ func _ready() -> void:
 			_prepare_lighting()
 		"boss":
 			_prepare_boss_room()
+		"slime":
+			_prepare_slime_lineup()
 		"summary":
 			_prepare_summary(args)
 		_:
@@ -229,6 +233,158 @@ func _prepare_boss_room() -> void:
 	boss.position = Vector2(330, 270)
 	boss.call("_enter_corner_aim")
 	boss.call("_update_sprite_animation")
+
+
+func _prepare_slime_lineup() -> void:
+	_min_frames = 2
+	var state_source: CharacterBody2D = SlimeScene.instantiate()
+	var states: Dictionary = state_source.get_script().get_script_constant_map()["State"]
+	state_source.free()
+	_add_capture_label(
+		"SLIME · ESTADOS VISUALES ENTREGADOS",
+		Vector2(260.0, 70.0),
+		Vector2(1400.0, 54.0),
+		30
+	)
+	_add_capture_label(
+		"lienzo 128 × 128 · ajuste común 96 × 96 · hitbox Ø 90 px",
+		Vector2(260.0, 122.0),
+		Vector2(1400.0, 40.0),
+		19
+	)
+	_add_pivot_guide(Vector2(180.0, 380.0), Vector2(1740.0, 380.0))
+
+	_place_slime(
+		Vector2(280.0, 380.0),
+		int(states["IDLE"]),
+		false,
+		Vector2.RIGHT,
+		0,
+		0.0,
+		false
+	)
+	_add_capture_label("IDLE · DERECHA", Vector2(170.0, 455.0), Vector2(220.0, 36.0), 18)
+
+	_place_slime(
+		Vector2(620.0, 380.0),
+		int(states["IDLE"]),
+		false,
+		Vector2.LEFT,
+		0,
+		0.0,
+		false
+	)
+	_add_capture_label("IDLE · IZQUIERDA", Vector2(500.0, 455.0), Vector2(240.0, 36.0), 18)
+
+	_place_slime(
+		Vector2(960.0, 380.0),
+		int(states["IDLE"]),
+		true,
+		Vector2.RIGHT,
+		1,
+		0.0,
+		false
+	)
+	_add_capture_label("WALK · PIERNAS", Vector2(840.0, 455.0), Vector2(240.0, 36.0), 18)
+
+	_place_slime(
+		Vector2(1300.0, 380.0),
+		int(states["LAUNCHING"]),
+		false,
+		Vector2.RIGHT,
+		3,
+		0.0,
+		false
+	)
+	_add_capture_label("JUMP · IMPULSO / DASH", Vector2(1160.0, 455.0), Vector2(280.0, 36.0), 18)
+
+	_place_slime(
+		Vector2(1640.0, 380.0),
+		int(states["RECOVERING"]),
+		false,
+		Vector2.RIGHT,
+		6,
+		0.0,
+		false
+	)
+	_add_capture_label("RECOVER · IMPACTO", Vector2(1510.0, 455.0), Vector2(260.0, 36.0), 18)
+
+	_add_pivot_guide(Vector2(800.0, 760.0), Vector2(1120.0, 760.0))
+	_place_slime(
+		Vector2(960.0, 760.0),
+		int(states["CHARGING"]),
+		false,
+		Vector2.RIGHT,
+		2,
+		0.75,
+		true
+	)
+	_add_capture_label(
+		"CHARGING · BARRA 75 % · COSTRA POR ENCIMA",
+		Vector2(660.0, 865.0),
+		Vector2(600.0, 42.0),
+		20
+	)
+	_add_capture_label(
+		"la línea horizontal marca el mismo pivote en todas las poses",
+		Vector2(610.0, 935.0),
+		Vector2(700.0, 36.0),
+		17
+	)
+
+
+func _place_slime(
+	position: Vector2,
+	state: int,
+	continuous_moving: bool,
+	facing: Vector2,
+	frame: int,
+	charge_time: float,
+	with_shell: bool
+) -> void:
+	var slime: CharacterBody2D = SlimeScene.instantiate()
+	slime.position = position
+	add_child(slime)
+	slime.set_physics_process(false)
+	slime.set("_state", state)
+	slime.set("_continuous_moving", continuous_moving)
+	slime.set("_facing", facing)
+	slime.set("_charge_time", charge_time)
+	if with_shell:
+		slime.set("_shield", 1)
+		slime.set("_shell_pop", 0.0)
+		slime.call("_update_scale_shell", 0.0)
+	slime.call("_update_sprite_animation")
+	var sprite: AnimatedSprite2D = slime.get_node("Sprite") as AnimatedSprite2D
+	sprite.pause()
+	sprite.frame = mini(frame, sprite.sprite_frames.get_frame_count(sprite.animation) - 1)
+	slime.queue_redraw()
+
+
+func _add_pivot_guide(from: Vector2, to: Vector2) -> void:
+	var guide := Line2D.new()
+	guide.name = "PivotGuide"
+	guide.points = PackedVector2Array([from, to])
+	guide.width = 1.0
+	guide.default_color = Color(Palette.SLIME_CORE, 0.32)
+	add_child(guide)
+
+
+func _add_capture_label(
+	text: String,
+	position: Vector2,
+	size: Vector2,
+	font_size: int
+) -> void:
+	var label := Label.new()
+	label.text = text
+	label.position = position
+	label.size = size
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Palette.WARM_LIGHT)
+	label.add_theme_font_size_override("font_size", font_size)
+	add_child(label)
 
 
 func _prepare_fixture(mode: String) -> void:

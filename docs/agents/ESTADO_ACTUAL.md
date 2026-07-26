@@ -56,6 +56,12 @@ de diseño y no se ha redibujado. La Quimera usa sus 23 PNG transparentes desde
 `art_raw/enemigos/containment/boss_chimera/{idle,angry}/`, procesados con
 `tools/art/process_chimera_delivered_frames.gd`.
 
+El protagonista también usa arte ilustrado entregado: `AnimatedSprite2D` con
+`idle` de 5 frames, `walk` de 2, `jump` de 6 y `recover` de 12. Las cuatro hojas
+originales se conservan en `art_raw/personaje/slime/`; el procesador
+`tools/art/process_slime_delivered_sheets.gd` las recorta en común y genera los
+25 PNG de runtime sin cambiar la colisión ni las reglas de movimiento.
+
 ## 3. Flujo de partida y controles
 
 Flujo:
@@ -145,8 +151,8 @@ Pool actual de la primera parte y del loot de rejillas:
 - Soltar antes del mínimo produce `fizzle` y **0,28 s** de recuperación.
 - Chocar de frente con un muro produce **0,45 s** de recuperación.
 - La barra de carga aparece sobre el slime.
-- La deformación estira una parte del cuerpo en la dirección de movimiento y comunica un
-  arrastre de gusano; no altera la colisión circular.
+- La secuencia `jump` comunica el impulso sin alterar la colisión circular. La deformación
+  vectorial anterior permanece oculta como soporte interno.
 - La embestida básica hace 1, 2 o 3 de daño según la potencia de carga.
 
 ### Con una o más partes de pierna
@@ -170,6 +176,23 @@ Pool actual de la primera parte y del loot de rejillas:
 
 El slime se desplaza con `move_and_collide()`. Asignar `velocity` desde otro objeto no lo
 empuja; debe usarse `apply_knockback(from, force)`.
+
+### Presentación animada
+
+| Estado de gameplay | Animación visual |
+|---|---|
+| `IDLE`, `CHARGING` | `idle` |
+| Movimiento continuo con piernas | `walk` |
+| `LAUNCHING`, `DASHING`, `PART_DASH` | `jump` |
+| `RECOVERING` | `recover` |
+
+`idle` y `walk` repiten; `jump` y `recover` no se reinician mientras permanezca
+el mismo estado. La fuente mira a la derecha y `flip_h` refleja el sprite cuando
+`_facing.x < 0`. El lienzo común es de **128 × 128 px**, con el arte ajustado a
+**96 × 96 px** alrededor del mismo pivote; la hitbox circular sigue teniendo
+radio **45 px**. `ScaleShell` permanece por encima del sprite y la barra de carga
+conserva su posición. Los frames son presentación: el script y sus temporizadores
+siguen siendo la única autoridad del gameplay.
 
 ## 7. Generación procedural de Contención
 
@@ -339,6 +362,9 @@ no bloquea la fila 3 ni la columna 6.
 - El arte crudo de enemigos vive en `art_raw/enemigos/containment/`, fuera del proyecto
   Godot; solo entran las poses procesadas. EXP01–03 conservan hojas 3 × 2; la Quimera
   conserva siete fuentes `idle` y dieciséis `angry`.
+- El arte crudo del jugador vive en `art_raw/personaje/slime/`: cuatro hojas RGBA
+  de celdas 320 × 320. Solo los 25 fotogramas centrados entran en
+  `assets/player/slime/animations/`.
 - Cada experimento con arte traduce su estado con `_visual_state()`; si el nombre no
   existe en su `SpriteFrames`, `enemy_base.gd` cae al `autoplay` en vez de romper.
 - Las velocidades de los avisos están calculadas para que el último fotograma coincida
@@ -424,11 +450,11 @@ Dirección de dependencias:
 ## 14. Estado de trabajo pendiente aprobado
 
 El cambio de assets animados de Contención está **ejecutado**: hojas funcionales de seis
-poses para EXP01, EXP02 y EXP03; arte ilustrado entregado para EXP07; e Idle de 7 frames
-más Angry de 16 frames para la Quimera Albina. Todo se procesa a PNG con alfa y
-`SpriteFrames` sin cambiar vidas, daños, velocidades, tiempos, colisiones, drops ni
-probabilidades. La fuente de recompensa de la segunda sala sigue siendo un prop, no un
-enemigo; no hay animaciones de muerte.
+poses para EXP01, EXP02 y EXP03; arte ilustrado entregado para EXP07; Idle de 7 frames
+más Angry de 16 frames para la Quimera Albina; y las cuatro animaciones ilustradas del
+slime (`5/2/6/12`). Todo se procesa a PNG con alfa y `SpriteFrames` sin cambiar vidas,
+daños, velocidades, tiempos, colisiones, drops ni probabilidades. La fuente de recompensa
+de la segunda sala sigue siendo un prop, no un enemigo; no hay animaciones de muerte.
 
 Queda pendiente, sin plazo ni especificación aprobada:
 
