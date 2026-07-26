@@ -33,8 +33,15 @@ func _run() -> void:
 	if has_state_contract and has_body_scene:
 		await _test_body_reward(body_path)
 
+	# El cadáver humano provisional se retiró a propósito: la recompensa queda sobre
+	# el charco vectorial. Se comprueba su ausencia para que no vuelva por descuido.
+	_check(
+		not ResourceLoader.exists("res://assets/environment/body/inert_body.png"),
+		"el asset provisional del cadáver deja de formar parte del runtime"
+	)
+
+	# Solo la sangre tiene PNG.
 	for asset_path: String in [
-		"res://assets/environment/body/inert_body.png",
 		"res://assets/environment/blood/blood_drops.png",
 		"res://assets/environment/blood/blood_drag.png",
 		"res://assets/environment/blood/blood_pool.png",
@@ -64,6 +71,8 @@ func _test_body_reward(body_path: String) -> void:
 	body.configure("C_01", "serrated_jaw")
 	add_child(body)
 	await get_tree().process_frame
+
+	_check(body.get_node_or_null("Body") == null, "no muestra cadáver humano")
 
 	var pickup := body.get_node_or_null("PartPickup")
 	_check(

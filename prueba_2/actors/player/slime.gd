@@ -46,6 +46,13 @@ const INVULN_TIME := 1.0
 const KNOCKBACK := 620.0
 const KNOCKBACK_DECAY := 7.0
 
+# --- Costra de la Pierna Escamada ---
+# El escudo era invisible: se gastaba sin que nada lo anunciara, así que la parte
+# se sentía pasiva aunque se activa con su tecla. La costra dura lo que dura el
+# escudo y estalla hacia fuera al comerse el golpe.
+const SHELL_FLASH_TIME := 0.28
+const SHELL_POP_TIME := 0.22
+
 const BAR_WIDTH := 96.0
 const BAR_HEIGHT := 10.0
 const BAR_Y := -78.0
@@ -78,6 +85,7 @@ enum State {IDLE, CHARGING, LAUNCHING, RECOVERING, DASHING, PART_DASH}
 
 @onready var body: Polygon2D = $Body
 @onready var core: Polygon2D = $Body/Core
+@onready var scale_shell: Line2D = $ScaleShell
 @onready var slime_audio: Node = $SlimeAudio
 
 var _state: int = State.IDLE
@@ -104,11 +112,15 @@ var _leg_count := 0
 var _continuous_moving := false
 
 # --- Partes equipadas ---
-# Buff activo (Piel Escamada, Garras Silenciosas, Placa de Cadera...).
+# Buff activo (Pierna Escamada, Garras Silenciosas, Placa de Cadera...).
 var _buff_time := 0.0
 var _buff_flags: Dictionary = {}
 # Impactos que el escudo todavía puede absorber.
 var _shield := 0
+# Presentación de la costra: destello al romperse y latido mientras aguanta.
+var _shell_flash := 0.0
+var _shell_pop := 0.0
+var _shell_phase := 0.0
 # Estados que los experimentos ponen sobre el slime (red del Arácnido, esporas).
 var _status: Dictionary = {}
 # Cargas de DASH de la Pierna de Zorro; -1 = la parte no está equipada.
@@ -137,6 +149,7 @@ func _physics_process(delta: float) -> void:
 	_invuln = max(0.0, _invuln - delta)
 	_whiff_lock = max(0.0, _whiff_lock - delta)
 	_ram_hit_cd = max(0.0, _ram_hit_cd - delta)
+	_shell_flash = max(0.0, _shell_flash - delta)
 	_tick_buff(delta)
 	_tick_status(delta)
 	_apply_knockback(delta)
@@ -242,9 +255,10 @@ func notify_ram_hit(_enemy: Node) -> void:
 func take_damage(amount: int = 1, from: Vector2 = Vector2.ZERO) -> void:
 	if _invuln > 0.0:
 		return
-	# La Piel Escamada se come el impacto entero, no una fracción.
+	# La Pierna Escamada se come el impacto entero, no una fracción.
 	if _shield > 0:
 		_shield -= 1
+		_shell_flash = SHELL_FLASH_TIME
 		_invuln = INVULN_TIME
 		return
 	_invuln = INVULN_TIME
@@ -656,9 +670,18 @@ func apply_part_buff(effect: Dictionary) -> bool:
 	_buff_flags = flags.duplicate()
 	_buff_time = effect.get("duration", 1.0)
 	_shield = int(flags.get("shield", 0))
+	if _shield > 0:
+		# Golpe de aparición: la costra nace de fuera hacia dentro.
+		_shell_pop = 1.0
+		_shell_phase = 0.0
+		_shell_flash = 0.0
 	if flags.get("scan", false):
 		_scan_room()
 	return true
+
+
+func has_scale_shell() -> bool:
+	return _shield > 0
 
 # El escaneo del Robovigilante: marca todo lo vivo de la sala durante la ventana.
 func _scan_room() -> void:
@@ -810,6 +833,27 @@ func _update_visual(delta: float) -> void:
 	core.modulate.a = 1.0 if _state == State.DASHING else 0.6 + sin(_breathe * 3.0) * 0.2
 	# Parpadeo durante los frames de invulnerabilidad.
 	modulate.a = 0.45 if _invuln > 0.0 and int(_invuln * 12.0) % 2 == 0 else 1.0
+	_update_scale_shell(delta)
+
+
+# La costra vive fuera del cuerpo: no la deforma el arrastre ni la gira la mira,
+# así se lee como algo rígido pegado encima del slime y no como parte de él.
+func _update_scale_shell(delta: float) -> void:
+	_shell_pop = max(0.0, _shell_pop - delta / SHELL_POP_TIME)
+	scale_shell.visible = _shield > 0 or _shell_flash > 0.0
+	if not scale_shell.visible:
+		return
+
+	if _shell_flash > 0.0:
+		# Al romperse se abre hacia fuera mientras se apaga.
+		var left: float = _shell_flash / SHELL_FLASH_TIME
+		scale_shell.scale = Vector2.ONE * (1.0 + (1.0 - left) * 0.5)
+		scale_shell.modulate.a = left
+		return
+
+	_shell_phase += delta * 4.0
+	scale_shell.scale = Vector2.ONE * (1.0 + _shell_pop * 0.4 + sin(_shell_phase) * 0.04)
+	scale_shell.modulate.a = 0.75 + sin(_shell_phase) * 0.2
 
 func _draw() -> void:
 	if _state != State.CHARGING:

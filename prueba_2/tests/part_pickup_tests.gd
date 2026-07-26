@@ -52,10 +52,42 @@ func _run() -> void:
 	_check(available_pickup.is_queued_for_deletion(), "con espacio retira el pickup")
 	_check(Inventory.has_part("electric_gland"), "con espacio equipa la parte")
 
+	await _check_drop_animation()
+
 	blocked_pickup.queue_free()
 	await get_tree().process_frame
 	Inventory.reset_run()
 	_finish()
+
+
+# La parte soltada por un experimento salta, aterriza y solo entonces se puede
+# recoger: sin esa demora el jugador la absorbe en el frame de la muerte.
+func _check_drop_animation() -> void:
+	Inventory.reset_run()
+	var pickup: Area2D = _make_pickup("electric_gland")
+	pickup.call("start_drop")
+	_check(not bool(pickup.get("_armed")), "recién soltada la parte nace desarmada")
+
+	var constants: Dictionary = pickup.get_script().get_script_constant_map()
+	var total: float = (
+		float(constants["DROP_RISE_TIME"])
+		+ float(constants["DROP_FALL_TIME"])
+		+ float(constants["DROP_SQUASH_TIME"])
+		+ float(constants["DROP_RECOVER_TIME"])
+		+ float(constants["DROP_ARM_DELAY"])
+	)
+	_check(total >= 0.5, "la caída dura lo bastante para verse")
+
+	await get_tree().create_timer(total * 0.4).timeout
+	_check(not bool(pickup.get("_armed")), "a mitad de la caída sigue desarmada")
+
+	await get_tree().create_timer(total * 0.8 + 0.2).timeout
+	_check(bool(pickup.get("_armed")), "al aterrizar la parte queda recogible")
+	var glow: Polygon2D = pickup.get_node("Glow")
+	_check(glow.position.is_zero_approx(), "el brillo vuelve al suelo")
+
+	pickup.queue_free()
+	await get_tree().process_frame
 
 
 func _make_pickup(part_id: String) -> Area2D:

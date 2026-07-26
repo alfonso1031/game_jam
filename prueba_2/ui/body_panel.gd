@@ -26,6 +26,7 @@ const ALIGNMENT_EPSILON := 0.001
 @onready var test_mode: Button = $TestMode
 
 var _active_tooltip_slot := -1
+var _hovered_slot := -1
 var selected_slot := -1
 
 
@@ -42,6 +43,7 @@ func _ready() -> void:
 		card.mouse_entered.connect(_show_slot_tooltip.bind(index))
 		card.mouse_exited.connect(_hide_slot_tooltip.bind(index))
 	ability_card.focus_mode = Control.FOCUS_NONE
+	visibility_changed.connect(_on_visibility_changed)
 	_refresh_slots()
 	_refresh_ability()
 	_refresh_test_mode(GameState.infinite_health)
@@ -246,14 +248,11 @@ func _apply_selection_visuals() -> void:
 		else:
 			card.remove_theme_stylebox_override("normal")
 
-	if selected_slot >= 0 and not Inventory.is_empty(selected_slot):
-		_show_selected_tooltip()
-	elif (
-		_active_tooltip_slot >= 0
-		and Inventory.part_at(_active_tooltip_slot).is_empty()
-	):
-		tooltip.hide_part()
+	if _hovered_slot >= 0 and not Inventory.is_empty(_hovered_slot):
+		_show_slot_tooltip(_hovered_slot)
+	elif _active_tooltip_slot >= 0:
 		_active_tooltip_slot = -1
+		tooltip.hide_part()
 	_refresh_consume_hint()
 	queue_redraw()
 
@@ -286,37 +285,43 @@ func _slot_button(index: int) -> Button:
 	return slots.get_node("Slot%d" % (index + 1)) as Button
 
 
+func _on_visibility_changed() -> void:
+	_hovered_slot = -1
+	if is_visible_in_tree():
+		_hovered_slot = _slot_under_mouse()
+	if _hovered_slot >= 0:
+		_show_slot_tooltip(_hovered_slot)
+		return
+	_active_tooltip_slot = -1
+	tooltip.hide_part()
+
+
+func _slot_under_mouse() -> int:
+	if not is_inside_tree():
+		return -1
+	var mouse := get_viewport().get_mouse_position()
+	for index in range(Inventory.SLOT_COUNT):
+		var card := _slot_button(index)
+		if card.visible and card.get_global_rect().has_point(mouse):
+			return index
+	return -1
+
+
 func _show_slot_tooltip(index: int) -> void:
+	_hovered_slot = index
 	var part_id := Inventory.part_at(index)
 	if part_id.is_empty():
 		return
-	_active_tooltip_slot = index
-	var card := _slot_button(index)
-	var anchor := card.get_global_rect().position + Vector2(card.size.x, card.size.y * 0.5)
-	if card.has_focus():
-		anchor = card.get_global_rect().get_center()
-	else:
-		anchor = get_viewport().get_mouse_position()
-	tooltip.show_part(part_id, anchor)
-
-
-func _show_selected_tooltip() -> void:
 	if not is_inside_tree() or not tooltip.is_inside_tree():
-		_active_tooltip_slot = -1
-		tooltip.hide_part()
 		return
-	if selected_slot < 0 or Inventory.is_empty(selected_slot):
-		return
-	_active_tooltip_slot = selected_slot
-	var card := _slot_button(selected_slot)
-	tooltip.show_part(Inventory.part_at(selected_slot), card.get_global_rect().get_center())
+	_active_tooltip_slot = index
+	tooltip.show_part(part_id, get_viewport().get_mouse_position())
 
 
 func _hide_slot_tooltip(index: int) -> void:
+	if _hovered_slot == index:
+		_hovered_slot = -1
 	if _active_tooltip_slot != index:
-		return
-	if selected_slot >= 0 and not Inventory.is_empty(selected_slot):
-		_show_selected_tooltip()
 		return
 	_active_tooltip_slot = -1
 	tooltip.hide_part()

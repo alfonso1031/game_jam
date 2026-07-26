@@ -138,11 +138,11 @@ const PARTS := {
 		},
 	},
 	"scaled_skin": {
-		"name": "Piel Escamada",
+		"name": "Pierna Escamada",
 		"slot": SLOT_PIERNA,
 		"tier": TIER_BASIC,
 		"source": "EXP-03 Saurio Escamado",
-		"desc": "Endurecimiento instantáneo que bloquea el siguiente impacto recibido.",
+		"desc": "Levanta una costra de escamas que bloquea el siguiente impacto recibido.",
 		"cooldown": 6.0,
 		"effect": {
 			"kind": EFFECT_BUFF,

@@ -304,6 +304,7 @@ func _drop() -> void:
 	pickup.part_id = part_id
 	pickup.position = position
 	get_parent().add_child(pickup)
+	pickup.start_drop()
 
 # --- Presentación (formas primitivas: las texturas van aparte) ---
 

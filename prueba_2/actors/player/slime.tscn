@@ -34,6 +34,14 @@ polygon = PackedVector2Array(48, 0, 44, 16, 36, 30, 22, 40, 0, 46, -20, 42, -36,
 color = Color(0.45098, 0.937255, 0.909804, 0.7)
 polygon = PackedVector2Array(26, 0, 24, 9, 20, 17, 12, 22, 0, 25, -11, 23, -20, 17, -25, 10, -27, 0, -25, -10, -20, -17, -11, -23, 0, -25, 12, -22, 20, -17, 24, -9)
 
+[node name="ScaleShell" type="Line2D" parent="."]
+visible = false
+points = PackedVector2Array(58, 0, 44.35, 18.37, 41.01, 41.01, 18.37, 44.35, 0, 58, -18.37, 44.35, -41.01, 41.01, -44.35, 18.37, -58, 0, -44.35, -18.37, -41.01, -41.01, -18.37, -44.35, 0, -58, 18.37, -44.35, 41.01, -41.01, 44.35, -18.37)
+closed = true
+width = 7.0
+default_color = Color(0.92549, 0.952941, 0.690196, 1)
+joint_mode = 2
+
 [node name="Light" type="PointLight2D" parent="."]
 texture = SubResource("3")
 color = Color(0.45098, 0.937255, 0.909804, 1)

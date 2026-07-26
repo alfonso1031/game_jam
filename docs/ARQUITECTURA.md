@@ -217,6 +217,15 @@ la Tenaza Trituradora. El Crustáceo Triturador no tiene escudo ni bloquea ataqu
 recibe daño desde cualquier dirección. Si el slime invade su espacio de 105 px, retrocede
 en vez de quedar superpuesto o arrastrarlo.
 
+**Caída del botín.** Lo que sueltan los experimentos y el boss no aparece armado: el
+pickup nace inerte y `start_drop()` reproduce un salto corto —el brillo sube, cae, se
+aplasta al aterrizar y el nombre entra en fundido— antes de volverse recogible, unos
+`0,85 s` en total. La demora existe para que el jugador vea qué soltó: sin ella el slime
+absorbe la parte en el mismo frame de la muerte, muchas veces sin enterarse. El pickup
+**no** se desplaza durante la animación, solo su brillo, para no aterrizar dentro de un
+muro. Los pickups colocados a mano (`BodySource`, salas loot) nacen armados y no llaman
+`start_drop()`.
+
 ### Flujo de transición (`transition.gd`)
 
 1. `Door`/`Elevator` detecta al jugador → `Transition.go_to(target_id, dir)`.
@@ -361,6 +370,12 @@ futuro reglas para una o dos piernas.
 | 0 | Impulso cargado |
 | 1 o más | Movimiento continuo a `280 px/s` |
 
+El tipo lo decide el catálogo, no el nombre: **cualquier** parte con `"slot": SLOT_PIERNA`
+enciende el movimiento continuo. Por eso el catálogo y el nombre visible tienen que decir
+lo mismo — la parte de EXP-03 se llama **Pierna Escamada** justamente porque su `slot` es
+`pierna`. Bautizarla "Piel" mientras contaba como pierna hacía que equiparla pareciera
+regalar las Patas Hidráulicas.
+
 Sin piernas, el slime no camina: acumula energía y se lanza. Este modo fue portado desde
 `prototypes/slime_charge_movement/` (ver
 [DASH_DEFINITION.md](../prototypes/slime_charge_movement/docs/DASH_DEFINITION.md)).
@@ -452,6 +467,20 @@ recuperación.
 > es de 172 px. Cualquier retoque de `DASH_PEAK_SPEED`, `DASH_END_SPEED`, `DASH_EASE`,
 > `DASH_RAMP`, `DASH_START` o `DASH_TIME` **cambia el alcance** y puede volver el hueco
 > infranqueable, dejando el juego sin final. Recalcular antes de tocarlos.
+
+### Costra de la Pierna Escamada
+
+El escudo de `EFFECT_BUFF` con `flags: {"shield": 1}` no tenía ninguna presentación: se
+ponía y se gastaba sin señal, así que la parte se sentía pasiva aunque se activa con su
+tecla numérica. `ScaleShell` es un `Line2D` cerrado y dentado que cuelga de la raíz del
+slime, **no** de `Body`: no lo deforma el arrastre ni lo gira la mira, y por eso se lee
+como una costra rígida encima y no como parte del cuerpo.
+
+- Al activarla, la costra nace de fuera hacia dentro (`SHELL_POP_TIME`) y late mientras
+  aguanta.
+- Al comerse el golpe se abre hacia fuera y se apaga en `SHELL_FLASH_TIME`.
+- El escudo sigue gastándose con el golpe, no con el reloj: si el buff caduca antes de
+  recibir daño, la costra permanece.
 
 ### Audio del slime
 

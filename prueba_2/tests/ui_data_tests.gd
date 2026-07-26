@@ -24,10 +24,15 @@ func _run() -> void:
 		"Tenaza Trituradora expone su descripción breve"
 	)
 	_check(
-		PartsDB.description("scaled_skin")
-		== "Endurecimiento instantáneo que bloquea el siguiente impacto recibido.",
-		"Piel Escamada expone su descripción breve"
+		PartsDB.display_name("scaled_skin") == "Pierna Escamada",
+		"la parte escamada se llama pierna, coherente con su tipo"
 	)
+	_check(
+		PartsDB.description("scaled_skin")
+		== "Levanta una costra de escamas que bloquea el siguiente impacto recibido.",
+		"Pierna Escamada expone su descripción breve"
+	)
+	_check(PartsDB.is_active("scaled_skin"), "Pierna Escamada se activa con su tecla")
 	_check(
 		PartsDB.description("whip_tail")
 		== "Barrido giratorio de 360 grados que repele a los enemigos alrededor.",

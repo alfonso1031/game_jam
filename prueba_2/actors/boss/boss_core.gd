@@ -243,11 +243,13 @@ func _die() -> void:
 	ability_pickup.ability_id = ability_id
 	ability_pickup.position = position + Vector2(-80, 0)
 	get_parent().add_child(ability_pickup)
+	ability_pickup.start_drop()
 
 	var part_pickup: Node2D = PartPickupScene.instantiate()
 	part_pickup.part_id = part_id
 	part_pickup.position = position + Vector2(80, 0)
 	get_parent().add_child(part_pickup)
+	part_pickup.start_drop()
 
 	died.emit(self)
 	call_deferred("queue_free")
