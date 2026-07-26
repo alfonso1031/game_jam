@@ -10,6 +10,7 @@ const MENU_FADE_TIME := 0.35
 @onready var menu: VBoxContainer = $Menu
 @onready var play_button: Button = $Menu/PlayButton
 @onready var quit_button: Button = $Menu/QuitButton
+@onready var music: AudioStreamPlayer = $Music
 
 var _intro_done := false
 var _intro_tween: Tween
@@ -20,6 +21,7 @@ func _ready() -> void:
 	GameState.reset_run()
 	play_button.pressed.connect(_start_game)
 	quit_button.pressed.connect(_quit_game)
+	music.finished.connect(_on_music_finished)
 	_contained_start_position = background_contained.position
 	_start_intro()
 
@@ -85,3 +87,7 @@ func _start_game() -> void:
 func _quit_game() -> void:
 	if _intro_done:
 		get_tree().quit()
+
+
+func _on_music_finished() -> void:
+	music.play()
