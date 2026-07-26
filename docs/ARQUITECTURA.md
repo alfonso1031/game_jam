@@ -204,6 +204,15 @@ son props reutilizables con colisión limitada a su base; la entrada conserva el
 `broken_glass_tube` narrativo. El catálogo no coloca props sólidos en la fila 3 ni la
 columna 6.
 
+### Enemigos de Contención
+
+Las salas normales seleccionan de forma determinista y con el mismo peso entre
+`exp01`, `exp02`, `exp03` y `exp07`: cada tipo ocupa una de las cuatro posiciones del
+pool (25 %). El preboss genera tres enemigos por defecto; sus dos acompañantes proceden
+solo de `exp01`–`exp03` y el último enemigo siempre es un `exp07` marcado como líder.
+Como `exp07` solo declara `crusher_claw` en `drop_parts`, derrotar al líder garantiza
+la Tenaza Trituradora.
+
 ### Flujo de transición (`transition.gd`)
 
 1. `Door`/`Elevator` detecta al jugador → `Transition.go_to(target_id, dir)`.

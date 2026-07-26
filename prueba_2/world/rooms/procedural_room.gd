@@ -30,7 +30,8 @@ const ENEMY_CELLS: Array[Vector2i] = [
 	Vector2i(8, 4),
 	Vector2i(6, 3),
 ]
-const CONTAINMENT_ENEMIES: Array[String] = ["exp01", "exp02", "exp03"]
+const CONTAINMENT_ENEMIES: Array[String] = ["exp01", "exp02", "exp03", "exp07"]
+const CONTAINMENT_MINIONS: Array[String] = ["exp01", "exp02", "exp03"]
 
 var _room_data: Dictionary = {}
 var _alive: Array[Node] = []
@@ -256,11 +257,15 @@ func _spawn_enemies() -> void:
 	if GameState.is_room_cleared(String(_room_data["id"])):
 		return
 	var enemy_count: int = int(_room_data.get("enemy_count", 0))
-	if _room_data.get("role", &"") == &"preboss" and enemy_count == 0:
+	var is_preboss: bool = _room_data.get("role", &"") == &"preboss"
+	if is_preboss and enemy_count == 0:
 		enemy_count = 3
 	for index in range(enemy_count):
-		var type_index: int = (_stable_room_index() + index) % CONTAINMENT_ENEMIES.size()
-		var type_id: String = CONTAINMENT_ENEMIES[type_index]
+		var pool: Array[String] = CONTAINMENT_MINIONS if is_preboss else CONTAINMENT_ENEMIES
+		var type_index: int = (_stable_room_index() + index) % pool.size()
+		var type_id: String = pool[type_index]
+		if is_preboss and index == enemy_count - 1:
+			type_id = "exp07"
 		var scene: PackedScene = EnemyDB.scene_for(type_id)
 		var enemy: Node2D = scene.instantiate()
 		enemy.position = cell_center(ENEMY_CELLS[index % ENEMY_CELLS.size()])
