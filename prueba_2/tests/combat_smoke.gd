@@ -12,6 +12,7 @@ extends Node2D
 const PartsDB := preload("res://core/parts_db.gd")
 const EnemyDB := preload("res://core/enemy_db.gd")
 const SlimeScene := preload("res://actors/player/slime.tscn")
+const RoomAssembler := preload("res://world/rooms/room_assembler.gd")
 
 const FRAMES_PER_ENEMY := 45
 
@@ -41,6 +42,7 @@ func _run() -> void:
 	await _test_every_enemy()
 	await _test_drop_rules()
 	await _test_room_templates()
+	await _test_procedural_room_assembly()
 	await _test_rooms()
 	await _test_room_lighting()
 	await _test_progression()
@@ -66,6 +68,50 @@ func _test_room_templates() -> void:
 				ResourceLoader.exists(template["background"]),
 				"fondo de plantilla existe para %s" % [doors]
 			)
+
+
+func _test_procedural_room_assembly() -> void:
+	var fixtures: Array = [
+		{"id": "TEST_E", "doors": {"E": "NEXT"}},
+		{"id": "TEST_NS", "doors": {"N": "NEXT", "S": "PREV"}},
+		{"id": "TEST_NES", "doors": {"N": "A", "E": "B", "S": "C"}},
+		{"id": "TEST_NESO", "doors": {"N": "A", "E": "B", "S": "C", "O": "D"}},
+	]
+	for fixture_value: Variant in fixtures:
+		var fixture: Dictionary = fixture_value
+		fixture["role"] = &"normal"
+		fixture["content_type"] = &"empty"
+		fixture["enemy_count"] = 0
+		fixture["one_way"] = {}
+		fixture["grate_target"] = ""
+		fixture["closure_keep_direction"] = ""
+		var assembled: Node2D = RoomAssembler.build(fixture)
+		add_child(assembled)
+		_check(assembled.get_meta("room_id") == fixture["id"], "conserva id procedural")
+		_check(
+			assembled.get_meta("content_type") == fixture["content_type"],
+			"conserva contenido procedural"
+		)
+		_check(assembled.get_meta("enemy_count") == 0, "conserva cantidad de enemigos")
+		var doors: Dictionary = fixture["doors"]
+		for direction in ["N", "E", "S", "O"]:
+			_check(
+				assembled.has_node("Door%s" % direction) == doors.has(direction),
+				"solo crea puerta %s si está declarada" % direction
+			)
+			_check(
+				assembled.has_node("Spawn%s" % direction) == doors.has(direction),
+				"solo crea spawn %s si está declarado" % direction
+			)
+		var background: Sprite2D = assembled.get_node("Background")
+		_check(background.texture != null, "carga fondo compatible")
+		var lamp_count := 0
+		for child in assembled.get_children():
+			if child.name.begins_with("Lamp"):
+				lamp_count += 1
+		_check(lamp_count >= 4, "la sala procedural tiene al menos cuatro focos")
+		assembled.queue_free()
+		await get_tree().process_frame
 
 
 func _test_health_halves() -> void:
