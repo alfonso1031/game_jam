@@ -59,7 +59,7 @@ de diseño y no se ha redibujado. La Quimera usa sus 23 PNG transparentes desde
 El protagonista también usa arte ilustrado entregado: `AnimatedSprite2D` con
 `idle` de 5 frames, `walk` de 2, `jump` de 6 y `recover` de 12. Las cuatro hojas
 originales se conservan en `art_raw/personaje/slime/`; el procesador
-`tools/art/process_slime_delivered_sheets.gd` las recorta en común y genera los
+`prueba_2/tools/art/process_slime_delivered_sheets.gd` las recorta en común y genera los
 25 PNG de runtime sin cambiar la colisión ni las reglas de movimiento.
 
 ## 3. Flujo de partida y controles
@@ -364,7 +364,7 @@ no bloquea la fila 3 ni la columna 6.
   conserva siete fuentes `idle` y dieciséis `angry`.
 - El arte crudo del jugador vive en `art_raw/personaje/slime/`: cuatro hojas RGBA
   de celdas 320 × 320. Solo los 25 fotogramas centrados entran en
-  `assets/player/slime/animations/`.
+  `prueba_2/assets/player/slime/animations/`.
 - Cada experimento con arte traduce su estado con `_visual_state()`; si el nombre no
   existe en su `SpriteFrames`, `enemy_base.gd` cae al `autoplay` en vez de romper.
 - Las velocidades de los avisos están calculadas para que el último fotograma coincida

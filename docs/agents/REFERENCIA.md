@@ -289,7 +289,7 @@ velocidad.** El arte nunca aplica daño.
 - El procesador valida dimensiones, cantidad y alfa, calcula un único recorte
   para los 25 frames y los centra en lienzos de 128 × 128 con ajuste 96 × 96.
   No recortar ni escalar cada pose por separado.
-- `actors/player/slime_frames.tres` repite `idle`/`walk` y deja
+- `prueba_2/actors/player/slime_frames.tres` repite `idle`/`walk` y deja
   `jump`/`recover` sin loop. `slime.gd::_visual_animation()` traduce el estado:
   reposo/carga → `idle`, movimiento con piernas → `walk`,
   lanzamiento/DASH → `jump`, recuperación → `recover`.

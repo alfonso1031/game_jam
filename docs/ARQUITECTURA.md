@@ -534,13 +534,13 @@ proyecto, y solo después sus pruebas:
 ### Presentación
 
 - **Sprite animado entregado:** `slime.tscn::Sprite` consume
-  `actors/player/slime_frames.tres`. `slime.gd::_visual_animation()` traduce
+  `prueba_2/actors/player/slime_frames.tres`. `slime.gd::_visual_animation()` traduce
   `IDLE`/`CHARGING` a `idle`, movimiento continuo a `walk`,
   `LAUNCHING`/`DASHING`/`PART_DASH` a `jump` y `RECOVERING` a `recover`.
   `idle` y `walk` repiten; las otras dos secuencias no se reinician mientras no
   cambie el nombre.
 - **Pipeline reproducible:** cuatro hojas RGBA de celdas 320 × 320 viven en
-  `art_raw/personaje/slime/`. `tools/art/process_slime_delivered_sheets.gd`
+  `art_raw/personaje/slime/`. `prueba_2/tools/art/process_slime_delivered_sheets.gd`
   valida `5/2/6/12` frames, calcula un recorte común y produce 25 PNG centrados
   en lienzos 128 × 128 con ajuste 96 × 96. Así la escala y el pivote no saltan
   al cambiar de estado.
