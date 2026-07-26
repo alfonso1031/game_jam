@@ -44,6 +44,7 @@ func configure(
 
 func _ready() -> void:
 	_fit_visual()
+	queue_redraw()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_inside_tree():
@@ -64,6 +65,19 @@ func _fit_visual() -> void:
 	sprite.scale = Vector2.ONE * factor
 	prompt.position = PROMPT_POSITIONS.get(wall_direction, Vector2.ZERO)
 	collision_shape.position = SENSOR_POSITIONS.get(wall_direction, Vector2.ZERO)
+
+
+func _draw() -> void:
+	draw_arc(
+		Vector2.ZERO,
+		66.0,
+		0.0,
+		TAU,
+		48,
+		Color(0.45, 0.94, 0.91, 0.82),
+		3.0,
+		true
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:
