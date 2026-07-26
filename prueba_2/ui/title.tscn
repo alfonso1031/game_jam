@@ -1,44 +1,78 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://ui/title.gd" id="1"]
+[ext_resource type="Script" path="res://ui/title.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/title_contained.png" id="2_contained"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/title_escaped.png" id="3_escaped"]
 
 [node name="Title" type="Control"]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1")
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="BackgroundContained" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.113725, 0.129412, 0.137255, 1)
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+texture = ExtResource("2_contained")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Slime" type="Polygon2D" parent="."]
-position = Vector2(960, 400)
-color = Color(0.290196, 0.658824, 0.505882, 1)
-polygon = PackedVector2Array(90, 0, 77.94, 45, 45, 77.94, 0, 90, -45, 77.94, -77.94, 45, -90, 0, -77.94, -45, -45, -77.94, 0, -90, 45, -77.94, 77.94, -45)
+[node name="BackgroundEscaped" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("3_escaped")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="SlimeCore" type="Polygon2D" parent="."]
-position = Vector2(960, 400)
-color = Color(0.45098, 0.937255, 0.909804, 0.8)
-polygon = PackedVector2Array(46, 0, 39.84, 23, 23, 39.84, 0, 46, -23, 39.84, -39.84, 23, -46, 0, -39.84, -23, -23, -39.84, 0, -46, 23, -39.84, 39.84, -23)
+[node name="Flash" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0)
+color = Color(0.92549, 0.952941, 0.690196, 1)
 
-[node name="TitleLabel" type="Label" parent="."]
-offset_left = 0.0
-offset_top = 540.0
-offset_right = 1920.0
-offset_bottom = 630.0
-theme_override_colors/font_color = Color(0.45098, 0.937255, 0.909804, 1)
-theme_override_font_sizes/font_size = 88
-horizontal_alignment = 1
-text = "SLIME ESCAPE"
+[node name="Menu" type="VBoxContainer" parent="."]
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = 220.0
+offset_right = 150.0
+offset_bottom = 376.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+modulate = Color(1, 1, 1, 0)
 
-[node name="Prompt" type="Label" parent="."]
-offset_left = 0.0
-offset_top = 950.0
-offset_right = 1920.0
-offset_bottom = 990.0
-theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+[node name="PlayButton" type="Button" parent="Menu"]
+custom_minimum_size = Vector2(300, 64)
+layout_mode = 2
 theme_override_font_sizes/font_size = 30
-horizontal_alignment = 1
-text = "PULSA CUALQUIER TECLA"
+text = "JUGAR"
+
+[node name="QuitButton" type="Button" parent="Menu"]
+custom_minimum_size = Vector2(300, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "SALIR"
