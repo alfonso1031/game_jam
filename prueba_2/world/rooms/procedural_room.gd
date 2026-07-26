@@ -67,8 +67,11 @@ func _build_background() -> void:
 	var background := Sprite2D.new()
 	background.name = "Background"
 	background.texture = load(template["background"])
+	background.flip_h = bool(template.get("flip_h", false))
 	background.position = ROOM_CENTER
 	background.z_index = -10
+	if template.has("virtual_opening"):
+		background.set_meta("virtual_opening", template["virtual_opening"])
 	add_child(background)
 
 

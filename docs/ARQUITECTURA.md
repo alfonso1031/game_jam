@@ -167,7 +167,12 @@ propuestas y no relaja reglas. Contrato de Contención:
 
 `RunMap.canonical_snapshot()` permite comparar generaciones y reproducir bugs con la seed.
 `res://tests/run_map_tests.gd` valida invariantes y distribuciones sobre 1.000 seeds.
-`RoomDB.template_for()` solo traduce el conjunto de puertas a uno de los 13 fondos.
+`core/room_backgrounds.gd` es el catálogo canónico de las 16 configuraciones cardinales:
+sin puertas normales, 1, 2, 3 o 4 puertas. Las esquinas `NE` y `SO` espejan
+horizontalmente los PNG `NO` y `ES`; el destino exclusivo de rejilla reserva una abertura
+visual sin crear una puerta normal. `RoomDB.template_for()` solo conserva la fachada para
+el ensamblador. `MapGenerator.validate()` rechaza cualquier descriptor sin plantilla antes
+de que `Transition` pueda materializarlo.
 
 ### Flujo de transición (`transition.gd`)
 
@@ -593,8 +598,9 @@ futuros y no se simulan con salas fijas durante la partida activa.
 
 ## 13. Notas de mantenimiento
 
-- **Añadir una plantilla:** registrar el fondo en `RoomDB.TEMPLATES`; el generador crea
-  descriptores y `RoomAssembler` abre muros/puertas/spawns.
+- **Añadir una plantilla:** registrarla en `core/room_backgrounds.gd`; `RoomDB.TEMPLATES`
+  referencia ese catálogo, el generador valida su existencia y `RoomAssembler` aplica el
+  fondo, su orientación y abre muros/puertas/spawns.
 - **Añadir un prop:** escena en `world/props/` + `preload` y un array `@export` en
   `world/rooms/room.gd`.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
@@ -602,3 +608,6 @@ futuros y no se simulan con salas fijas durante la partida activa.
 - `tests/ui_visual_capture.tscn` construye una cruz cardinal con seis partes y permite
   capturar `map`, `tooltip`, `route` o `hud`; el tercer argumento fija el tamaño físico
   final de la evidencia cuando el viewport lógico sigue siendo 1080p.
+- `combat_smoke.tscn` ensambla las 16 configuraciones cardinales, incluidas `NE`, `SO` y
+  el destino de rejilla sin puertas normales. `run_map_tests.gd` comprueba además que cada
+  sala de 1.000 seeds aceptadas tenga una plantilla renderizable.

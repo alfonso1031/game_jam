@@ -50,8 +50,10 @@ func _run() -> void:
 
 func _test_room_templates() -> void:
 	var fixtures: Array = [
+		[],
 		["E"], ["N"], ["O"], ["S"],
-		["N", "S"], ["E", "O"], ["O", "N"], ["S", "E"],
+		["N", "E"], ["N", "S"], ["N", "O"],
+		["E", "S"], ["E", "O"], ["S", "O"],
 		["E", "S", "O"], ["N", "E", "O"], ["N", "E", "S"], ["N", "S", "O"],
 		["O", "N", "E", "S"],
 	]
@@ -70,13 +72,17 @@ func _test_room_templates() -> void:
 func _test_procedural_room_assembly() -> void:
 	var fixtures: Array = [
 		{"id": "TEST_E", "doors": {"E": "NEXT"}},
+		{"id": "TEST_NE", "doors": {"N": "A", "E": "B"}, "flip_h": true},
+		{"id": "TEST_SO", "doors": {"S": "A", "O": "B"}, "flip_h": true},
 		{"id": "TEST_NS", "doors": {"N": "NEXT", "S": "PREV"}},
 		{"id": "TEST_NES", "doors": {"N": "A", "E": "B", "S": "C"}},
 		{"id": "TEST_NESO", "doors": {"N": "A", "E": "B", "S": "C", "O": "D"}},
+		{"id": "TEST_GRATE", "doors": {}, "role": &"grate_destination"},
 	]
 	for fixture_value: Variant in fixtures:
 		var fixture: Dictionary = fixture_value
-		fixture["role"] = &"normal"
+		if not fixture.has("role"):
+			fixture["role"] = &"normal"
 		fixture["content_type"] = &"empty"
 		fixture["enemy_count"] = 0
 		fixture["one_way"] = {}
@@ -102,6 +108,15 @@ func _test_procedural_room_assembly() -> void:
 			)
 		var background: Sprite2D = assembled.get_node("Background")
 		_check(background.texture != null, "carga fondo compatible")
+		_check(
+			background.flip_h == bool(fixture.get("flip_h", false)),
+			"aplica orientación del fondo para %s" % [doors.keys()]
+		)
+		if fixture["role"] == &"grate_destination":
+			_check(
+				background.get_meta("virtual_opening", "") == "E",
+				"la sala de rejilla reserva una abertura visual sin puerta normal"
+			)
 		var lamp_count := 0
 		for child in assembled.get_children():
 			if child.name.begins_with("Lamp"):

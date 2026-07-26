@@ -282,7 +282,7 @@ enemigo, no diez.
 
 | Qué | Dónde | Notas |
 |---|---|---|
-| 13 fondos de sala | `assets/environment/rooms/` | Los 13 completos, uno por combinación de puertas. |
+| 13 fondos de sala | `assets/environment/rooms/` | Cubren las variantes base; `NE` y `SO` reutilizan esquinas espejadas y la sala de rejilla reserva una abertura sin puerta normal. |
 | **07 Crustáceo Escudo** | `assets/enemies/exp07_crustacean/` | 3 fotogramas. Es el primer experimento con arte. |
 
 El Crustáceo llegó como **tres poses de la misma postura a tres alturas**

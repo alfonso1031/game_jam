@@ -88,8 +88,9 @@ redibuja cuando pasa algo. Sondear cada frame significa desincronizaciones y tra
 
 Si algo se va a repetir, va como **dato**, no como caso especial:
 
-- El grafo de la partida es un `RunMap` generado. `RoomDB` cataloga fondos por conjunto de
-  puertas; no es la autoridad de la navegación activa.
+- El grafo de la partida es un `RunMap` generado. `core/room_backgrounds.gd` cataloga
+  fondos por conjunto de puertas y `RoomDB` solo expone una fachada legacy; ninguno es la
+  autoridad de la navegación activa.
 - La decoración se declara por **coordenada de celda** en la raíz del `.tscn` de cada sala.
   Añadir props no toca el árbol de nodos.
 - Todo dato que se pueda validar, se valida. `MapGenerator.validate()` rechaza propuestas

@@ -67,11 +67,15 @@ No se añade una escena por sala generada. `MapGenerator` crea el descriptor y
 Para una combinación visual nueva:
 
 1. añadir el PNG 1920×1080 en `assets/environment/rooms/`;
-2. registrarlo en `RoomDB.TEMPLATES`;
-3. añadir el fixture a `_test_room_templates()` y correr `combat_smoke.tscn`.
+2. registrarlo en `core/room_backgrounds.gd` (`flip_h` permite reutilizar una variante
+   espejada sin duplicar el PNG);
+3. añadir el fixture a `_test_room_templates()` y `_test_procedural_room_assembly()`;
+4. correr `combat_smoke.tscn` y `run_map_tests.gd`.
 
 Cambiar topología o contenido exige actualizar `MapGenerator.validate()` y comprobar
-1.000 seeds con `res://tests/run_map_tests.gd`. `RoomDB.ROOMS` es legado.
+1.000 seeds con `res://tests/run_map_tests.gd`. El validador también exige que cada
+conjunto de puertas exista en el catálogo antes de aceptar una seed. `RoomDB.ROOMS` es
+legado.
 
 ### Añadir decoración
 

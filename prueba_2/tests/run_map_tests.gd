@@ -2,6 +2,7 @@ extends SceneTree
 
 const RunMap := preload("res://core/run_map.gd")
 const MapGenerator := preload("res://core/map_generator.gd")
+const RoomBackgrounds := preload("res://core/room_backgrounds.gd")
 
 var _failures: Array[String] = []
 
@@ -70,6 +71,12 @@ func _run() -> void:
 			var data: Dictionary = generated.room(room_id)
 			var role: StringName = data["role"]
 			var content: String = String(data["content_type"])
+			var directions: Array[String] = []
+			directions.assign(data["doors"].keys())
+			_check(
+				not RoomBackgrounds.template_for_directions(directions).is_empty(),
+				"seed %d, sala %s tiene fondo para %s" % [seed_value, room_id, directions]
+			)
 			if role == &"normal":
 				if normal_counts.has(content):
 					normal_counts[content] = int(normal_counts[content]) + 1

@@ -1,33 +1,42 @@
-# Fondos de sala pre-renderizados (1920 x 1080, uno por combinación de puertas).
+# Catálogo canónico de fondos de sala pre-renderizados (1920 x 1080).
 #
 # Sin `class_name`, igual que el resto de `core/`: se consume con
 # `preload("res://core/room_backgrounds.gd")`.
 #
-# La clave se arma recorriendo N,E,S,O en ese orden fijo y concatenando las
-# direcciones que tengan puerta. Así `room.gd` no necesita que cada escena
-# declare su fondo a mano: alcanza con que `RoomDB` tenga las puertas correctas
-# y que exista arte para esa combinación.
+# La clave se arma recorriendo N,E,S,O. Las esquinas NE y SO reutilizan el arte
+# opuesto con espejo horizontal; así la topología procedural puede usar las
+# seis parejas cardinales sin duplicar PNG.
 #
-# El set entregado trae exactamente un archivo por combinación (incluidas las
-# 4 formas de "3 puertas": para cada lado que se pueda cerrar hay una imagen
-# distinta), no variantes intercambiables de un mismo layout — verificado
-# muestreando los píxeles del hueco de puerta en cada PNG, no a ojo.
+# La clave vacía pertenece exclusivamente a destinos de rejilla: no crea una
+# puerta normal, pero reserva visualmente la abertura E para la futura rejilla.
 const DIRECTION_ORDER := ["N", "E", "S", "O"]
 
-const BACKGROUNDS := {
-	"O": "res://assets/environment/rooms/room_1door_O.png",
-	"E": "res://assets/environment/rooms/room_1door_E.png",
-	"N": "res://assets/environment/rooms/room_1door_N.png",
-	"S": "res://assets/environment/rooms/room_1door_S.png",
-	"EO": "res://assets/environment/rooms/room_2door_OE.png",
-	"NS": "res://assets/environment/rooms/room_2door_NS.png",
-	"ES": "res://assets/environment/rooms/room_2door_SE.png",
-	"NO": "res://assets/environment/rooms/room_2door_ON.png",
-	"NES": "res://assets/environment/rooms/room_3door_NES.png",
-	"NEO": "res://assets/environment/rooms/room_3door_NEO.png",
-	"NSO": "res://assets/environment/rooms/room_3door_NSO.png",
-	"ESO": "res://assets/environment/rooms/room_3door_ESO.png",
-	"NESO": "res://assets/environment/rooms/room_4door_ONES.png",
+const TEMPLATES := {
+	"": {
+		"background": "res://assets/environment/rooms/room_1door_E.png",
+		"virtual_opening": "E",
+	},
+	"E": {"background": "res://assets/environment/rooms/room_1door_E.png"},
+	"N": {"background": "res://assets/environment/rooms/room_1door_N.png"},
+	"O": {"background": "res://assets/environment/rooms/room_1door_O.png"},
+	"S": {"background": "res://assets/environment/rooms/room_1door_S.png"},
+	"NE": {
+		"background": "res://assets/environment/rooms/room_2door_ON.png",
+		"flip_h": true,
+	},
+	"NS": {"background": "res://assets/environment/rooms/room_2door_NS.png"},
+	"NO": {"background": "res://assets/environment/rooms/room_2door_ON.png"},
+	"ES": {"background": "res://assets/environment/rooms/room_2door_SE.png"},
+	"EO": {"background": "res://assets/environment/rooms/room_2door_OE.png"},
+	"SO": {
+		"background": "res://assets/environment/rooms/room_2door_SE.png",
+		"flip_h": true,
+	},
+	"ESO": {"background": "res://assets/environment/rooms/room_3door_ESO.png"},
+	"NEO": {"background": "res://assets/environment/rooms/room_3door_NEO.png"},
+	"NES": {"background": "res://assets/environment/rooms/room_3door_NES.png"},
+	"NSO": {"background": "res://assets/environment/rooms/room_3door_NSO.png"},
+	"NESO": {"background": "res://assets/environment/rooms/room_4door_ONES.png"},
 }
 
 static func key_for(doors: Dictionary) -> String:
@@ -37,10 +46,30 @@ static func key_for(doors: Dictionary) -> String:
 			key += dir
 	return key
 
+
+static func key_for_directions(directions: Array[String]) -> String:
+	var present: Dictionary = {}
+	for direction in directions:
+		present[direction] = true
+	return key_for(present)
+
+
+static func template_for_doors(doors: Dictionary) -> Dictionary:
+	return TEMPLATES.get(key_for(doors), {})
+
+
+static func template_for_directions(directions: Array[String]) -> Dictionary:
+	return TEMPLATES.get(key_for_directions(directions), {})
+
+
+static func has_template(doors: Dictionary) -> bool:
+	return not template_for_doors(doors).is_empty()
+
+
 static func texture_for(room_id: String, doors: Dictionary) -> Texture2D:
 	var key := key_for(doors)
-	var path: String = BACKGROUNDS.get(key, "")
-	if path == "":
+	var template: Dictionary = TEMPLATES.get(key, {})
+	if template.is_empty():
 		push_error("RoomBackgrounds: sin fondo para la combinación de puertas '%s' (sala %s)" % [key, room_id])
 		return null
-	return load(path)
+	return load(template["background"])

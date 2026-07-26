@@ -1,6 +1,7 @@
 extends RefCounted
 
 const RunMap := preload("res://core/run_map.gd")
+const RoomBackgrounds := preload("res://core/room_backgrounds.gd")
 
 const MAX_ATTEMPTS := 128
 const MIN_MAIN_PATH := 6
@@ -110,6 +111,11 @@ func validate(run_map: RefCounted) -> PackedStringArray:
 			errors.append("coordenada repetida: %s" % grid)
 		occupied[grid] = room_id
 		var doors: Dictionary = data["doors"]
+		if not RoomBackgrounds.has_template(doors):
+			errors.append(
+				"%s no tiene fondo para puertas '%s'"
+				% [room_id, RoomBackgrounds.key_for(doors)]
+			)
 		var one_way: Dictionary = data["one_way"]
 		for direction_value: Variant in doors:
 			var direction: String = String(direction_value)
