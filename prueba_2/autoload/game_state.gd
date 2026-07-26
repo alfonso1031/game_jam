@@ -7,6 +7,7 @@ signal ability_gained(id: String)
 signal health_changed(halves: int)
 signal died
 signal death_saved
+signal grate_discovered(source_id: String)
 
 # La vida se contabiliza en MEDIOS corazones, porque consumir una parte cura
 # exactamente medio. `max_health` / `health` siguen expuestos en corazones para
@@ -27,6 +28,7 @@ var bosses_defeated: Dictionary = {}
 var rooms_cleared: Dictionary = {}
 # Partes de jefe distintas ya consumidas: la bonificación es permanente y única.
 var boss_parts_consumed: Dictionary = {}
+var discovered_grates: Dictionary = {}
 
 var max_health_halves: int = BASE_MAX_HEALTH_HALVES
 var health_halves: int = STARTING_HEALTH_HALVES
@@ -67,6 +69,7 @@ func reset_run() -> void:
 	bosses_defeated.clear()
 	rooms_cleared.clear()
 	boss_parts_consumed.clear()
+	discovered_grates.clear()
 	_max_health_mod = 0
 	max_health_halves = _base_max_halves
 	health_halves = STARTING_HEALTH_HALVES
@@ -140,3 +143,10 @@ func mark_room_cleared(room_id: String) -> void:
 
 func is_room_cleared(room_id: String) -> bool:
 	return rooms_cleared.get(room_id, false)
+
+
+func discover_grate(source_id: String) -> void:
+	if source_id.is_empty() or discovered_grates.has(source_id):
+		return
+	discovered_grates[source_id] = true
+	grate_discovered.emit(source_id)

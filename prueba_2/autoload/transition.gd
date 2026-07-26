@@ -49,6 +49,9 @@ func go_to(target_id: String, from_dir: String) -> void:
 func _set_current_room(room_id: String) -> void:
 	GameState.current_room = room_id
 	GameState.visited[room_id] = true
+	var room_data: Dictionary = RunManager.current_map.room(room_id)
+	if not String(room_data.get("grate_target", "")).is_empty():
+		GameState.discover_grate(room_id)
 	GameState.room_changed.emit(room_id)
 
 
