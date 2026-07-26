@@ -56,8 +56,19 @@ func map_panel_rect() -> Rect2:
 	)
 
 
-func build_layout(run_map: RefCounted, panel_rect: Rect2) -> Dictionary:
-	var room_data: Dictionary = run_map.get("rooms")
+func build_layout(
+	run_map: RefCounted,
+	panel_rect: Rect2,
+	room_ids: Array[String] = []
+) -> Dictionary:
+	var all_rooms: Dictionary = run_map.get("rooms")
+	var room_data: Dictionary = {}
+	if room_ids.is_empty():
+		room_data = all_rooms
+	else:
+		for room_id: String in room_ids:
+			if all_rooms.has(room_id):
+				room_data[room_id] = all_rooms[room_id]
 	if room_data.is_empty():
 		return {"rooms": {}, "room_size": Vector2.ZERO}
 
@@ -109,22 +120,9 @@ func visible_room_ids() -> Array[String]:
 		return result
 	var rooms: Dictionary = RunManager.current_map.rooms
 
-	_add_visible(result, GameState.current_room, rooms)
 	for room_id: String in GameState.visited:
-		if not GameState.visited[room_id]:
-			continue
-		_add_visible(result, room_id, rooms)
-		if not rooms.has(room_id):
-			continue
-		var doors: Dictionary = rooms[room_id]["doors"]
-		for target_id: String in doors.values():
-			_add_visible(result, target_id, rooms)
-
-	for source_id: String in GameState.discovered_grates:
-		if not GameState.discovered_grates[source_id] or not rooms.has(source_id):
-			continue
-		var target_id: String = rooms[source_id]["grate_target"]
-		_add_visible(result, target_id, rooms)
+		if GameState.visited[room_id]:
+			_add_visible(result, room_id, rooms)
 
 	result.sort()
 	return result
@@ -154,14 +152,14 @@ func _draw() -> void:
 	if RunManager.current_map == null:
 		return
 
-	var layout := build_layout(RunManager.current_map, panel)
 	var visible_ids := visible_room_ids()
+	var layout := build_layout(RunManager.current_map, panel, visible_ids)
 	_draw_room_links(layout, visible_ids)
 	_draw_grate_links(layout, visible_ids)
 	var font := ThemeDB.fallback_font
 	for room_id: String in visible_ids:
 		if layout["rooms"].has(room_id):
-			_draw_room(font, layout["rooms"][room_id], room_id)
+			_draw_room(font, layout["rooms"][room_id], room_id, visible_ids)
 
 
 func _draw_room_links(layout: Dictionary, visible_ids: Array[String]) -> void:
@@ -220,7 +218,12 @@ func _draw_dashed_line(from: Vector2, to: Vector2, color: Color) -> void:
 		cursor += 22.0
 
 
-func _draw_room(font: Font, rect: Rect2, room_id: String) -> void:
+func _draw_room(
+	font: Font,
+	rect: Rect2,
+	room_id: String,
+	visible_ids: Array[String]
+) -> void:
 	var data: Dictionary = RunManager.current_map.rooms[room_id]
 	var visited: bool = GameState.visited.get(room_id, false)
 	var fill := Color(Palette.FLOOR, 0.28)
@@ -235,7 +238,9 @@ func _draw_room(font: Font, rect: Rect2, room_id: String) -> void:
 	draw_rect(rect, fill, true)
 	draw_rect(rect, border, false, 4.0 if room_id == GameState.current_room else 2.0)
 	for direction: String in data["doors"]:
-		_draw_door_notch(rect, direction, border)
+		var target_id: String = data["doors"][direction]
+		if visible_ids.has(target_id):
+			_draw_door_notch(rect, direction, border)
 
 	if not visited:
 		draw_string(

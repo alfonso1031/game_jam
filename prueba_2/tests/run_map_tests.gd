@@ -163,6 +163,7 @@ func _run() -> void:
 		_near_ratio(int(grate_destinations["loot"]), grate_destinations, 0.40),
 		"destino loot cerca de 40%"
 	)
+
 	_finish()
 
 

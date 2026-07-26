@@ -47,8 +47,17 @@ func _run() -> void:
 	GameState.visited["CENTER"] = true
 	var visible_ids: Array[String] = overlay.visible_room_ids()
 	_check(visible_ids.has("CENTER"), "muestra la sala actual")
-	_check(visible_ids.has("N") and visible_ids.has("E"), "muestra vecinas cardinales")
+	_check(visible_ids == ["CENTER"], "solo muestra la sala visitada")
 	_check(not visible_ids.has("HIDDEN"), "oculta una sala no descubierta")
+	var accepts_visible_subset := _method_argument_count(overlay, &"build_layout") >= 3
+	_check(accepts_visible_subset, "el layout acepta el subconjunto descubierto")
+	if accepts_visible_subset:
+		var visible_layout: Dictionary = overlay.call("build_layout", cross, panel, visible_ids)
+		_check(visible_layout["rooms"].size() == 1, "el layout no reserva salas ocultas")
+
+	GameState.visited["N"] = true
+	visible_ids = overlay.visible_room_ids()
+	_check(visible_ids == ["CENTER", "N"], "entrar descubre la segunda sala")
 
 	overlay.queue_free()
 	await get_tree().process_frame
@@ -84,6 +93,13 @@ func _all_inside(rects: Dictionary, panel: Rect2) -> bool:
 		if not panel.encloses(rect):
 			return false
 	return true
+
+
+func _method_argument_count(object: Object, method_name: StringName) -> int:
+	for method: Dictionary in object.get_method_list():
+		if method["name"] == method_name:
+			return method["args"].size()
+	return -1
 
 
 func _check(condition: bool, message: String) -> void:

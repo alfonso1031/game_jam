@@ -1,5 +1,7 @@
 extends Node
 
+const RunMap := preload("res://core/run_map.gd")
+
 var _failures: Array[String] = []
 var _checks := 0
 
@@ -10,6 +12,12 @@ func _ready() -> void:
 
 func _run() -> void:
 	GameState.reset_run()
+	var map := RunMap.new(77, 0)
+	map.add_room("CENTER", Vector2i.ZERO, &"entry", &"tutorial")
+	map.add_room("HIDDEN", Vector2i(8, 8), &"normal", &"empty")
+	RunManager.current_map = map
+	GameState.current_room = "CENTER"
+	GameState.visited["CENTER"] = true
 	var hud_scene: PackedScene = load("res://ui/hud.tscn")
 	var hud: Control = hud_scene.instantiate()
 	add_child(hud)
@@ -18,6 +26,9 @@ func _run() -> void:
 	var value_label := hud.get_node_or_null("Health/Value") as Label
 	_check(value_label != null, "el HUD tiene un valor textual de vida")
 	_check(hud.has_method("health_ratio"), "el HUD expone la proporción de vida")
+	_check(hud.has_method("visible_room_ids"), "el minimapa expone salas visitadas")
+	if hud.has_method("visible_room_ids"):
+		_check(hud.visible_room_ids() == ["CENTER"], "el minimapa oculta topología futura")
 	if value_label != null:
 		_check(value_label.text == "5 / 15 HP", "inicia mostrando 5 de 15 HP")
 	if hud.has_method("health_ratio"):

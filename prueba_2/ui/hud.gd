@@ -64,6 +64,9 @@ func _draw_minimap() -> void:
 	draw_rect(MINIMAP_PANEL, Palette.WALL, false, 2.0)
 
 	var rooms: Dictionary = _active_rooms()
+	var visible_ids := visible_room_ids()
+	if visible_ids.is_empty():
+		return
 	var current_data: Dictionary = _current_room_data()
 	var level: int = int(current_data.get("level", -3))
 	var procedural: bool = (
@@ -75,7 +78,7 @@ func _draw_minimap() -> void:
 	var max_x := -999
 	var min_y := 999
 	var max_y := -999
-	for room_id in rooms:
+	for room_id: String in visible_ids:
 		var data: Dictionary = rooms[room_id]
 		if not procedural and int(data.get("level", -3)) != level:
 			continue
@@ -92,7 +95,7 @@ func _draw_minimap() -> void:
 	cell = min(cell, MINIMAP_MAX_CELL)
 	var origin: Vector2 = MINIMAP_PANEL.position + (MINIMAP_PANEL.size - Vector2(cols, rows) * cell) * 0.5
 
-	for room_id in rooms:
+	for room_id: String in visible_ids:
 		var data: Dictionary = rooms[room_id]
 		if not procedural and int(data.get("level", -3)) != level:
 			continue
@@ -106,6 +109,16 @@ func _draw_minimap() -> void:
 			color = Palette.WALL
 		draw_rect(Rect2(pos, cell_size), color, true)
 		draw_rect(Rect2(pos, cell_size), Palette.FLOOR, false, 1.0)
+
+
+func visible_room_ids() -> Array[String]:
+	var result: Array[String] = []
+	var rooms := _active_rooms()
+	for room_id: String in GameState.visited:
+		if GameState.visited[room_id] and rooms.has(room_id):
+			result.append(room_id)
+	result.sort()
+	return result
 
 
 func _active_rooms() -> Dictionary:
