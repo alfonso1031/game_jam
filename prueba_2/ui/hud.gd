@@ -2,23 +2,39 @@ extends Control
 
 const Palette := preload("res://core/palette.gd")
 
-const HEALTH_RADIUS := 14.0
-const HEALTH_GAP := 36.0
-const HEALTH_ORIGIN := Vector2(40, 40)
-
 const MINIMAP_PANEL := Rect2(1660, 20, 240, 180)
 const MINIMAP_MAX_CELL := 42.0
+const HEALTH_FILL_WIDTH := 356.0
 
 @onready var level_label: Label = $LevelLabel
 @onready var room_label: Label = $RoomLabel
+@onready var health_fill: ColorRect = $Health/Fill
+@onready var health_value: Label = $Health/Value
 
 func _ready() -> void:
 	GameState.room_changed.connect(_on_room_changed)
 	GameState.health_changed.connect(_on_health_changed)
+	_refresh_health()
 	queue_redraw()
 
 func _on_health_changed(_health: int) -> void:
-	queue_redraw()
+	_refresh_health()
+
+func health_ratio() -> float:
+	if GameState.max_health_halves <= 0:
+		return 0.0
+	return clampf(
+		float(GameState.health_halves) / float(GameState.max_health_halves),
+		0.0,
+		1.0
+	)
+
+func _refresh_health() -> void:
+	health_value.text = "%d / %d HP" % [
+		GameState.health_halves,
+		GameState.max_health_halves,
+	]
+	health_fill.size.x = HEALTH_FILL_WIDTH * health_ratio()
 
 func _on_room_changed(_room_id: String) -> void:
 	_refresh_labels()
@@ -41,28 +57,7 @@ func _refresh_labels() -> void:
 func _draw() -> void:
 	if GameState.current_room == "":
 		return
-	_draw_health()
 	_draw_minimap()
-
-func _draw_health() -> void:
-	# La vida se lleva en medios corazones: consumir una parte cura exactamente
-	# medio, así que el HUD tiene que poder mostrar mitades.
-	var hearts: int = ceili(float(GameState.max_health_halves) / 2.0)
-	for i in range(hearts):
-		var pos: Vector2 = HEALTH_ORIGIN + Vector2(i * HEALTH_GAP, 0)
-		var filled: int = clampi(GameState.health_halves - i * 2, 0, 2)
-		draw_arc(pos, HEALTH_RADIUS, 0.0, TAU, 24, Palette.VOID, 2.0)
-		if filled == 2:
-			draw_circle(pos, HEALTH_RADIUS, Palette.SLIME_BODY)
-		elif filled == 1:
-			# Media luna izquierda: se lee de un vistazo aunque sea diminuta.
-			var points: PackedVector2Array = []
-			for step in range(13):
-				var angle: float = PI / 2.0 + PI * float(step) / 12.0
-				points.append(pos + Vector2.RIGHT.rotated(angle) * HEALTH_RADIUS)
-			points.append(pos)
-			draw_colored_polygon(points, Palette.SLIME_BODY)
-		draw_arc(pos, HEALTH_RADIUS, 0.0, TAU, 24, Palette.WALL, 2.0)
 
 func _draw_minimap() -> void:
 	draw_rect(MINIMAP_PANEL, Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.75), true)
@@ -71,7 +66,7 @@ func _draw_minimap() -> void:
 	var rooms: Dictionary = _active_rooms()
 	var current_data: Dictionary = _current_room_data()
 	var level: int = int(current_data.get("level", -3))
-	var procedural := (
+	var procedural: bool = (
 		RunManager.current_map != null
 		and rooms == RunManager.current_map.rooms
 	)
