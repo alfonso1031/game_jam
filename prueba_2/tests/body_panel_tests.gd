@@ -80,15 +80,25 @@ func _test_selection_and_consumption(panel: Control) -> void:
 	_check(not panel.call("consume_selected"), "con vida máxima no consume")
 	_check(Inventory.part_at(2) == "scaled_skin", "con vida máxima conserva la parte")
 
-	GameState.health_halves -= 1
+	GameState.health_halves -= 3
+	GameState.health_changed.emit(GameState.health_halves)
 	var health_before: int = GameState.health_halves
+	_check(
+		panel.get_node("ConsumeHint").text == "F · COMER",
+		"Tab no anuncia cuánto curará"
+	)
 	_check(panel.call("consume_selected"), "consume la parte seleccionada")
 	_check(Inventory.is_empty(2), "consumir libera el slot seleccionado")
-	_check(GameState.health_halves == health_before + 1, "consumir cura medio corazón")
+	_check(GameState.health_halves == health_before + 2, "consumir cura 2 HP")
 	_check(panel.get("selected_slot") == 0, "mueve la selección a la parte restante")
 
-	GameState.health_halves -= 1
+	GameState.health_halves = GameState.max_health_halves - 1
+	GameState.health_changed.emit(GameState.health_halves)
 	_check(panel.call("consume_selected"), "puede consumir la última parte")
+	_check(
+		GameState.health_halves == GameState.max_health_halves,
+		"curación nunca supera 15 HP"
+	)
 	_check(panel.get("selected_slot") == -1, "sin partes limpia la selección")
 
 

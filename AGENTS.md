@@ -166,9 +166,9 @@ lo detectan al instante.
     fija `_remaining` y el tramo base avanza uniforme a `CRAWL_SPEED`.
 
 14. **No existen checkpoints ni respawn.** La vida máxima es `15 HP`, se empieza con
-    `5 HP` y cada HP representa medio corazón. Completar Contención cura `+2 HP` una sola
-    vez durante la partida actual. Llegar a cero llama `RunManager.end_run()` y muestra
-    el resumen; continuar exige una partida nueva.
+    `7 HP` y cada HP representa medio corazón. Completar Contención cura `+2 HP` una sola
+    vez durante la partida actual y comer una parte cura `+2 HP`. Llegar a cero llama
+    `RunManager.end_run()` y muestra el resumen; continuar exige una partida nueva.
 
 15. **La iluminación conserva intensidad, no cobertura antigua.** Cada foco usa energía
     `1.6` y `texture_scale = 1.35`; no bajar intensidad al ampliar el radio. Respetar el

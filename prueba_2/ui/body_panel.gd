@@ -245,7 +245,7 @@ func _refresh_consume_hint() -> void:
 	if GameState.health_halves >= GameState.max_health_halves:
 		consume_hint.text = "VIDA AL MÁXIMO"
 		return
-	consume_hint.text = "F · COMER (+½ CORAZÓN)"
+	consume_hint.text = "F · COMER"
 
 
 func _refresh_ability() -> void:

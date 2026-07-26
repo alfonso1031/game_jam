@@ -13,7 +13,7 @@ func _run() -> void:
 	_check(RunManager.current_seed == 777, "conserva seed explícita")
 	_check(RunManager.current_map != null, "crea mapa")
 	_check(GameState.max_health_halves == 15, "máximo son 15 HP")
-	_check(GameState.health_halves == 5, "inicia con 5 HP")
+	_check(GameState.health_halves == 7, "inicia con 7 HP")
 	_check(Inventory.equipped_ids().is_empty(), "inicia sin partes")
 	GameState.unlock_grate("R1")
 	_check(GameState.is_grate_unlocked("R1"), "desbloquea la rejilla de origen")
@@ -22,19 +22,19 @@ func _run() -> void:
 
 	GameState.damage_halves(2)
 	_check(RunManager.complete_floor(&"contencion"), "completa una vez")
-	_check(GameState.health_halves == 5, "el piso cura 2 HP")
+	_check(GameState.health_halves == 7, "el piso cura 2 HP")
 	_check(not RunManager.complete_floor(&"contencion"), "no repite recompensa")
 
 	Inventory.pick_up("serrated_jaw")
 	GameState.health_halves = 3
 	_check(Inventory.consume_slot(0), "come parte equipada")
-	_check(GameState.health_halves == 4, "comer cura 1 HP")
+	_check(GameState.health_halves == 5, "comer cura 2 HP")
 	_check(Inventory.is_empty(0), "comer libera slot")
 	_check(RunManager.parts_consumed == ["serrated_jaw"], "registra la parte comida")
 
 	Inventory.pick_up("serrated_jaw")
 	_check(Inventory.lose_slot(0) == "serrated_jaw", "perder devuelve id")
-	_check(GameState.health_halves == 4, "perder no cura")
+	_check(GameState.health_halves == 5, "perder no cura")
 	_check(Inventory.is_empty(0), "perder libera slot")
 
 	Inventory.pick_up("serrated_jaw")

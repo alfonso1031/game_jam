@@ -120,7 +120,7 @@ func clear_slot(index: int) -> String:
 	_set_slot(index, "")
 	return removed
 
-# Comer la parte del hueco: medio corazón de vida. Es el destino de las partes
+# Comer la parte del hueco: dos HP de vida. Es el destino de las partes
 # que no quieres llevar encima.
 func lose_slot(index: int) -> String:
 	return clear_slot(index)
@@ -139,7 +139,7 @@ func consume_slot(index: int) -> bool:
 	return true
 
 func _digest(part_id: String) -> void:
-	GameState.heal_half_heart()
+	GameState.heal_halves(2)
 	if PartsDB.is_boss_part(part_id):
 		GameState.register_boss_part_consumed(part_id)
 	part_consumed.emit(part_id)

@@ -154,7 +154,7 @@ offset_bottom = 1040.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
 theme_override_font_sizes/font_size = 22
-text = "F · COMER (+½ CORAZÓN)"
+text = "F · COMER"
 horizontal_alignment = 1
 
 [node name="PartTooltip" parent="." instance=ExtResource("2")]

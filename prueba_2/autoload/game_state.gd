@@ -14,7 +14,7 @@ signal grate_discovered(source_id: String)
 # no romper a quien solo quiera leer el número redondo.
 const HALVES_PER_HEART := 2
 const BASE_MAX_HEALTH_HALVES := 15
-const STARTING_HEALTH_HALVES := 5
+const STARTING_HEALTH_HALVES := 7
 
 # Cada parte de jefe distinta consumida da +0,5% de daño base, hasta 6 partes.
 const BOSS_PART_DAMAGE_BONUS := 0.005
