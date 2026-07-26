@@ -29,6 +29,23 @@ func _run() -> void:
 	if has_state_contract and has_body_scene:
 		await _test_body_reward(body_path)
 
+	for asset_path: String in [
+		"res://assets/environment/body/inert_body.png",
+		"res://assets/environment/blood/blood_drops.png",
+		"res://assets/environment/blood/blood_drag.png",
+		"res://assets/environment/blood/blood_pool.png",
+	]:
+		var exists := ResourceLoader.exists(asset_path)
+		_check(exists, "%s existe" % asset_path)
+		if exists:
+			_check(load(asset_path) is Texture2D, "%s importa como textura" % asset_path)
+
+	var trail_path := "res://world/props/blood_trail.tscn"
+	var has_trail_scene := ResourceLoader.exists(trail_path)
+	_check(has_trail_scene, "existe la escena reutilizable del rastro")
+	if has_trail_scene:
+		_test_blood_trail(trail_path)
+
 	_finish()
 
 
@@ -64,6 +81,22 @@ func _test_body_reward(body_path: String) -> void:
 		not GameState.is_room_reward_claimed("C_01"),
 		"otra partida libera la recompensa"
 	)
+
+
+func _test_blood_trail(trail_path: String) -> void:
+	var scene: PackedScene = load(trail_path)
+	var trail: Node2D = scene.instantiate()
+	_check(trail.has_method("configure"), "el rastro puede orientarse entre dos puntos")
+	if not trail.has_method("configure"):
+		trail.free()
+		return
+	trail.configure(Vector2(200, 540), Vector2(960, 540), true)
+	_check(trail.get_child_count() >= 6, "el rastro combina gotas arrastre y charco")
+	_check(trail.get_node_or_null("Pool") != null, "el cuerpo puede terminar en un charco")
+	_check(trail.position == Vector2.ZERO, "el rastro no desplaza el origen de la sala")
+	for child in trail.get_children():
+		_check(not child is CollisionObject2D, "el rastro no bloquea al jugador")
+	trail.free()
 
 
 func _check(condition: bool, message: String) -> void:
