@@ -367,18 +367,26 @@ func _test_progression() -> void:
 	for i in range(sorted.size() - 1):
 		_check(sorted[i + 1] - sorted[i] == 1, "no falta el nivel entre %d y %d" % [sorted[i], sorted[i + 1]])
 
-	# El mapa se calcula sin reventar y coloca todas las salas.
+	# El overlay local se calcula desde la generación activa, no desde el grafo
+	# legacy de cuatro pisos.
+	RunManager.start_new_run(1001)
 	var overlay: Control = load("res://ui/map_overlay.tscn").instantiate()
 	add_child(overlay)
-	var layout: Dictionary = overlay._build_layout()
-	_check(layout["rooms"].size() == RoomDB.ROOMS.size(), "el mapa coloca todas las salas")
+	var layout: Dictionary = overlay.build_layout(
+		RunManager.current_map,
+		Rect2(0.0, 0.0, 900.0, 700.0)
+	)
+	_check(
+		layout["rooms"].size() == RunManager.current_map.rooms.size(),
+		"el mapa coloca toda la generación de Contención"
+	)
 	var overlapped := false
 	var ids: Array = layout["rooms"].keys()
 	for i in range(ids.size()):
 		for j in range(i + 1, ids.size()):
 			if layout["rooms"][ids[i]].intersects(layout["rooms"][ids[j]]):
 				overlapped = true
-	_check(not overlapped, "ninguna sala del mapa se dibuja encima de otra")
+	_check(not overlapped, "ninguna sala procedural se dibuja encima de otra")
 	overlay.queue_free()
 	await get_tree().process_frame
 

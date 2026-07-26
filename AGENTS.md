@@ -106,7 +106,8 @@ lo detectan al instante.
 
 3. **`_ready()` corre de hijos a padres.** El HUD no puede leer `GameState.current_room`
    en su `_ready()`, porque `main.gd` todavía no lo asignó. Todo lo que dependa del estado
-   de sala se hace desde la señal `room_changed`, con guard de sala vacía en `_draw()`.
+   de sala se hace desde `room_changed`; la barra escucha `health_changed` y el panel
+   corporal escucha `Inventory.slots_changed`. No sondear estado desde `_process()`.
 
 4. **El jugador se coloca ANTES de añadir la sala al árbol** (`Transition._swap_room`).
    Si se añade primero, las puertas de la sala nueva detectan al jugador todavía en la
@@ -133,9 +134,9 @@ lo detectan al instante.
    documentación usar siempre rutas relativas a la raíz del repositorio (`prueba_2/…`) o
    rutas de recurso (`res://…`), nunca rutas absolutas de una máquina concreta.
 
-8. **Los overlays comparten `get_tree().paused`** (mapa, pausa, final). Cualquier overlay
-   nuevo debe comprobar el estado antes de abrirse y usar `PROCESS_MODE_ALWAYS`, o queda
-   uno encima de otro y sin forma de cerrarse.
+8. **Los overlays comparten `get_tree().paused`** (mapa, inventario, ruta de piso, pausa y
+   final). Cualquier overlay nuevo debe comprobar el estado antes de abrirse y usar
+   `PROCESS_MODE_ALWAYS`, o queda uno encima de otro y sin forma de cerrarse.
 
 9. **`RunManager` es la autoridad del ciclo de partida.** Una partida nueva siempre nace
    con `RunManager.start_new_run(seed)`; ese método limpia `GameState` e `Inventory`,
@@ -184,6 +185,17 @@ lo detectan al instante.
     Máximo una rejilla por sala, destinos exclusivos y mínimo una si el mapa contiene
     combate elegible.
 
+18. **El mapa de `TAB` es local y procedural.** Lee `RunManager.current_map`, nunca
+    `RoomDB.ROOMS`, y debe admitir vecinos N/E/S/O simultáneos. Solo muestra la sala
+    actual, visitadas, vecinas de visitadas y destinos de rejilla descubiertos. La ruta
+    global es otro overlay: cuatro pisos, Contención abajo y Superficie arriba, sin
+    nodos de habitaciones.
+
+19. **`PartsDB` es la única fuente de nombres y descripciones de partes.** Tooltips y
+    tarjetas llaman `display_name()` / `description()`; no duplicar textos en escenas.
+    Comer, perder o sacrificar una parte debe retirar tarjeta, tooltip y curva por la
+    señal `slots_changed`.
+
 ---
 
 ## 4. Antes de dar algo por terminado
@@ -192,7 +204,8 @@ lo detectan al instante.
 2. Si se tocaron salas o puertas: recorrer el grafo completo a pie, ida y vuelta por cada
    puerta. Los bugs de transición no aparecen en la salida de debug.
 3. Si se tocó el HUD o el mapa: verificar que el nombre de sala cambia al cruzar cada
-   puerta y que `TAB` abre y cierra.
+   puerta, que `TAB` abre/cierra, que una cruz N/E/S/O no se solapa y que el tooltip no
+   sale del viewport en 1920×1080 ni 1280×720.
 4. Actualizar [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) (tabla de estado del plan y
    sección afectada).
 5. Reportar honestamente qué quedó sin verificar. El balance de combate y la sensación de
@@ -205,4 +218,14 @@ Para cambios del ciclo procedural, correr además:
 godot --headless --path prueba_2 --script res://tests/run_map_tests.gd
 godot --headless --path prueba_2 res://tests/run_lifecycle_tests.tscn
 godot --headless --path prueba_2 res://tests/combat_smoke.tscn
+```
+
+Para cambios visuales de HUD/mapa:
+
+```bash
+godot --headless --path prueba_2 res://tests/hud_tests.tscn
+godot --headless --path prueba_2 res://tests/part_tooltip_tests.tscn
+godot --headless --path prueba_2 res://tests/body_panel_tests.tscn
+godot --headless --path prueba_2 res://tests/map_overlay_tests.tscn
+godot --headless --path prueba_2 res://tests/floor_route_tests.tscn
 ```

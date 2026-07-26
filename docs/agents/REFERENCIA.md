@@ -104,9 +104,42 @@ Para mejorar la cobertura se cambia la distribución, no las propiedades de `lam
 
 ### Añadir una habilidad
 
-`GameState.gain_ability(id)` / `GameState.has_ability(id)`. Sumar el id a `ABILITY_IDS`
-en `ui/hud.gd` para que aparezca el slot. El estado vive **solo** en `GameState`,
-nunca en el script del jugador — así sobrevive a los cambios de sala.
+`GameState.gain_ability(id)` / `GameState.has_ability(id)`. Si necesita tarjeta propia,
+añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **solo** en
+`GameState`, nunca en el script del jugador — así sobrevive a los cambios de sala.
+
+### Cambiar HUD, tarjetas o mapas
+
+- Barra: `hud.gd` escucha `health_changed`; `health_ratio()` usa
+  `health_halves / max_health_halves`.
+- Nombres y resúmenes: `PartsDB.display_name()` / `PartsDB.description()`. No copiar texto
+  a un `.tscn`.
+- Tarjetas: `body_panel.gd` escucha `Inventory.slots_changed`; un slot vacío no conserva
+  ni tarjeta ni curva.
+- Mapa local: `map_overlay.gd` lee `RunManager.current_map`, no `RoomDB.ROOMS`.
+  `build_layout()` debe aceptar cruces cardinales sin solaparlas.
+- Ruta global: `floor_route_overlay.gd` solo dibuja pisos, con Contención abajo y
+  Superficie arriba; dura 3 s.
+- Resolución lógica 1920×1080; comprobar también la salida 1280×720.
+
+Pruebas:
+
+```bash
+godot --headless --path prueba_2 res://tests/hud_tests.tscn
+godot --headless --path prueba_2 res://tests/part_tooltip_tests.tscn
+godot --headless --path prueba_2 res://tests/body_panel_tests.tscn
+godot --headless --path prueba_2 res://tests/map_overlay_tests.tscn
+godot --headless --path prueba_2 res://tests/floor_route_tests.tscn
+```
+
+Captura reproducible (`modo` = `map`, `tooltip`, `route` o `hud`):
+
+```bash
+godot --path prueba_2 --windowed --resolution 1920x1080 \
+  res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
+godot --path prueba_2 --windowed --resolution 1280x720 \
+  res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
+```
 
 ### Ciclo de partida y rejillas
 

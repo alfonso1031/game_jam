@@ -74,7 +74,7 @@ prueba_2/
 ├── project.godot            # 2D, gl_compatibility, autoloads, inputs, nombres de capas
 ├── assets/                  # icon.svg + audio/slime/ con los WAV procedurales
 ├── autoload/                # singletons registrados en project.godot
-│   ├── game_state.gd        #   sala actual, visitadas, habilidades, vida, F11
+│   ├── game_state.gd        #   sala, visitadas, rejillas, habilidades, vida, F11
 │   ├── inventory.gd         #   seis slots, partes, consumo y pasivas
 │   ├── room_db.gd           #   catálogo de plantillas; ROOMS queda como legado
 │   ├── run_manager.gd       #   seed, RunMap, recompensa de piso y resumen
@@ -85,7 +85,7 @@ prueba_2/
 │   ├── run_map.gd           #   modelo serializable de una generación
 │   └── map_generator.gd     #   generación determinista + validador
 ├── game/                    # el ensamblaje de la partida
-│   ├── main.tscn            #   Darkness + RoomHost + Player + HUD + Map + Pausa + Fade
+│   ├── main.tscn            #   partida + HUD + mapa local + ruta global + overlays
 │   └── main.gd              #   inicia/reutiliza la partida y carga la entrada generada
 ├── actors/                  # cualquier cosa que se mueve y decide
 │   ├── player/              #   slime.tscn + slime.gd
@@ -93,7 +93,7 @@ prueba_2/
 ├── world/                   # el escenario
 │   ├── rooms/               #   ensamblador procedural + salas legacy
 │   └── props/               #   door, elevator, lamp, tank, debris, puddle, gap, pickup
-└── ui/                      # hud, map_overlay, title, pause_menu, run_summary
+└── ui/                      # HUD, mapa/cuerpo/tooltips, ruta, pausa, título y resumen
 ```
 
 Dónde va cada cosa nueva:
@@ -176,7 +176,8 @@ propuestas y no relaja reglas. Contrato de Contención:
 3. Fade a negro (0.25 s).
 4. Se libera la sala vieja y `RoomAssembler` materializa el descriptor de `RunMap`.
 5. **El jugador se coloca en el `Spawn<opuesto>` ANTES de añadir la sala al árbol.**
-6. `GameState.current_room` / `visited` se actualizan y se emite `room_changed`.
+6. `GameState.current_room` / `visited` se actualizan; si la sala tiene rejilla se emite
+   `grate_discovered`, y después `room_changed`.
 7. Fade in.
 
 El jugador vive en `main.tscn`, **no** dentro de la sala — sobrevive a los cambios.
@@ -432,21 +433,35 @@ proyecto, y solo después sus pruebas:
 ## 8. HUD y mapa
 
 **`hud.tscn` (CanvasLayer, siempre visible)**
-- Arriba-izquierda: vida en gotas.
+- Arriba-izquierda: barra de biomasa `HP actual / 15 HP`; un HP equivale a medio corazón.
 - Arriba-centro: `NIVEL -3 · CONTENCIÓN` + nombre de sala.
-- Arriba-derecha: minimapa **del nivel actual**, con panel de fondo y celdas escaladas y
-  centradas automáticamente según el `grid` de las salas de ese nivel.
-- Izquierda: panel `HABILIDADES` con los slots.
+- Arriba-derecha: minimapa de la generación activa, escalado desde el `grid`.
 
-Se redibuja por señal `room_changed` / `ability_gained`, nunca en `_process`.
+La vida se actualiza por `health_changed` y el mapa por `room_changed`; no sondea estado
+desde `_process()`.
 
 **`map_overlay.tscn` (TAB)**
 - Pausa el juego (`PROCESS_MODE_ALWAYS` para poder cerrarse).
-- Niveles apilados verticalmente, de -3 abajo hacia arriba → refuerza "subir para salir".
-- Sala actual en `#73efe8`, visitadas en `#0a777a`, no visitadas en contorno; sala de boss
-  con anillo `#ecf3b0` (flag `is_boss` en el `RoomDB`).
+- Mitad izquierda: `BodyPanel` distribuye las seis partes equipadas alrededor del slime.
+  Cada tarjeta y la habilidad DASH tienen una curva orgánica hasta el borde del cuerpo.
+  `Inventory.slots_changed` retira de inmediato tarjeta, curva y tooltip al liberar slot.
+- El hover o foco abre `PartTooltip` con nombre/descripción de `PartsDB`; sigue el cursor
+  por eventos de entrada y se limita a un margen de 8 px del viewport.
+- Mitad derecha: **solo el mapa local de Contención** desde
+  `RunManager.current_map`. Admite cruces N/E/S/O y calcula escala/origen por los extremos
+  reales del `grid`; nunca asume una lista fija.
+- Muestra actual, visitadas y vecinas de visitadas. Los destinos de rejilla aparecen
+  después de `GameState.discover_grate()` y usan enlace discontinuo.
 
-Todo se dibuja desde `RoomDB` + `GameState.visited` → cero mantenimiento al añadir salas.
+**`floor_route_overlay.tscn`**
+- Reacciona a `RunManager.floor_completed`; no contiene habitaciones.
+- Orden visual superior→inferior: Superficie (0), Mantenimiento (-1),
+  Bio-laboratorios (-2), Contención (-3).
+- Contención queda al fondo y el ascenso apunta hacia arriba. Permanece `3.0 s`, pausa la
+  partida y admite continuar antes con `E`, `Espacio` o `TAB`.
+
+La base lógica es 1920×1080 con stretch `canvas_items`; la captura de regresión también se
+escala a 1280×720 para comprobar clipping.
 
 ---
 
@@ -545,9 +560,9 @@ title.tscn ──cualquier tecla──▶ main.tscn ──morir──▶ run_sum
 - **Resumen** (`ui/run_summary.gd`): escucha `RunManager.run_ended`, muestra seed y
   decisiones de la partida, y ofrece nueva partida o título.
 
-**Tres overlays comparten `get_tree().paused`**, así que cada uno comprueba el estado
-antes de abrirse: el mapa no se abre si algo ya pausó, y la pausa no se abre si el mapa
-está encima. Todos usan `PROCESS_MODE_ALWAYS` para poder cerrarse con el juego pausado.
+**Los overlays comparten `get_tree().paused`**, así que cada uno comprueba el estado antes
+de abrirse: mapa, inventario, ruta, pausa y resumen no se apilan entre sí. Todos usan
+`PROCESS_MODE_ALWAYS` para poder cerrarse con el juego pausado.
 
 `F11` lo maneja `GameState._unhandled_input` — es autoload, así que funciona en todas las
 escenas y también en pausa.
@@ -569,6 +584,7 @@ podrían haber quedado trabados a mitad de una transición.
 | 6 | Ambientación: oscuridad, mínimo 3 lámparas activas por sala, props, carteles | ✅ |
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
 | 8 | Ciclo de muerte sin respawn y resumen reproducible | ✅ |
+| 9 | Barra 5/15, tooltips, cuerpo conectado y mapas local/global | ✅ |
 
 **Alcance actual:** Contención procedural (nivel -3). Los niveles -2, -1 y 0 son contratos
 futuros y no se simulan con salas fijas durante la partida activa.
@@ -583,5 +599,6 @@ futuros y no se simulan con salas fijas durante la partida activa.
   `world/rooms/room.gd`.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
-- Los dos `WARNING` de señales declaradas y no usadas en `game_state.gd` son esperados
-  (`ability_gained` se conecta pero aún no se emite hasta el paso 7).
+- `tests/ui_visual_capture.tscn` construye una cruz cardinal con seis partes y permite
+  capturar `map`, `tooltip`, `route` o `hud`; el tercer argumento fija el tamaño físico
+  final de la evidencia cuando el viewport lógico sigue siendo 1080p.
