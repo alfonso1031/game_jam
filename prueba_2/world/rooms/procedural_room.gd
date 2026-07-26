@@ -1,11 +1,17 @@
 extends Node2D
 
 const EnemyDB := preload("res://core/enemy_db.gd")
+const ContainmentPropCatalog := preload("res://core/containment_prop_catalog.gd")
 const DoorScene := preload("res://world/props/door.tscn")
 const LampScene := preload("res://world/props/lamp.tscn")
 const BloodTrailScene := preload("res://world/props/blood_trail.tscn")
 const BodySourceScene := preload("res://world/props/body_source.tscn")
 const TutorialMuralScene := preload("res://world/props/tutorial_mural.tscn")
+const GrateScene := preload("res://world/props/grate.tscn")
+const BossScene := preload("res://actors/boss/boss_core.tscn")
+const ChimeraArenaTexture := preload(
+	"res://assets/environment/containment/chimera_arena.png"
+)
 
 const ROOM_CENTER := Vector2(960, 540)
 const BODY_POSITION := Vector2(1060, 540)
@@ -28,7 +34,8 @@ const ENEMY_CELLS: Array[Vector2i] = [
 	Vector2i(8, 4),
 	Vector2i(6, 3),
 ]
-const CONTAINMENT_ENEMIES: Array[String] = ["exp01", "exp02", "exp03"]
+const CONTAINMENT_ENEMIES: Array[String] = ["exp01", "exp02", "exp03", "exp07"]
+const CONTAINMENT_MINIONS: Array[String] = ["exp01", "exp02", "exp03"]
 
 var _room_data: Dictionary = {}
 var _alive: Array[Node] = []
@@ -45,13 +52,17 @@ func configure(room_data: Dictionary) -> void:
 	_build_background()
 	_build_walls_and_doors()
 	_build_lighting()
+	_build_environment_props()
+	_build_boss_arena()
 	_build_story_content()
 	_build_tutorial_mural()
+	_build_grate()
 
 
 func _ready() -> void:
 	add_to_group("room")
 	_spawn_enemies()
+	_spawn_boss()
 	if _room_data.get("content_type", &"") == &"closure":
 		_apply_closure()
 
@@ -65,9 +76,7 @@ func is_cleared() -> bool:
 
 
 func _build_background() -> void:
-	var doors: Dictionary = _room_data["doors"]
-	var directions: Array[String] = []
-	directions.assign(doors.keys())
+	var directions := _opening_directions()
 	var template: Dictionary = RoomDB.template_for(directions)
 	assert(not template.is_empty(), "No existe fondo para %s" % [directions])
 	var background := Sprite2D.new()
@@ -83,22 +92,36 @@ func _build_background() -> void:
 
 func _build_walls_and_doors() -> void:
 	var doors: Dictionary = _room_data["doors"]
-	_build_horizontal_wall("N", doors.has("N"))
-	_build_horizontal_wall("S", doors.has("S"))
-	_build_vertical_wall("O", doors.has("O"))
-	_build_vertical_wall("E", doors.has("E"))
+	var openings := _opening_directions()
+	_build_horizontal_wall("N", openings.has("N"))
+	_build_horizontal_wall("S", openings.has("S"))
+	_build_vertical_wall("O", openings.has("O"))
+	_build_vertical_wall("E", openings.has("E"))
 	for direction in ["N", "E", "S", "O"]:
-		if not doors.has(direction):
+		if not openings.has(direction):
 			continue
 		var door: Area2D = DoorScene.instantiate()
 		door.name = "Door%s" % direction
 		door.position = DOOR_POSITIONS[direction]
-		door.direction = direction
+		door.configure(direction, doors.has(direction))
 		add_child(door)
 		var spawn := Marker2D.new()
 		spawn.name = "Spawn%s" % direction
 		spawn.position = SPAWN_POSITIONS[direction]
 		add_child(spawn)
+
+
+func _opening_directions() -> Array[String]:
+	var result: Array[String] = []
+	for source: Dictionary in [
+		_room_data.get("doors", {}),
+		_room_data.get("entrances", {}),
+	]:
+		for direction: String in source:
+			if not result.has(direction):
+				result.append(direction)
+	result.sort()
+	return result
 
 
 func _build_horizontal_wall(direction: String, has_door: bool) -> void:
@@ -144,6 +167,32 @@ func _build_lighting() -> void:
 		add_child(lamp)
 
 
+func _build_environment_props() -> void:
+	var placements: Array[Dictionary] = ContainmentPropCatalog.placements_for(_room_data)
+	for index: int in range(placements.size()):
+		var placement: Dictionary = placements[index]
+		var scene: PackedScene = placement["scene"] as PackedScene
+		var prop: Node2D = scene.instantiate()
+		var prop_id: String = String(placement["id"])
+		prop.name = "Prop_%s_%d" % [prop_id, index]
+		prop.position = placement["position"] as Vector2
+		prop.set_meta("prop_id", prop_id)
+		add_child(prop)
+
+
+func _build_boss_arena() -> void:
+	if _room_data.get("role", &"normal") != &"boss_choice":
+		return
+	var arena := Sprite2D.new()
+	arena.name = "ChimeraArena"
+	arena.texture = ChimeraArenaTexture
+	arena.position = ROOM_CENTER
+	arena.scale = Vector2.ONE * 0.62
+	arena.modulate = Color(0.8, 0.92, 0.9, 0.72)
+	arena.z_index = -5
+	add_child(arena)
+
+
 func _build_story_content() -> void:
 	if RunManager.current_map == null or RunManager.current_map.main_path.size() < 2:
 		return
@@ -168,13 +217,58 @@ func _build_story_content() -> void:
 			String(_room_data.get("reward_part_id", ""))
 		)
 		add_child(source)
+	elif (
+		role == &"grate_destination"
+		and _room_data.get("content_type", &"") == &"loot"
+	):
+		var loot_source: Node2D = BodySourceScene.instantiate()
+		loot_source.name = "LootSource"
+		loot_source.position = ROOM_CENTER
+		loot_source.configure(
+			String(_room_data["id"]),
+			String(_room_data.get("reward_part_id", ""))
+		)
+		add_child(loot_source)
+
+
+func _build_grate() -> void:
+	var room_id: String = String(_room_data["id"])
+	var target_id: String = String(_room_data.get("grate_target", ""))
+	if target_id.is_empty():
+		var source_id := String(_room_data.get("grate_source", ""))
+		if source_id.is_empty():
+			return
+		var arrival_direction := String(
+			_room_data.get("grate_arrival_direction", "")
+		)
+		assert(SPAWN_POSITIONS.has(arrival_direction))
+		var arrival_spawn := Marker2D.new()
+		arrival_spawn.name = "GrateSpawn"
+		arrival_spawn.position = SPAWN_POSITIONS[arrival_direction]
+		add_child(arrival_spawn)
+		return
+	var direction: String = String(_room_data.get("grate_direction", ""))
+	assert(DOOR_POSITIONS.has(direction), "Rejilla sin pared válida en %s" % room_id)
+	assert(
+		not _opening_directions().has(direction),
+		"Rejilla comparte pared en %s" % room_id
+	)
+
+	var grate: Area2D = GrateScene.instantiate()
+	grate.name = "Grate"
+	grate.position = DOOR_POSITIONS[direction]
+	grate.configure(room_id, target_id, true, direction)
+	add_child(grate)
 
 
 func _direction_to(target_id: String) -> String:
-	var doors: Dictionary = _room_data.get("doors", {})
-	for direction: String in doors:
-		if String(doors[direction]) == target_id:
-			return direction
+	for source: Dictionary in [
+		_room_data.get("doors", {}),
+		_room_data.get("entrances", {}),
+	]:
+		for direction: String in source:
+			if String(source[direction]) == target_id:
+				return direction
 	return ""
 
 
@@ -212,11 +306,15 @@ func _spawn_enemies() -> void:
 	if GameState.is_room_cleared(String(_room_data["id"])):
 		return
 	var enemy_count: int = int(_room_data.get("enemy_count", 0))
-	if _room_data.get("role", &"") == &"preboss" and enemy_count == 0:
+	var is_preboss: bool = _room_data.get("role", &"") == &"preboss"
+	if is_preboss and enemy_count == 0:
 		enemy_count = 3
 	for index in range(enemy_count):
-		var type_index: int = (_stable_room_index() + index) % CONTAINMENT_ENEMIES.size()
-		var type_id: String = CONTAINMENT_ENEMIES[type_index]
+		var pool: Array[String] = CONTAINMENT_MINIONS if is_preboss else CONTAINMENT_ENEMIES
+		var type_index: int = (_stable_room_index() + index) % pool.size()
+		var type_id: String = pool[type_index]
+		if is_preboss and index == enemy_count - 1:
+			type_id = "exp07"
 		var scene: PackedScene = EnemyDB.scene_for(type_id)
 		var enemy: Node2D = scene.instantiate()
 		enemy.position = cell_center(ENEMY_CELLS[index % ENEMY_CELLS.size()])
@@ -226,6 +324,22 @@ func _spawn_enemies() -> void:
 		_alive.append(enemy)
 	if not _alive.is_empty():
 		_seal_doors(true)
+
+
+func _spawn_boss() -> void:
+	if _room_data.get("role", &"normal") != &"boss_choice":
+		return
+	var room_id: String = String(_room_data["id"])
+	if GameState.is_room_cleared(room_id) or GameState.bosses_defeated.get(room_id, false):
+		return
+	var boss: CharacterBody2D = BossScene.instantiate()
+	boss.name = "BossCore"
+	boss.room_id = room_id
+	boss.position = ROOM_CENTER
+	boss.died.connect(_on_enemy_died)
+	add_child(boss)
+	_alive.append(boss)
+	_seal_doors(true)
 
 
 func _stable_room_index() -> int:

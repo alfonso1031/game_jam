@@ -5,10 +5,10 @@ const DRAG := preload("res://assets/environment/blood/blood_drag.png")
 const POOL := preload("res://assets/environment/blood/blood_pool.png")
 
 const DROP_REGIONS: Array[Rect2] = [
-	Rect2(430, 140, 350, 250),
-	Rect2(490, 340, 300, 260),
-	Rect2(430, 580, 350, 240),
-	Rect2(430, 820, 350, 260),
+	Rect2(270, 40, 720, 240),
+	Rect2(270, 330, 720, 250),
+	Rect2(320, 640, 620, 240),
+	Rect2(250, 930, 760, 250),
 ]
 
 
@@ -32,7 +32,7 @@ func configure(start: Vector2, finish: Vector2, include_pool: bool) -> void:
 			sprite.region_enabled = true
 			sprite.region_rect = DROP_REGIONS[drop_index]
 			sprite.rotation = direction.angle() - PI * 0.5
-			sprite.scale = Vector2(0.28, 0.28)
+			sprite.scale = Vector2(0.18, 0.18)
 			drop_index += 1
 		add_child(sprite)
 	if include_pool:

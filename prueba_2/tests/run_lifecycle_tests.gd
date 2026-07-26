@@ -13,24 +13,56 @@ func _run() -> void:
 	_check(RunManager.current_seed == 777, "conserva seed explícita")
 	_check(RunManager.current_map != null, "crea mapa")
 	_check(GameState.max_health_halves == 15, "máximo son 15 HP")
-	_check(GameState.health_halves == 5, "inicia con 5 HP")
+	_check(GameState.health_halves == 7, "inicia con 7 HP")
 	_check(Inventory.equipped_ids().is_empty(), "inicia sin partes")
+	var has_infinite_health := _has_property(GameState, &"infinite_health")
+	var has_infinite_health_api := (
+		GameState.has_method("set_infinite_health")
+		and GameState.has_method("toggle_infinite_health")
+	)
+	_check(has_infinite_health, "GameState expone vida infinita")
+	_check(has_infinite_health_api, "GameState expone el control de vida infinita")
+	if has_infinite_health and has_infinite_health_api:
+		_check(not GameState.infinite_health, "la run inicia sin vida infinita")
+		GameState.set_infinite_health(true)
+		var protected_health: int = GameState.health_halves
+		GameState.damage_halves(4)
+		_check(
+			GameState.health_halves == protected_health,
+			"vida infinita bloquea pérdida de HP"
+		)
+		_check(
+			GameState.toggle_infinite_health() == false,
+			"el toggle desactiva el modo"
+		)
+		GameState.damage_halves(1)
+		_check(
+			GameState.health_halves == protected_health - 1,
+			"al apagarlo vuelve el daño"
+		)
+		GameState.set_infinite_health(true)
+		GameState.reset_run()
+		_check(not GameState.infinite_health, "nueva run apaga vida infinita")
+	GameState.unlock_grate("R1")
+	_check(GameState.is_grate_unlocked("R1"), "desbloquea la rejilla de origen")
+	RunManager.start_new_run(777)
+	_check(not GameState.is_grate_unlocked("R1"), "la nueva run limpia rejillas desbloqueadas")
 
 	GameState.damage_halves(2)
 	_check(RunManager.complete_floor(&"contencion"), "completa una vez")
-	_check(GameState.health_halves == 5, "el piso cura 2 HP")
+	_check(GameState.health_halves == 7, "el piso cura 2 HP")
 	_check(not RunManager.complete_floor(&"contencion"), "no repite recompensa")
 
 	Inventory.pick_up("serrated_jaw")
 	GameState.health_halves = 3
 	_check(Inventory.consume_slot(0), "come parte equipada")
-	_check(GameState.health_halves == 4, "comer cura 1 HP")
+	_check(GameState.health_halves == 5, "comer cura 2 HP")
 	_check(Inventory.is_empty(0), "comer libera slot")
 	_check(RunManager.parts_consumed == ["serrated_jaw"], "registra la parte comida")
 
 	Inventory.pick_up("serrated_jaw")
 	_check(Inventory.lose_slot(0) == "serrated_jaw", "perder devuelve id")
-	_check(GameState.health_halves == 4, "perder no cura")
+	_check(GameState.health_halves == 5, "perder no cura")
 	_check(Inventory.is_empty(0), "perder libera slot")
 
 	Inventory.pick_up("serrated_jaw")
@@ -112,6 +144,13 @@ func _run() -> void:
 	summary_ui.queue_free()
 	await get_tree().process_frame
 	_finish()
+
+
+func _has_property(object: Object, property_name: StringName) -> bool:
+	for property: Dictionary in object.get_property_list():
+		if property["name"] == property_name:
+			return true
+	return false
 
 
 func _check(condition: bool, message: String) -> void:

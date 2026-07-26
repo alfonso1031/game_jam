@@ -22,11 +22,12 @@ const MUZZLE_OFFSET := 62.0
 
 @onready var slime: Node2D = get_parent()
 
-func _physics_process(_delta: float) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	for i in range(Inventory.SLOT_COUNT):
-		if not Input.is_action_just_pressed("ability_%d" % (i + 1)):
+		if not event.is_action_pressed("ability_%d" % (i + 1)):
 			continue
 		try_activate(i)
+		get_viewport().set_input_as_handled()
 		return
 
 func try_activate(index: int) -> bool:

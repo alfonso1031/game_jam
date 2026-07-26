@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cl73fru3r1p3p"
-path="res://.godot/imported/inert_body.png-f7a48c6667eb08ed1a6d79dac16f9ade.ctex"
+uid="uid://becccjq1mbpg7"
+path="res://.godot/imported/exp07_pinch_04.png-25262f0c61915d06ff4aa62d4206ebc5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/body/inert_body.png"
-dest_files=["res://.godot/imported/inert_body.png-f7a48c6667eb08ed1a6d79dac16f9ade.ctex"]
+source_file="res://assets/enemies/exp07_crustacean/exp07_pinch_04.png"
+dest_files=["res://.godot/imported/exp07_pinch_04.png-25262f0c61915d06ff4aa62d4206ebc5.ctex"]
 
 [params]
 

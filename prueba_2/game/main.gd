@@ -1,6 +1,10 @@
 extends Node2D
 
+@onready var music: AudioStreamPlayer = $Music
+
+
 func _ready() -> void:
+	music.finished.connect(_on_music_finished)
 	Transition.setup($RoomHost, $Player, $FadeLayer/Fade)
 	GameState.died.connect(_on_died)
 	if not RunManager.active or RunManager.current_map == null:
@@ -9,3 +13,7 @@ func _ready() -> void:
 
 func _on_died() -> void:
 	RunManager.end_run(&"death")
+
+
+func _on_music_finished() -> void:
+	music.play()

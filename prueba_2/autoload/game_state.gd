@@ -2,19 +2,21 @@ extends Node
 
 const PartsDB := preload("res://core/parts_db.gd")
 
+@warning_ignore("unused_signal")
 signal room_changed(room_id: String)
 signal ability_gained(id: String)
 signal health_changed(halves: int)
 signal died
 signal death_saved
 signal grate_discovered(source_id: String)
+signal infinite_health_changed(enabled: bool)
 
 # La vida se contabiliza en MEDIOS corazones, porque consumir una parte cura
 # exactamente medio. `max_health` / `health` siguen expuestos en corazones para
 # no romper a quien solo quiera leer el número redondo.
 const HALVES_PER_HEART := 2
 const BASE_MAX_HEALTH_HALVES := 15
-const STARTING_HEALTH_HALVES := 5
+const STARTING_HEALTH_HALVES := 7
 
 # Cada parte de jefe distinta consumida da +0,5% de daño base, hasta 6 partes.
 const BOSS_PART_DAMAGE_BONUS := 0.005
@@ -29,11 +31,13 @@ var rooms_cleared: Dictionary = {}
 # Partes de jefe distintas ya consumidas: la bonificación es permanente y única.
 var boss_parts_consumed: Dictionary = {}
 var discovered_grates: Dictionary = {}
+var unlocked_grates: Dictionary = {}
 # Recompensas narrativas tomadas, indexadas por sala y válidas solo en la run.
 var claimed_room_rewards: Dictionary = {}
 
 var max_health_halves: int = BASE_MAX_HEALTH_HALVES
 var health_halves: int = STARTING_HEALTH_HALVES
+var infinite_health := false
 
 # Modificador de vida máxima que aportan las partes equipadas (ej. Tentáculo
 # resta un corazón). Se guarda aparte para poder recalcular al desequipar.
@@ -42,6 +46,7 @@ var _base_max_halves: int = BASE_MAX_HEALTH_HALVES
 
 var max_health: int:
 	get:
+		@warning_ignore("integer_division")
 		return max_health_halves / HALVES_PER_HEART
 
 var health: int:
@@ -72,10 +77,12 @@ func reset_run() -> void:
 	rooms_cleared.clear()
 	boss_parts_consumed.clear()
 	discovered_grates.clear()
+	unlocked_grates.clear()
 	claimed_room_rewards.clear()
 	_max_health_mod = 0
 	max_health_halves = _base_max_halves
 	health_halves = STARTING_HEALTH_HALVES
+	set_infinite_health(false)
 
 func gain_ability(id: String) -> void:
 	if abilities.has(id):
@@ -90,6 +97,8 @@ func damage(amount: int) -> void:
 
 func damage_halves(halves: int) -> void:
 	if health_halves <= 0:
+		return
+	if infinite_health:
 		return
 	health_halves = max(0, health_halves - halves)
 	health_changed.emit(health_halves)
@@ -112,6 +121,18 @@ func heal_halves(halves: int) -> void:
 
 func heal_half_heart() -> void:
 	heal_halves(1)
+
+
+func set_infinite_health(enabled: bool) -> void:
+	if infinite_health == enabled:
+		return
+	infinite_health = enabled
+	infinite_health_changed.emit(infinite_health)
+
+
+func toggle_infinite_health() -> bool:
+	set_infinite_health(not infinite_health)
+	return infinite_health
 
 func is_low_health() -> bool:
 	return health_halves <= HALVES_PER_HEART
@@ -162,3 +183,12 @@ func discover_grate(source_id: String) -> void:
 		return
 	discovered_grates[source_id] = true
 	grate_discovered.emit(source_id)
+
+
+func unlock_grate(source_id: String) -> void:
+	if not source_id.is_empty():
+		unlocked_grates[source_id] = true
+
+
+func is_grate_unlocked(source_id: String) -> bool:
+	return unlocked_grates.get(source_id, false)

@@ -262,13 +262,13 @@ const PARTS := {
 	},
 
 	# ------------------------------------------------------------------
-	# EXPERIMENTO 07 — Crustáceo Escudo
+	# EXPERIMENTO 07 — Crustáceo Triturador
 	# ------------------------------------------------------------------
 	"bone_plate": {
 		"name": "Placa de Hueso",
 		"slot": SLOT_BRAZO,
 		"tier": TIER_BASIC,
-		"source": "EXP-07 Crustáceo Escudo",
+		"source": "EXP-07 Crustáceo Triturador",
 		"desc": "Coloca un obstáculo rígido temporal en tu posición.",
 		"cooldown": 4.0,
 		"effect": {
@@ -282,7 +282,7 @@ const PARTS := {
 		"name": "Tenaza Trituradora",
 		"slot": SLOT_BRAZO,
 		"tier": TIER_BASIC,
-		"source": "EXP-07 Crustáceo Escudo",
+		"source": "EXP-07 Crustáceo Triturador",
 		"desc": "Ataque cónico frontal.",
 		"cooldown": 1.7,
 		"effect": {

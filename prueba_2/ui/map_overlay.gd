@@ -32,6 +32,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("pause"):
 		_toggle()
+	elif event.is_action_pressed("test_mode"):
+		body_panel.call("toggle_infinite_health")
 	elif event.is_action_pressed("move_left"):
 		body_panel.call("move_selection", Vector2.LEFT)
 	elif event.is_action_pressed("move_right"):
@@ -164,6 +166,7 @@ func _draw() -> void:
 		Color(Palette.WALL, 0.45),
 		2.0
 	)
+	_draw_interface_chrome(viewport_size)
 
 	var panel := map_panel_rect()
 	draw_rect(panel, Color(Palette.VOID.darkened(0.3), 0.45), true)
@@ -179,6 +182,44 @@ func _draw() -> void:
 	for room_id: String in visible_ids:
 		if layout["rooms"].has(room_id):
 			_draw_room(font, layout["rooms"][room_id], room_id, visible_ids)
+
+
+func _draw_interface_chrome(viewport_size: Vector2) -> void:
+	var font := ThemeDB.fallback_font
+	var map_left := viewport_size.x * 0.52
+	draw_string(
+		font,
+		Vector2(map_left, 70.0),
+		"MAPA LOCAL · CONTENCIÓN",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		viewport_size.x * 0.44,
+		34,
+		Palette.WARM_LIGHT
+	)
+	draw_string(
+		font,
+		Vector2(map_left, viewport_size.y - 58.0),
+		"◆ ACTUAL     ■ VISITADA     ┄ REJILLA",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		viewport_size.x * 0.44,
+		17,
+		Palette.SLIME_CORE
+	)
+	draw_string(
+		font,
+		Vector2(map_left, viewport_size.y - 27.0),
+		"TAB · VOLVER",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		viewport_size.x * 0.44,
+		16,
+		Color(Palette.WARM_LIGHT, 0.82)
+	)
+	draw_line(
+		Vector2(map_left, 84.0),
+		Vector2(viewport_size.x * 0.97, 84.0),
+		Color(Palette.WALL, 0.55),
+		2.0
+	)
 
 
 func _draw_room_links(layout: Dictionary, visible_ids: Array[String]) -> void:
@@ -256,10 +297,14 @@ func _draw_room(
 
 	draw_rect(rect, fill, true)
 	draw_rect(rect, border, false, 4.0 if room_id == GameState.current_room else 2.0)
-	for direction: String in data["doors"]:
-		var target_id: String = data["doors"][direction]
-		if visible_ids.has(target_id):
-			_draw_door_notch(rect, direction, border)
+	for connections: Dictionary in [
+		data.get("doors", {}),
+		data.get("entrances", {}),
+	]:
+		for direction: String in connections:
+			var target_id: String = connections[direction]
+			if visible_ids.has(target_id):
+				_draw_door_notch(rect, direction, border)
 
 	if not visited:
 		draw_string(

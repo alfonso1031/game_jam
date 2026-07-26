@@ -11,8 +11,8 @@ func _ready() -> void:
 func _run() -> void:
 	var title: Control = load("res://ui/title.tscn").instantiate()
 	add_child(title)
-	_check(title.has_node("TitleLabel"), "la portada conserva el nombre")
-	_check(title.has_node("Prompt"), "la portada conserva la acción de inicio")
+	_check(title.has_node("Menu/PlayButton"), "la portada conserva el boton de jugar")
+	_check(title.has_node("Menu/QuitButton"), "la portada conserva el boton de salir")
 	_check(not title.has_node("Subtitle"), "la portada elimina el subtítulo")
 	_check(not title.has_node("Controls"), "la portada elimina controles")
 	title.queue_free()

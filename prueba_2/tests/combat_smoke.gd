@@ -35,6 +35,7 @@ func _ready() -> void:
 func _run() -> void:
 	await _test_health_halves()
 	await _test_inventory_rules()
+	await _test_ability_number_input()
 	await _test_every_part()
 	await _test_every_enemy()
 	await _test_drop_rules()
@@ -128,15 +129,15 @@ func _test_procedural_room_assembly() -> void:
 
 func _test_health_halves() -> void:
 	GameState.reset_run()
-	_check(GameState.health_halves == 5, "la partida inicia con 5 HP")
+	_check(GameState.health_halves == 7, "la partida inicia con 7 HP")
 	_check(GameState.max_health_halves == 15, "la vida máxima es 15 HP")
 
 	GameState.damage(1)
-	_check(GameState.health_halves == 3, "un corazón de daño quita 2 HP")
+	_check(GameState.health_halves == 5, "un corazón de daño quita 2 HP")
 
 	GameState.heal_half_heart()
-	_check(GameState.health_halves == 4, "consumir una parte da 1 HP")
-	_check(GameState.health == 2, "4 HP se leen como 2 corazones")
+	_check(GameState.health_halves == 6, "medio corazón de cura da 1 HP")
+	_check(GameState.health == 3, "6 HP se leen como 3 corazones")
 
 	GameState.heal_halves(20)
 	_check(GameState.health_halves == 15, "la cura no pasa del máximo")
@@ -194,12 +195,12 @@ func _test_inventory_rules() -> void:
 	Inventory.reset_run()
 	_check(GameState.max_health_halves == base_max, "al quitarla se recupera la vida máxima")
 
-	# Consumir: medio corazón y registro del bono si es parte de jefe.
+	# Consumir: dos HP y registro del bono si es parte de jefe.
 	GameState.damage(1)
 	Inventory.pick_up("compression_piston")
 	var before := GameState.health_halves
 	Inventory.consume_slot(Inventory.slots.find("compression_piston"))
-	_check(GameState.health_halves == before + 1, "consumir una parte cura medio corazón")
+	_check(GameState.health_halves == before + 2, "consumir una parte cura 2 HP")
 	_check(GameState.base_damage_multiplier() > 1.0, "consumir parte de jefe da bono de daño permanente")
 
 	# El multiplicador ofensivo no se acumula: solo cuenta el más alto.
@@ -220,6 +221,26 @@ func _has_property(object: Object, property_name: StringName) -> bool:
 		if property["name"] == property_name:
 			return true
 	return false
+
+
+func _test_ability_number_input() -> void:
+	Inventory.reset_run()
+	_check(Inventory.pick_up("serrated_jaw"), "la habilidad de prueba ocupa el slot 1")
+	_check(
+		_runner.has_method("_unhandled_input"),
+		"AbilityRunner recibe directamente los eventos numéricos"
+	)
+	if _runner.has_method("_unhandled_input"):
+		var event := InputEventAction.new()
+		event.action = &"ability_1"
+		event.pressed = true
+		_runner._unhandled_input(event)
+		_check(
+			Inventory.cooldown_left(0) > 0.0,
+			"pulsar 1 activa la parte equipada en el slot 1"
+		)
+	Inventory.reset_run()
+	await get_tree().process_frame
 
 func _test_every_part() -> void:
 	Inventory.reset_run()
@@ -346,7 +367,7 @@ func _test_rooms() -> void:
 		var spawned := 0
 		var leaders := 0
 		for child in room.get_children():
-			if child.is_in_group("enemies"):
+			if child.is_in_group("enemies") and not child.is_in_group("bosses"):
 				spawned += 1
 				if child.is_room_leader:
 					leaders += 1

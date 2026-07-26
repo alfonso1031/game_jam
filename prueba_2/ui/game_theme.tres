@@ -1,0 +1,133 @@
+[gd_resource type="Theme" load_steps=9 format=3]
+
+[sub_resource type="StyleBoxFlat" id="Panel"]
+bg_color = Color(0.0196078, 0.054902, 0.0627451, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.0392157, 0.466667, 0.478431, 0.8)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 22.0
+content_margin_top = 18.0
+content_margin_right = 22.0
+content_margin_bottom = 18.0
+
+[sub_resource type="StyleBoxFlat" id="ButtonNormal"]
+bg_color = Color(0.0392157, 0.129412, 0.145098, 0.96)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0392157, 0.466667, 0.478431, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="ButtonHover"]
+bg_color = Color(0.0470588, 0.25098, 0.258824, 0.98)
+border_width_left = 5
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45098, 0.937255, 0.909804, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="ButtonPressed"]
+bg_color = Color(0.290196, 0.658824, 0.505882, 0.92)
+border_width_left = 5
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.92549, 0.952941, 0.690196, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="ButtonFocus"]
+bg_color = Color(0.0470588, 0.25098, 0.258824, 0.98)
+border_width_left = 5
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.92549, 0.952941, 0.690196, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="ButtonDisabled"]
+bg_color = Color(0.0352941, 0.0745098, 0.0784314, 0.72)
+border_width_left = 2
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.196078, 0.32549, 0.372549, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="Tooltip"]
+bg_color = Color(0.00784314, 0.027451, 0.0313726, 0.98)
+border_width_left = 4
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.576471, 0.886275, 0.741176, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxEmpty" id="ButtonEmpty"]
+
+[resource]
+default_font_size = 19
+Button/colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+Button/colors/font_hover_color = Color(0.92549, 0.952941, 0.690196, 1)
+Button/colors/font_pressed_color = Color(0.0196078, 0.054902, 0.0627451, 1)
+Button/colors/font_focus_color = Color(0.92549, 0.952941, 0.690196, 1)
+Button/colors/font_disabled_color = Color(0.490196, 0.611765, 0.607843, 0.75)
+Button/constants/outline_size = 0
+Button/styles/normal = SubResource("ButtonNormal")
+Button/styles/hover = SubResource("ButtonHover")
+Button/styles/pressed = SubResource("ButtonPressed")
+Button/styles/focus = SubResource("ButtonFocus")
+Button/styles/disabled = SubResource("ButtonDisabled")
+Label/colors/font_color = Color(0.85098, 0.921569, 0.905882, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.72)
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 2
+Panel/styles/panel = SubResource("Panel")
+PanelContainer/styles/panel = SubResource("Panel")
+PopupPanel/styles/panel = SubResource("Tooltip")
+TooltipPanel/styles/panel = SubResource("Tooltip")

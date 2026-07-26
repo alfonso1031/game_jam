@@ -146,6 +146,20 @@ theme_override_styles/focus = SubResource("CardHover")
 theme_override_styles/pressed = SubResource("CardSelected")
 text = "SLOT 6"
 
+[node name="TestMode" type="Button" parent="."]
+offset_left = 275.0
+offset_top = 900.0
+offset_right = 685.0
+offset_bottom = 962.0
+focus_mode = 0
+theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 0.843137, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("CardNormal")
+theme_override_styles/hover = SubResource("CardHover")
+theme_override_styles/pressed = SubResource("CardSelected")
+text = "MODO PRUEBA · VIDA INFINITA: NO"
+
 [node name="ConsumeHint" type="Label" parent="."]
 offset_left = 250.0
 offset_top = 1000.0
@@ -154,7 +168,7 @@ offset_bottom = 1040.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
 theme_override_font_sizes/font_size = 22
-text = "F · COMER (+½ CORAZÓN)"
+text = "F · COMER"
 horizontal_alignment = 1
 
 [node name="PartTooltip" parent="." instance=ExtResource("2")]

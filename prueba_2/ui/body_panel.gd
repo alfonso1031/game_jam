@@ -23,6 +23,7 @@ const ALIGNMENT_EPSILON := 0.001
 @onready var ability_card: Button = $Ability
 @onready var tooltip: PanelContainer = $PartTooltip
 @onready var consume_hint: Label = $ConsumeHint
+@onready var test_mode: Button = $TestMode
 
 var _active_tooltip_slot := -1
 var selected_slot := -1
@@ -33,6 +34,8 @@ func _ready() -> void:
 	Inventory.slots_changed.connect(_refresh_slots)
 	GameState.ability_gained.connect(_on_ability_gained)
 	GameState.health_changed.connect(_on_health_changed)
+	GameState.infinite_health_changed.connect(_refresh_test_mode)
+	test_mode.pressed.connect(toggle_infinite_health)
 	for index in range(Inventory.SLOT_COUNT):
 		var card := _slot_button(index)
 		card.focus_mode = Control.FOCUS_NONE
@@ -41,6 +44,7 @@ func _ready() -> void:
 	ability_card.focus_mode = Control.FOCUS_NONE
 	_refresh_slots()
 	_refresh_ability()
+	_refresh_test_mode(GameState.infinite_health)
 
 
 func slime_rect() -> Rect2:
@@ -135,6 +139,23 @@ func consume_selected() -> bool:
 		_refresh_consume_hint()
 		return false
 	return Inventory.consume_slot(selected_slot)
+
+
+func toggle_infinite_health() -> bool:
+	return GameState.toggle_infinite_health()
+
+
+func _refresh_test_mode(enabled: bool) -> void:
+	test_mode.text = "MODO PRUEBA · VIDA INFINITA: %s" % (
+		"SÍ" if enabled else "NO"
+	)
+	if enabled:
+		test_mode.add_theme_stylebox_override(
+			"normal",
+			test_mode.get_theme_stylebox("pressed")
+		)
+	else:
+		test_mode.remove_theme_stylebox_override("normal")
 
 
 func _sample_curve(target: Vector2, index: int) -> PackedVector2Array:
@@ -245,7 +266,7 @@ func _refresh_consume_hint() -> void:
 	if GameState.health_halves >= GameState.max_health_halves:
 		consume_hint.text = "VIDA AL MÁXIMO"
 		return
-	consume_hint.text = "F · COMER (+½ CORAZÓN)"
+	consume_hint.text = "F · COMER"
 
 
 func _refresh_ability() -> void:

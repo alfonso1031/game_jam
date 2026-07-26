@@ -60,6 +60,15 @@ func equipped_ids() -> Array[String]:
 			out.append(id)
 	return out
 
+
+func equipped_count_for_slot(slot_type: String) -> int:
+	var count := 0
+	for part_id in slots:
+		if part_id != "" and PartsDB.slot_of(part_id) == slot_type:
+			count += 1
+	return count
+
+
 func cooldown_left(index: int) -> float:
 	return _cooldowns[index] if index >= 0 and index < SLOT_COUNT else 0.0
 
@@ -120,7 +129,7 @@ func clear_slot(index: int) -> String:
 	_set_slot(index, "")
 	return removed
 
-# Comer la parte del hueco: medio corazón de vida. Es el destino de las partes
+# Comer la parte del hueco: dos HP de vida. Es el destino de las partes
 # que no quieres llevar encima.
 func lose_slot(index: int) -> String:
 	return clear_slot(index)
@@ -138,8 +147,16 @@ func consume_slot(index: int) -> bool:
 	_digest(id)
 	return true
 
+
+func consume_loose_duplicate(part_id: String) -> bool:
+	if not PartsDB.exists(part_id) or not has_part(part_id):
+		return false
+	_digest(part_id)
+	return true
+
+
 func _digest(part_id: String) -> void:
-	GameState.heal_half_heart()
+	GameState.heal_halves(2)
 	if PartsDB.is_boss_part(part_id):
 		GameState.register_boss_part_consumed(part_id)
 	part_consumed.emit(part_id)

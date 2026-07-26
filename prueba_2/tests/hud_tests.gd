@@ -30,16 +30,16 @@ func _run() -> void:
 	if hud.has_method("visible_room_ids"):
 		_check(hud.visible_room_ids() == ["CENTER"], "el minimapa oculta topología futura")
 	if value_label != null:
-		_check(value_label.text == "5 / 15 HP", "inicia mostrando 5 de 15 HP")
+		_check(value_label.text == "7 / 15 HP", "inicia mostrando 7 de 15 HP")
 	if hud.has_method("health_ratio"):
-		_check(is_equal_approx(hud.health_ratio(), 5.0 / 15.0), "la barra inicia a un tercio")
+		_check(is_equal_approx(hud.health_ratio(), 7.0 / 15.0), "la barra inicia en 7 de 15")
 
 	GameState.damage_halves(2)
 	await get_tree().process_frame
 	if value_label != null:
-		_check(value_label.text == "3 / 15 HP", "la señal de daño actualiza el texto")
+		_check(value_label.text == "5 / 15 HP", "la señal de daño actualiza el texto")
 	if hud.has_method("health_ratio"):
-		_check(is_equal_approx(hud.health_ratio(), 3.0 / 15.0), "la señal de daño actualiza el relleno")
+		_check(is_equal_approx(hud.health_ratio(), 5.0 / 15.0), "la señal de daño actualiza el relleno")
 
 	hud.queue_free()
 	await get_tree().process_frame

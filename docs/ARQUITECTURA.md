@@ -42,7 +42,7 @@ para leer la salida de debug, `stop_project` para cerrarlo.
 |---|---|
 | Cargar impulso / lanzarse | mantener `WASD` / flechas y **soltar** |
 | Mapa completo | `TAB` |
-| Seleccionar parte (con `TAB` abierto) | flechas |
+| Seleccionar parte (con `TAB` abierto) | `WASD` / flechas |
 | Comer parte seleccionada (con `TAB` abierto) | `F` |
 | Interactuar | `E` |
 | Dash (tras vencer al boss) | `Shift` / `Espacio` |
@@ -159,13 +159,14 @@ navegación nueva no lo consulta.
 `MapGenerator` es determinista por `(run_seed, generation_attempt)`, prueba hasta 128
 propuestas y no relaja reglas. Contrato de Contención:
 
-- camino principal de 6–8 salas y máximo 12 contando destinos de rejilla;
+- grafo dirigido acíclico con camino principal de 6–8 hitos, bifurcación posterior al
+  cuerpo y reconvergencia obligatoria;
 - entrada/tutorial, cuerpo con primera parte en la segunda sala, preboss penúltimo y
   elección de boss al final;
-- salas normales: fácil 40 %, difícil 30 %, vacía 20 %, cierre 10 %;
-- cierre con exactamente tres puertas y conservación del camino al boss;
-- rejilla en 60 % de combates elegibles, mínimo una si existe combate, máximo una por
-  origen y destinos exclusivos;
+- salas normales: fácil 50 %, difícil 30 %, vacía 20 %;
+- `doors` guarda únicamente salidas y `entrances` las aberturas selladas ya consumidas;
+- toda sala distinta del jefe tiene un camino futuro al jefe, que es el único sumidero;
+- toda sala normal de combate y el preboss tienen una rejilla irreversible;
 - destino de rejilla: vacío 40 %, combate 20 %, loot 40 %.
 
 `RunMap.canonical_snapshot()` permite comparar generaciones y reproducir bugs con la seed.
@@ -180,22 +181,40 @@ de que `Transition` pueda materializarlo.
 ### Primer hito: cuerpo y parte
 
 `main_path[0]` siempre es `entry/tutorial`; `main_path[1]` siempre es
-`body/body_reward`, conecta directamente con la entrada, tiene exactamente dos puertas y
-no puede alojar rejilla. `MapGenerator` selecciona de forma determinista una parte inicial
+`body/body_reward`, conecta directamente con la entrada, tiene una entrada sellada, una
+salida y no puede alojar rejilla. `MapGenerator` selecciona una parte inicial
 desde `FIRST_PART_POOL` y la guarda en `reward_part_id`.
 
 `ProceduralRoom` consulta las conexiones reales del descriptor, no IDs ni orientaciones
 fijas:
 
 - en la entrada, `BloodTrail` va del centro hacia la puerta que conduce al cuerpo;
-- en la segunda sala, continúa desde la puerta de entrada hasta `BODY_POSITION`, añade
-  charco e instancia `BodySource`;
+- en la segunda sala, continúa desde la entrada sellada hasta `BODY_POSITION`, añade
+  charco vectorial e instancia `BodySource` sin mostrar un cadáver humano provisional;
 - salas normales no reciben cuerpo ni sangre narrativa.
 
 `BodySource` crea un único `PartPickup`. La sala se marca en
 `GameState.claimed_room_rewards` solo al recogerlo: salir antes conserva la recompensa,
-volver después no la duplica y `reset_run()` la libera para la siguiente partida. Cuerpo,
-gotas, arrastre y charco son PNG transparentes; ninguno tiene colisión.
+volver después no la duplica y `reset_run()` la libera para la siguiente partida. Gotas,
+arrastre y charco son PNG transparentes de estilo 2D plano; ninguno tiene colisión.
+
+Las salas de Contención también reciben utilería desde
+`core/containment_prop_catalog.gd`: la receta es determinista por ID de sala y
+`ProceduralRoom` solo instancia las escenas elegidas. `cabinet`, `pipe` y `glass_tube`
+son props reutilizables con colisión limitada a su base; la entrada conserva el
+`broken_glass_tube` narrativo. El catálogo no coloca props sólidos en la fila 3 ni la
+columna 6.
+
+### Enemigos de Contención
+
+Las salas normales seleccionan de forma determinista y con el mismo peso entre
+`exp01`, `exp02`, `exp03` y `exp07`: cada tipo ocupa una de las cuatro posiciones del
+pool (25 %). El preboss genera tres enemigos por defecto; sus dos acompañantes proceden
+solo de `exp01`–`exp03` y el último enemigo siempre es un `exp07` marcado como líder.
+Como `exp07` solo declara `crusher_claw` en `drop_parts`, derrotar al líder garantiza
+la Tenaza Trituradora. El Crustáceo Triturador no tiene escudo ni bloquea ataques:
+recibe daño desde cualquier dirección. Si el slime invade su espacio de 105 px, retrocede
+en vez de quedar superpuesto o arrastrarlo.
 
 ### Flujo de transición (`transition.gd`)
 
@@ -213,12 +232,16 @@ El jugador vive en `main.tscn`, **no** dentro de la sala — sobrevive a los cam
 ### Ciclo de partida y vida
 
 `RunManager.start_new_run(seed)` limpia `GameState`/`Inventory`, genera Contención y
-mantiene todo solo en memoria. Máximo `15 HP`, inicio `5 HP`; cada HP es medio corazón.
-Completar Contención cura `+2 HP` una sola vez. Comer parte cura `+1 HP`; comer, perder o
+mantiene todo solo en memoria. Máximo `15 HP`, inicio `7 HP`; cada HP es medio corazón.
+Completar Contención cura `+2 HP` una sola vez. Comer parte cura `+2 HP`; comer, perder o
 sacrificar libera el slot.
 
-Una rejilla cuesta una parte equipada elegida o `1 HP`, sin bandera `squeeze`. Con `1 HP`
-la UI debe pedir confirmación y el jugador puede elegir morir. A cero no hay respawn:
+Una conexión de rejilla queda modelada en ambos extremos: `grate_target` desde la sala de
+origen y `grate_source` como metadato de llegada. La entrada cuesta una parte equipada
+elegida o `1 HP`, sin bandera `squeeze`; al pagar,
+`GameState.unlock_grate(source_id)` persiste solo durante la partida. El destino crea
+`GrateSpawn`, pero no instancia otra rejilla: no existe retorno. Con `1 HP` la UI debe
+pedir confirmación y el jugador puede elegir morir. A cero no hay respawn:
 `RunManager.end_run()` emite un resumen con zona, salas, consumidas, sacrificadas y seed.
 
 ---
@@ -258,6 +281,18 @@ orientaciones.
 **Carriles de puerta:** la columna `x = 6` y la fila `y = 3` se dejan libres de props
 sólidos para no bloquear las entradas.
 
+La rejilla no ocupa una celda de prop. `grate_direction` elige una pared sin abertura:
+`Grate` usa `DOOR_POSITIONS[direction]`; el destino usa `grate_arrival_direction` para
+ubicar un único `GrateSpawn`. El PNG conserva su aspecto dentro de `120 × 120`, recibe
+un halo cian tenue y no existe sensor de regreso. `grate.tscn` es un `Area2D` con prompt;
+abre el selector solo en el origen todavía bloqueado y
+`Transition.go_via_grate()` conserva el mismo fundido de una puerta.
+
+La textura permanece centrada en el muro, pero el `CollisionShape2D` de interacción se
+desplaza `105 px` hacia el interior según la pared. El muro no pierde colisión; el sensor
+alcanza `GrateSpawn` y permite mostrar el prompt sin exigir que el jugador atraviese una
+pared sólida.
+
 ---
 
 ## 6. Decoración data-driven (`room.gd`)
@@ -284,7 +319,8 @@ dead_lamps_s = Array[int]([6])
 Cada sala mantiene **al menos tres lámparas activas**; las declaradas en `dead_lamps_*`
 no cuentan. La luz se reparte entre paredes sin ocupar el índice central de una pared con
 puerta (`6` en N/S, `3` en E/O). Para aclarar una sala se redistribuyen o agregan focos:
-no se cambia la energía, el radio, el color ni el parpadeo común de `lamp.tscn`.
+no se cambia la energía, el color ni el parpadeo común de `lamp.tscn`. La cobertura global
+usa `texture_scale = 1.85` con energía `1.6`.
 
 Puestas en el suelo se leían como objetos que se pueden recoger; empotradas en la banda de
 muro se leen como instalación del laboratorio. En los muros laterales el aplique se rota
@@ -303,17 +339,29 @@ requiere tocar el árbol de nodos** ni los `ext_resource` del `.tscn`.
 | `puddle` | no | Mancha de biomasa en el suelo |
 | cartel | no | `Label` en `#ecf3b0` generado desde `sign_text` |
 
-`CanvasModulate` en `main.tscn` (nodo `Darkness`) da la oscuridad base — **un solo color
-que tocar** si el juego se ve muy oscuro o muy claro.
+`CanvasModulate` en `main.tscn` (nodo `Darkness`) da la penumbra base con
+`Color(0.32, 0.35, 0.37, 1)`: toda la sala permanece legible sin parecer
+iluminada de día. Es **el único color que tocar** si el ambiente general se ve
+muy oscuro o muy claro. Las lámparas se mantienen aparte a energía `1.6`,
+`texture_scale = 1.85`, con su parpadeo y estado fundido.
 
 ---
 
 ## 7. El slime (`slime.gd`)
 
-### Impulso cargado — movimiento base
+### Movimiento base según las piernas
 
-El slime **no tiene piernas**: no camina, acumula energía y se lanza. Portado desde
-`prototypes/slime_charge_movement/` (ver su
+`slime.gd` deriva el modo desde las partes equipadas; no guarda una habilidad paralela.
+`Inventory.equipped_count_for_slot(PartsDB.SLOT_PIERNA)` permite además diferenciar en el
+futuro reglas para una o dos piernas.
+
+| Piernas equipadas | Movimiento |
+|---:|---|
+| 0 | Impulso cargado |
+| 1 o más | Movimiento continuo a `280 px/s` |
+
+Sin piernas, el slime no camina: acumula energía y se lanza. Este modo fue portado desde
+`prototypes/slime_charge_movement/` (ver
 [DASH_DEFINITION.md](../prototypes/slime_charge_movement/docs/DASH_DEFINITION.md)).
 
 ```
@@ -366,12 +414,13 @@ corta. Es presentación pura: `CharacterBody2D` no se desplaza mientras carga y 
 colisión sigue siendo el círculo de radio `45`. Al volver a reposo, cada punto interpola
 hacia su polígono base. El DASH conserva aparte su escala rápida y `_eased_speed()`.
 
-**Anti-machaque.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
+**Anti-machaque sin piernas.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
 0.28 s inmóvil. El umbral es corto a propósito — castiga el machaque sin volver torpe un
 toque rápido intencionado. Golpear teclas de dirección repetidamente no produce desplazamiento —
-el movimiento continuo es una **habilidad futura** (piernas), no algo que se pueda
-improvisar con la mecánica base. La barra dibuja una marca en el umbral mínimo y el
-relleno se queda en color de muro hasta superarlo.
+no se puede improvisar el movimiento continuo con la mecánica base. Al equipar cualquier
+parte de tipo `pierna`, la carga y su barra desaparecen y `WASD`/flechas desplazan al
+slime directamente. Consumir o perder la última pierna restaura la carga. La barra dibuja
+una marca en el umbral mínimo y el relleno se queda en color de muro hasta superarlo.
 
 **Castigo por chocar.** Estrellarse contra una pared corta el recorrido en seco y cuesta
 0.45 s de aturdimiento, casi cuatro veces la recuperación normal. Lanzarse a ciegas sale
@@ -424,6 +473,20 @@ pero **no** posee ni cambia el estado de movimiento: `slime.gd` decide los event
 El loop de carga cambia de tono de `0.85` a `1.18` y de `-20` a `-8 dB` según la
 potencia. Existe un recurso idle, pero permanece apagado por defecto.
 
+### Música de pantallas
+
+La música no vive en `SlimeAudio`: cada pantalla posee su propio
+`AudioStreamPlayer` llamado `Music`.
+
+| Pantalla | Recurso runtime | Volumen |
+|---|---|---:|
+| Portada | `assets/audio/music/main_menu.ogg` | `-10 dB` |
+| Partida | `assets/audio/music/containment_ambience.ogg` | `-13 dB` |
+
+Los `.opus` recibidos se conservan en `assets/audio/music/source/`; Ogg Vorbis es el
+formato runtime que Godot importa de forma reproducible. `finished` vuelve a llamar
+`play()`, y el cambio de escena libera el reproductor anterior antes de iniciar el nuevo.
+
 ### Importación reproducible de Godot
 
 En un checkout nuevo se versionan los sidecars `.import` de los WAV y los `.uid`
@@ -452,10 +515,23 @@ proyecto, y solo después sus pruebas:
 
 ---
 
+### Ataque ilustrado del EXP07
+
+`actors/enemies/exp07_crustacean_frames.tres` separa el avance del ataque. Las
+cinco fuentes de `assets/enemies/exp07_crustacean/source_attack/` conservan los
+lienzos transparentes de 1920 × 1080; `tools/art/process_exp07_claw_frames.gd`
+usa un recorte común y produce los cinco PNG runtime de 192 × 108.
+
+`PINCH_WINDUP` dura 0,8 s y reproduce 00→04 a 6,25 FPS. Al vencer el
+temporizador, `_pinch()` aplica una sola vez el cono de 150 px, 50° y su
+retroceso; después `RECOVER` reproduce 04→00 a 8,333333 FPS durante 0,6 s. El
+sprite nunca aplica daño por señales y esta secuencia no pertenece al slime.
+
 ## 8. HUD y mapa
 
 **`hud.tscn` (CanvasLayer, siempre visible)**
-- Arriba-izquierda: barra `HP actual / 15 HP`; un HP equivale a medio corazón.
+- Arriba-izquierda: bloque `BIOMASA` y barra `HP actual / 15 HP`; un HP equivale a medio
+  corazón.
 - Arriba-derecha: minimapa de la generación activa, escalado desde el `grid`.
 
 La vida se actualiza por `health_changed` y el mapa por `room_changed`; no sondea estado
@@ -467,22 +543,35 @@ desde `_process()`.
   Cada tarjeta y la habilidad DASH tienen una curva orgánica hasta el borde del cuerpo.
   `Inventory.slots_changed` retira de inmediato tarjeta, curva y tooltip al liberar slot.
 - Al abrirlo selecciona la primera parte equipada. Las flechas navegan espacialmente
-  entre tarjetas ocupadas y `F` consume la seleccionada para curar medio corazón. La
+  entre tarjetas ocupadas y `F` consume la seleccionada para curar `2 HP`. La interfaz no
+  anuncia la cantidad antes de comer. La
   tarjeta activa se amplía, ilumina su borde y resalta su conexión al slime.
+- El botón `MODO PRUEBA · VIDA INFINITA` se alterna con clic o `V` mientras TAB está
+  abierto. Persiste entre salas de la run, pero una partida nueva lo apaga. Solo bloquea
+  la pérdida de HP: destello, invulnerabilidad temporal y retroceso siguen ocurriendo.
 - El hover abre `PartTooltip` con nombre/descripción de `PartsDB`; la selección por
   teclado lo mantiene anclado a su tarjeta.
 - Mitad derecha: **solo el mapa local de Contención** desde
   `RunManager.current_map`. Admite cruces N/E/S/O y calcula escala/origen por los extremos
   reales del `grid`; nunca asume una lista fija.
+- `game_theme.tres` unifica botones, foco de teclado y paneles de portada, HUD, mapa,
+  pausa, costo de rejilla, ruta, resumen y final. El encabezado y la leyenda del mapa
+  describen solo estado jugable, no vuelven a introducir tutoriales en overlays.
 - Muestra exclusivamente salas visitadas. Las puertas hacia espacios desconocidos no
   revelan nodos ni destinos de rejilla por anticipado.
 - No existe una pantalla de inventario ni una parte pendiente. `Inventory` conserva el
   nombre de autoload como autoridad interna de los seis slots. Si el cuerpo está lleno,
   un pickup permanece en el suelo hasta que el jugador consume o pierde una parte.
 
+**Portada ilustrada**
+- `ui/title.tscn` superpone `BackgroundContained`, `BackgroundEscaped` y `Menu`.
+  Los fondos son `prueba_2/assets/ui/title/title_contained.png` y
+  `prueba_2/assets/ui/title/title_escaped.png`; el segundo aparece tras la introducción
+  y el menú contiene `PlayButton` y `QuitButton`.
+- La primera tecla o clic solo omite la introducción: no activa `PlayButton` ni inicia
+  una partida. Después, los botones controlan JUGAR y SALIR.
+
 **Tutorial ambiental**
-- La portada conserva nombre, slime y `PULSA CUALQUIER TECLA`; los controles secundarios
-  esperan el futuro menú con botones.
 - `TutorialMural` pertenece al mundo y aparece una sola vez en `entry/tutorial`.
 - Enseña mantener dirección, cargar y soltar mediante pictogramas; no pausa, no procesa
   input y su huella deja libres el spawn y las puertas.
@@ -496,6 +585,14 @@ desde `_process()`.
 
 La base lógica es 1920×1080 con stretch `canvas_items`; la captura de regresión también se
 escala a 1280×720 para comprobar clipping.
+
+**`grate_cost_overlay.tscn`**
+- Vive en `GrateLayer` (capa 18), por encima del mapa y del fundido normal, y pertenece al
+  grupo `grate_cost_ui`.
+- Al abrirse pausa la partida y ofrece solo slots ocupados más `½ CORAZÓN`; la tarjeta activa
+  escala a `1.08` y usa borde cálido.
+- Cancelar no cambia estado. Pagar una parte o vida desbloquea la fuente y viaja; el retorno
+  ya desbloqueado no abre el selector.
 
 ---
 
@@ -515,38 +612,39 @@ también es un `CharacterBody2D`).
 
 ### Ciclo del boss (`boss_core.gd`)
 
-El slime no tiene ataque, así que el daño se hace por posicionamiento:
+La Quimera Albina usa el asset de `assets/bosses/containment_chimera/`, tiene `12 HP`,
+pertenece a los grupos `enemies` y `bosses`, y recibe la misma firma `take_damage()` que
+los experimentos normales. Los proyectiles del slime incluyen la capa 2 en su máscara
+(`11 = mundo + boss + enemigos`).
 
 ```
-PERSIGUE  →  DISPARA (ráfaga radial)  →  VULNERABLE  →  [RECOIL si lo golpeás]  →  PERSIGUE …
+BUSCA ESQUINA → FIJA POSICIÓN → EMBESTIDA → RECUPERA → BUSCA OTRA ESQUINA …
 ```
 
-- **PERSIGUE:** avanza lento hacia el jugador, coraza cerrada. Tocarlo **te hace daño**.
-- **DISPARA:** se frena, se pone `#ecf3b0` y lanza una ráfaga radial de proyectiles.
-- **VULNERABLE:** núcleo `#73efe8` abierto y pulsando. Tocarlo **le hace daño** y te empuja.
-- **RECOIL:** tras recibir un golpe sale despedido y **no hace daño por contacto** durante
-  0.9 s. Sin este estado el jugador seguía solapado con la hitbox y comía daño en el frame
-  siguiente al golpe — era el bug de "le pego y igual me lastima".
+- **BUSCA ESQUINA:** elige una esquina distinta entre `(330,270)`, `(1590,270)`,
+  `(1590,810)` y `(330,810)` y llega en una ráfaga de velocidad.
+- **FIJA POSICIÓN:** se detiene, mira al jugador y dibuja una línea discontinua hasta su
+  posición. No muestra texto que anuncie el estado.
+- **EMBESTIDA:** congela esa posición al empezar y se lanza hacia ella sin corregir el
+  rumbo. Solo este estado aplica `1 HP` de contacto y retroceso.
+- **RECUPERA:** frena antes de elegir la siguiente esquina.
 
-3 fases según vida (4 golpes): cada fase acelera la persecución, acorta la ventana
-vulnerable y suma proyectiles por ráfaga.
+Tres fases según vida aceleran desplazamiento/embestida y reducen aviso/recuperación:
 
-| Fase | Vida | Velocidad | Proyectiles | Ventana vulnerable |
-|---|---|---|---|---|
-| 1 | 4–3 | 45 | 6 | 3.4 s |
-| 2 | 2 | 65 | 8 | 3.0 s |
-| 3 | 1 | 85 | 10 | 2.6 s |
+| Fase | Vida | Esquina | Embestida | Aviso | Recuperación |
+|---|---:|---:|---:|---:|---:|
+| 1 | 12–9 | 620 px/s | 950 px/s | 1.35 s | 0.64 s |
+| 2 | 8–5 | 720 px/s | 1080 px/s | 1.08 s | 0.52 s |
+| 3 | 4–1 | 820 px/s | 1220 px/s | 0.84 s | 0.42 s |
 
-El jugador tiene **5 de vida**. Los proyectiles van a 250 px/s.
+`procedural_room.gd` materializa un único `BossCore` cuando
+`role == &"boss_choice"` y añade debajo `ChimeraArena`, un decal cenital que marca anillo
+y cuatro esquinas. No genera enemigos normales en esa sala.
 
-El estado se telegrafía en pantalla: barra de vida sobre el boss y cartel de estado
-(`NÚCLEO SELLADO` / `¡CUIDADO!` / `¡NÚCLEO EXPUESTO — CHOCALO!`), más un cartel en la sala.
-
-Al entrar, el boss **sella solo las salidas listadas en `sealed_directions`** (por defecto
-`["N"]`, el ascensor de progresión). **La puerta de vuelta queda abierta a propósito**: si
-se sellan todas y el jugador todavía no entendió la mecánica, queda encerrado sin salida.
-Al morir, abre lo sellado y suelta el pickup de **DASH**. `GameState.bosses_defeated` evita
-que reaparezca.
+Al entrar sella las puertas de la sala. Al morir las abre, marca sala/boss como
+completados durante la run, suelta **DASH** y `silent_claws`, y llama una sola vez a
+`RunManager.complete_floor(&"contencion")`. Esa llamada cura `+2 HP` y dispara la ruta de
+ascenso. `GameState.bosses_defeated` evita que reaparezca.
 
 ### DASH
 
@@ -582,14 +680,14 @@ El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 ## 11. Flujo de pantallas y pausa
 
 ```
-title.tscn ──cualquier tecla──▶ main.tscn ──morir──▶ run_summary
-     ▲                             │                      │
-     └──────── TÍTULO ─────────────┴── pausa ─────────────┘
+title.tscn ──primera tecla/clic──▶ menú ──JUGAR──▶ main.tscn ──morir──▶ run_summary
+     ▲                                             │                       │
+     └────────────────── TÍTULO ◀── pausa ─────────┴───────────────────────┘
 ```
 
 - **Título** (`ui/title.gd`): llama a `GameState.reset_run()` al entrar, así que volver al
-  título siempre limpia la partida. Ignora la acción `fullscreen` para que `F11` no
-  arranque el juego.
+  título siempre limpia la partida. La primera tecla o clic omite la introducción sin
+  activar `PlayButton`; ignora la acción `fullscreen` para que `F11` no altere ese flujo.
 - **Pausa** (`ui/pause_menu.gd`, `Esc`): CONTINUAR / REINICIAR / TÍTULO.
 - **Resumen** (`ui/run_summary.gd`): escucha `RunManager.run_ended`, muestra seed y
   decisiones de la partida, y ofrece nueva partida o título.
@@ -615,7 +713,7 @@ podrían haber quedado trabados a mitad de una transición.
 | 3 | `RunMap`, generador, ensamblador y transiciones procedurales | ✅ |
 | 4 | Contención: 6–8 hitos, cierres, reconexiones y rejillas | ✅ |
 | 5 | HUD + overlay de mapa | ✅ |
-| 6 | Ambientación: focos a energía 1.6/radio 1.35, cuerpo, sangre y mural | ✅ |
+| 6 | Ambientación: focos a energía 1.6/radio 1.85, cuerpo, sangre y mural | ✅ |
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
 | 8 | Ciclo de muerte sin respawn y resumen reproducible | ✅ |
 | 9 | Barra 5/15, tooltips, cuerpo conectado y mapas local/global | ✅ |
@@ -635,8 +733,19 @@ futuros y no se simulan con salas fijas durante la partida activa.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
 - `tests/ui_visual_capture.tscn` construye fixtures reproducibles y permite capturar
-  `title`, `hud`, `map`, `tooltip`, `route` o `tutorial`; el tercer argumento fija el
-  tamaño físico final cuando el viewport lógico sigue siendo 1080p.
+  `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route`, `tutorial`, `grate`,
+  `exp07_attack` o `lighting`; el tercer
+  argumento fija el tamaño físico final cuando el viewport lógico sigue siendo 1080p.
+  `grate` materializa `CENTER` con su conexión, muestra el prompt y abre el selector con dos
+  partes sin cambiar `GameState.current_room`.
+  Para registrar la portada a 1920×1080:
+
+  ```powershell
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
+  ```
 - `combat_smoke.tscn` ensambla las 16 configuraciones cardinales, incluidas `NE`, `SO` y
   el destino de rejilla sin puertas normales. `run_map_tests.gd` comprueba además que cada
   sala de 1.000 seeds aceptadas tenga una plantilla renderizable.

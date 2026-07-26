@@ -45,6 +45,9 @@ Preguntas para ubicar algo nuevo:
 
 - `cell_center(c) = Vector2(180, 120) + c * 120 + Vector2(60, 60)`
 - **Carriles de puerta libres:** columna `x = 6` y fila `y = 3` no llevan props sólidos.
+- Rejilla: `grate_direction` reserva una pared sin puerta. `Grate` usa
+  `DOOR_POSITIONS[direction]`; el destino crea solo `GrateSpawn` según
+  `grate_arrival_direction`. Nunca se materializa un retorno.
 - Una puerta por lado como máximo, centrada. El muro se parte en **dos** `ColorRect` +
   **dos** `CollisionShape2D` y el `Area2D` de la puerta va en el medio.
 - **El hueco del muro mide 240 px, no 120.** Las jambas en embudo de `door.tscn` lo
@@ -80,9 +83,9 @@ legado.
 El inicio tiene contrato fijo por posición del camino, no por ID:
 
 - `main_path[0]`: `entry/tutorial`;
-- `main_path[1]`: `body/body_reward`, dos puertas y sin rejilla;
+- `main_path[1]`: `body/body_reward`, una entrada sellada, una salida y sin rejilla;
 - `reward_part_id`: parte inicial determinista;
-- `BloodTrail` resuelve su orientación leyendo `doors`;
+- `BloodTrail` resuelve su orientación leyendo `doors` y `entrances`;
 - `BodySource` reclama la recompensa en `GameState` únicamente al recogerla.
 
 Verificar con `room_story_tests.tscn`, `room_assembly_tests.tscn` y
@@ -110,11 +113,42 @@ dead_lamps_s = Array[int]([6])
 ```
 
 Los focos actuales conservan `energy = 1.6` y amplían cobertura con
-`texture_scale = 1.35`. Evitar el carril central de puerta y no usar decals narrativos
+`texture_scale = 1.85`. Evitar el carril central de puerta y no usar decals narrativos
 como fuentes de luz.
 
 `room.gd` los instancia en `_ready()`. Para un prop nuevo: escena en `world/props/`,
 `preload` y un `@export var ... : Array[Vector2i]` en `world/rooms/room.gd`.
+
+### Props de Contención y rejilla
+
+Las salas procedurales no declaran estos props en el `.tscn`: `core/containment_prop_catalog.gd`
+devuelve la receta estable por `room_data["id"]` y `world/rooms/procedural_room.gd` la ensambla.
+Usa solo las ocho celdas seguras y deja libres fila 3/columna 6; `entry` recibe siempre
+`broken_glass_tube` en `(960, 500)` y los roles narrativos no reciben utilería aleatoria.
+
+Las escenas `world/props/containment/` deben conservar el nodo `Sprite`, `footprint()` y una
+colisión de base. Para una rejilla, no crear puertas:
+`RunMap.set_grate(source, target, direction)` registra `grate_target`, `grate_source` y
+`grate_arrival_direction`; `procedural_room.gd` instancia la fuente dentro de `120 × 120`
+y en el destino solo crea `GrateSpawn`. `Transition.go_via_grate()` nunca ofrece regreso.
+El sprite queda en el muro. `grate.gd::SENSOR_POSITIONS` desplaza solo el
+`CollisionShape2D` `105 px` hacia el interior; no abrir el muro ni volver a centrar el
+sensor, porque desde allí el jugador no puede alcanzarlo físicamente.
+
+### Boss de Contención
+
+- `role = &"boss_choice"` instancia `BossCore` y `ChimeraArena`; no usa el pool normal.
+- Ciclo: `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`; `CORNER_AIM` dura
+  `[1.35, 1.08, 0.84]` s según fase y no muestra texto de acción.
+- La posición del jugador se congela al entrar a `POUNCE`; no hay homing durante la
+  embestida.
+- `BossCore` usa capa 2, grupos `enemies`/`bosses`, `12 HP` y la firma normal de
+  `take_damage(amount, from, knockback, break_shield)`.
+- `player_projectile.tscn` conserva máscara `11` para incluir esa capa.
+- Muerte: `dash`, `silent_claws`, sala limpia, boss derrotado y
+  `RunManager.complete_floor(&"contencion")`.
+- Arte runtime: `assets/bosses/containment_chimera/chimera.png` y
+  `assets/environment/containment/chimera_arena.png`.
 
 ### Añadir una habilidad
 
@@ -129,7 +163,7 @@ añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **so
 - Nombres y resúmenes: `PartsDB.display_name()` / `PartsDB.description()`. No copiar texto
   a un `.tscn`.
 - Tarjetas: `body_panel.gd` escucha `Inventory.slots_changed`; un slot vacío no conserva
-  ni tarjeta ni curva. Con `TAB` abierto, las flechas recorren solo tarjetas ocupadas y
+  ni tarjeta ni curva. Con `TAB` abierto, `WASD` o flechas recorren solo tarjetas ocupadas y
   `F` consume la seleccionada. La selección debe conservar escala, borde y conexión
   resaltados como una sola señal visual.
 - Mapa local: `map_overlay.gd` lee `RunManager.current_map`, no `RoomDB.ROOMS`.
@@ -137,10 +171,18 @@ añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **so
   visitados.
 - Ruta global: `floor_route_overlay.gd` solo dibuja pisos, con Contención abajo y
   Superficie arriba; dura 3 s.
-- Portada: solo nombre, slime y prompt. Los controles secundarios quedan para el futuro
-  menú con botones.
+- Portada: `BackgroundContained` y `BackgroundEscaped` usan
+  `prueba_2/assets/ui/title/title_contained.png` y
+  `prueba_2/assets/ui/title/title_escaped.png`; `Menu` contiene `PlayButton` y
+  `QuitButton` sobre la ilustración escapada. La primera tecla o clic solo omite la
+  introducción: no activa `PlayButton` ni inicia la partida.
 - Primera sala: `TutorialMural` enseña mantener dirección, cargar y soltar; es un prop
   pasivo del mundo y debe dejar libres spawn y puertas.
+- Tema: `ui/game_theme.tres` se asigna en las raíces de portada, HUD, mapa, pausa,
+  rejilla, ruta, resumen y final. No copiar StyleBox comunes en cada escena.
+- Música: `ui/title.tscn::Music` usa `main_menu.ogg` a `-10 dB`;
+  `game/main.tscn::Music` usa `containment_ambience.ogg` a `-13 dB`. Los `.opus` fuente
+  viven en `assets/audio/music/source/`.
 - Resolución lógica 1920×1080; comprobar también la salida 1280×720.
 
 Pruebas:
@@ -151,20 +193,42 @@ godot --headless --path prueba_2 res://tests/part_tooltip_tests.tscn
 godot --headless --path prueba_2 res://tests/body_panel_tests.tscn
 godot --headless --path prueba_2 res://tests/map_overlay_tests.tscn
 godot --headless --path prueba_2 res://tests/floor_route_tests.tscn
+godot --headless --path prueba_2 res://tests/ui_theme_tests.tscn
+godot --headless --path prueba_2 res://tests/containment_boss_tests.tscn
+godot --headless --path prueba_2 res://tests/music_asset_tests.tscn
 ```
 
-Captura reproducible (`modo` = `title`, `hud`, `map`, `tooltip`, `route` o `tutorial`):
+Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `tooltip`,
+`route`, `tutorial`, `grate`, `exp07_attack`, `lighting` o `boss`):
 
-```bash
-godot --path prueba_2 --windowed --resolution 1920x1080 \
-  res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
-godot --path prueba_2 --windowed --resolution 1280x720 \
-  res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
+```powershell
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1280x720 res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- grate user://grate-wall-flow.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- boss user://chimera-arena.png 1920x1080
 ```
+
+### Ataque ilustrado del EXP07
+
+- Fuentes: cinco PNG transparentes 1920 × 1080 en
+  `assets/enemies/exp07_crustacean/source_attack/`.
+- Regenerar runtime: `godot --headless --path prueba_2 --script
+  res://tools/art/process_exp07_claw_frames.gd`; produce cinco frames 192 × 108
+  con recorte común.
+- `pinch_windup`: 00→04 a 6,25 FPS durante 0,8 s. `recover`: 04→00 a
+  8,333333 FPS durante 0,6 s.
+- `_pinch()` es la única autoridad del daño. No conectar daño a frames ni
+  reutilizar este arte en el slime o en el pickup `crusher_claw`.
 
 ### Cambiar movimiento base
 
-- Mantener dirección carga; soltar inicia el arrastre.
+- Sin piernas, mantener dirección carga y soltar inicia el arrastre.
+- Cualquier parte de tipo `pierna` cambia a movimiento continuo a `280 px/s`; perder la
+  última restaura la carga. `Inventory` expone el conteo para futuras reglas de una o dos.
 - Rango válido: `112–520 px`, calculado desde el umbral `MIN_CHARGE_TIME = 0.12`.
 - El tramo base avanza uniforme a `CRAWL_SPEED = 480 px/s`; más carga aumenta duración.
 - La deformación de `Body`/`Core` no mueve el `CharacterBody2D` ni cambia el círculo de
@@ -181,15 +245,29 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
 
 ### Ciclo de partida y rejillas
 
-- Nueva partida: `RunManager.start_new_run(seed)`; máximo 15 HP, inicio 5 HP.
+- Nueva partida: `RunManager.start_new_run(seed)`; máximo 15 HP, inicio 7 HP.
+- TAB expone `MODO PRUEBA · VIDA INFINITA`; clic o `V` lo alternan. El flag vive en
+  `GameState`, persiste entre salas y se apaga con `reset_run()`. Bloquea solo la pérdida
+  de HP: el golpe conserva invulnerabilidad temporal y retroceso.
 - Completar Contención: `RunManager.complete_floor(&"contencion")`, cura +2 HP una vez.
 - Comer: `TAB` abre el mapa corporal, las flechas seleccionan y `F` llama
-  `Inventory.consume_slot()`. Cura +1 HP y libera el slot.
+  `Inventory.consume_slot()`. Cura +2 HP y libera el slot; `Tab` solo muestra `F · COMER`.
+- Duplicado en el suelo: si `Inventory.has_part(part_id)`, el pickup muestra
+  `F · COMER` y llama `consume_loose_duplicate()`. Cura +2 HP, emite `collected` y no
+  modifica slot, cooldown ni usos de la copia equipada.
 - Perder/sacrificar: liberan slot y no curan.
 - Cuerpo lleno: el séptimo pickup permanece en el mundo; no existe parte pendiente ni
   pantalla separada con `I`.
-- Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP.
+- Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP. Pagar
+  ejecuta `GameState.unlock_grate(source_id)` para la partida actual; entrar por la fuente
+  desbloqueada viaja una sola vez hacia delante. `grate_source` es solo metadato.
+- Generación: `_add_grates()` procesa fuentes por capa ascendente; una sala futura recibe
+  todas sus `entrances` antes de elegir `grate_direction`. `validate()` rechaza paredes
+  compartidas entre una abertura y una rejilla.
 - A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
+- Penumbra global: `main.tscn::Darkness = Color(0.32, 0.35, 0.37, 1)`. No aclarar
+  fondos individuales. Las lámparas conservan energía `1.6`, radio `1.85`, parpadeo y
+  estado fundido.
 
 ---
 

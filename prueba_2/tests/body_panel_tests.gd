@@ -20,6 +20,18 @@ func _run() -> void:
 	var panel: Control = scene.instantiate()
 	add_child(panel)
 	await get_tree().process_frame
+	var test_mode: Button = panel.get_node_or_null("TestMode") as Button
+	_check(test_mode != null, "TAB expone el modo de prueba")
+	_check(
+		panel.has_method("toggle_infinite_health"),
+		"el panel expone el interruptor de vida infinita"
+	)
+	if test_mode != null and panel.has_method("toggle_infinite_health"):
+		test_mode.pressed.emit()
+		_check(GameState.infinite_health, "clic activa vida infinita")
+		_check(test_mode.text.ends_with("SÍ"), "el texto refleja el modo activo")
+		test_mode.pressed.emit()
+		_check(not GameState.infinite_health, "un segundo clic lo apaga")
 	Inventory.pick_up("serrated_jaw")
 	await get_tree().process_frame
 
@@ -80,15 +92,25 @@ func _test_selection_and_consumption(panel: Control) -> void:
 	_check(not panel.call("consume_selected"), "con vida máxima no consume")
 	_check(Inventory.part_at(2) == "scaled_skin", "con vida máxima conserva la parte")
 
-	GameState.health_halves -= 1
+	GameState.health_halves -= 3
+	GameState.health_changed.emit(GameState.health_halves)
 	var health_before: int = GameState.health_halves
+	_check(
+		panel.get_node("ConsumeHint").text == "F · COMER",
+		"Tab no anuncia cuánto curará"
+	)
 	_check(panel.call("consume_selected"), "consume la parte seleccionada")
 	_check(Inventory.is_empty(2), "consumir libera el slot seleccionado")
-	_check(GameState.health_halves == health_before + 1, "consumir cura medio corazón")
+	_check(GameState.health_halves == health_before + 2, "consumir cura 2 HP")
 	_check(panel.get("selected_slot") == 0, "mueve la selección a la parte restante")
 
-	GameState.health_halves -= 1
+	GameState.health_halves = GameState.max_health_halves - 1
+	GameState.health_changed.emit(GameState.health_halves)
 	_check(panel.call("consume_selected"), "puede consumir la última parte")
+	_check(
+		GameState.health_halves == GameState.max_health_halves,
+		"curación nunca supera 15 HP"
+	)
 	_check(panel.get("selected_slot") == -1, "sin partes limpia la selección")
 
 

@@ -2,6 +2,8 @@ extends Node
 
 const MapGenerator := preload("res://core/map_generator.gd")
 const RoomAssembler := preload("res://world/rooms/room_assembler.gd")
+const ContainmentPropCatalog := preload("res://core/containment_prop_catalog.gd")
+const DoorScene := preload("res://world/props/door.tscn")
 
 var _failures: Array[String] = []
 var _checks := 0
@@ -23,6 +25,9 @@ func _run() -> void:
 	for room_id: String in regression_map.room_ids():
 		var data: Dictionary = regression_map.room(room_id)
 		var room: Node2D = RoomAssembler.build(data)
+		var light := room.get_node("LampN2/Light") as PointLight2D
+		_check(is_equal_approx(light.energy, 1.6), "%s mantiene intensidad de foco" % room_id)
+		_check(is_equal_approx(light.texture_scale, 1.85), "%s amplía radio de foco" % room_id)
 		for direction: String in ["N", "E", "S", "O"]:
 			var expected: bool = data["doors"].has(direction)
 			_check(
@@ -33,8 +38,91 @@ func _run() -> void:
 				room.has_node("Spawn%s" % direction) == expected,
 				"%s materializa Spawn%s" % [room_id, direction]
 			)
+		_test_containment_props(room, data, room_id)
 		room.free()
+	await _test_sealed_door_collision()
 	_finish()
+
+
+func _test_containment_props(room: Node2D, room_data: Dictionary, room_id: String) -> void:
+	var placements: Array[Dictionary] = ContainmentPropCatalog.placements_for(room_data)
+	var expected_names: Array[String] = []
+	for index: int in range(placements.size()):
+		var placement: Dictionary = placements[index]
+		var prop_id: String = String(placement["id"])
+		var prop_name := "Prop_%s_%d" % [prop_id, index]
+		expected_names.append(prop_name)
+		var prop := room.get_node_or_null(prop_name) as Node2D
+		_check(prop != null, "%s materializa %s" % [room_id, prop_name])
+		if prop == null:
+			continue
+		_check(prop.get_meta("prop_id", "") == prop_id, "%s conserva el id de %s" % [room_id, prop_name])
+		_check(prop.position == placement["position"], "%s conserva la posicion de %s" % [room_id, prop_name])
+		var expected_scene: PackedScene = placement["scene"] as PackedScene
+		_check(
+			prop.scene_file_path == expected_scene.resource_path,
+			"%s usa la escena esperada para %s" % [room_id, prop_name]
+		)
+
+	var protected_positions: Array[Vector2] = [Vector2(1060, 540)]
+	for direction: String in ["N", "E", "S", "O"]:
+		var door := room.get_node_or_null("Door%s" % direction) as Node2D
+		if door != null:
+			protected_positions.append(door.position)
+		var spawn := room.get_node_or_null("Spawn%s" % direction) as Node2D
+		if spawn != null:
+			protected_positions.append(spawn.position)
+	for child: Node in room.get_children():
+		if not String(child.name).begins_with("Prop_"):
+			continue
+		_check(child.has_meta("prop_id"), "%s identifica %s como prop" % [room_id, child.name])
+		_check(child.has_method("footprint"), "%s expone la huella de %s" % [room_id, child.name])
+		if not child.has_meta("prop_id") or not child.has_method("footprint"):
+			continue
+		var child_id: String = String(child.get_meta("prop_id"))
+		_check(
+			String(child.name).begins_with("Prop_%s_" % child_id),
+			"%s nombra %s con su id" % [room_id, child.name]
+		)
+		_check(expected_names.has(String(child.name)), "%s no agrega %s fuera de la receta" % [room_id, child.name])
+		var footprint: Rect2 = child.call("footprint")
+		for protected_position: Vector2 in protected_positions:
+			_check(
+				not footprint.has_point(protected_position),
+				"%s deja libre %s" % [room_id, protected_position]
+			)
+
+
+func _test_sealed_door_collision() -> void:
+	var host := Node2D.new()
+	add_child(host)
+	var door := DoorScene.instantiate() as Area2D
+	door.direction = "E"
+	host.add_child(door)
+
+	var player := CharacterBody2D.new()
+	var collision := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 20.0
+	collision.shape = shape
+	player.add_child(collision)
+	player.position = Vector2(-140, 0)
+	host.add_child(player)
+	await get_tree().physics_frame
+
+	door.set_sealed(true)
+	await get_tree().physics_frame
+	var blocked := player.move_and_collide(Vector2(180, 0))
+	_check(blocked != null, "puerta sellada bloquea físicamente")
+
+	door.set_sealed(false)
+	await get_tree().physics_frame
+	player.position = Vector2(-140, 0)
+	var open_collision := player.move_and_collide(Vector2(180, 0))
+	_check(open_collision == null, "puerta abierta permite cruzar")
+
+	host.queue_free()
+	await get_tree().process_frame
 
 
 func _check(condition: bool, message: String) -> void:

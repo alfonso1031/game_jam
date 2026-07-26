@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="PackedScene" path="res://actors/player/slime.tscn" id="1"]
 [ext_resource type="Script" path="res://game/main.gd" id="2"]
@@ -7,12 +7,19 @@
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://ui/run_summary.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://ui/floor_route_overlay.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://ui/grate_cost_overlay.tscn" id="9"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/containment_ambience.ogg" id="10"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("2")
 
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("10")
+volume_db = -13.0
+autoplay = true
+
 [node name="Darkness" type="CanvasModulate" parent="."]
-color = Color(0.09, 0.1, 0.12, 1)
+color = Color(0.32, 0.35, 0.37, 1)
 
 [node name="RoomHost" type="Node2D" parent="."]
 
@@ -46,6 +53,11 @@ layer = 30
 layer = 15
 
 [node name="FloorRouteOverlay" parent="RouteLayer" instance=ExtResource("8")]
+
+[node name="GrateLayer" type="CanvasLayer" parent="."]
+layer = 18
+
+[node name="GrateCostOverlay" parent="GrateLayer" instance=ExtResource("9")]
 
 [node name="FadeLayer" type="CanvasLayer" parent="."]
 layer = 10

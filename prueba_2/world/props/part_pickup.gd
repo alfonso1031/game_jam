@@ -38,7 +38,22 @@ func _process(delta: float) -> void:
 		_collect()
 		return
 
-	hint.text = "CUERPO LLENO · [TAB] COME UNA PARTE"
+	if Inventory.has_part(part_id):
+		hint.text = "F · COMER"
+	else:
+		hint.text = "CUERPO LLENO · [TAB] COME UNA PARTE"
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if (
+		not _player_inside
+		or not event.is_action_pressed("consume")
+		or not Inventory.consume_loose_duplicate(part_id)
+	):
+		return
+	collected.emit(part_id)
+	get_viewport().set_input_as_handled()
+	queue_free()
 
 
 func _collect() -> void:

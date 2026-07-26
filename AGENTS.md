@@ -152,10 +152,12 @@ lo detectan al instante.
     (`Shift`/`Espacio`). Solo el DASH da invulnerabilidad y apaga el bit 3 para cruzar
     huecos. No unificarlos ni copiar las reglas de uno al otro.
 
-12. **No aflojar el anti-machaque.** Soltar la dirección antes de `MIN_CHARGE_TIME` no
-    lanza y penaliza con `FIZZLE_RECOVERY_TIME`. Es deliberado: golpear teclas no puede
-    equivaler a caminar, porque el movimiento continuo es una habilidad futura (piernas).
-    Igual de deliberado es `WALL_RECOVERY_TIME`: chocar tiene que doler.
+12. **No aflojar el anti-machaque cuando no hay piernas.** Soltar la dirección antes de
+    `MIN_CHARGE_TIME` no lanza y penaliza con `FIZZLE_RECOVERY_TIME`. Al equipar una o más
+    partes cuyo tipo sea `pierna`, el slime sustituye la carga por movimiento continuo a
+    `280 px/s`; perder la última pierna restaura el impulso cargado. El conteo de piernas
+    queda disponible para reglas futuras distintas con una o dos. Igual de deliberado es
+    `WALL_RECOVERY_TIME`: chocar con el impulso tiene que doler.
 
 13. **Tocar las constantes del DASH cambia su alcance.** La velocidad no es constante
     (`_eased_speed()`), así que el alcance es la **integral de la curva**: hoy 382 px.
@@ -166,23 +168,29 @@ lo detectan al instante.
     fija `_remaining` y el tramo base avanza uniforme a `CRAWL_SPEED`.
 
 14. **No existen checkpoints ni respawn.** La vida máxima es `15 HP`, se empieza con
-    `5 HP` y cada HP representa medio corazón. Completar Contención cura `+2 HP` una sola
-    vez durante la partida actual. Llegar a cero llama `RunManager.end_run()` y muestra
-    el resumen; continuar exige una partida nueva.
+    `7 HP` y cada HP representa medio corazón. Completar Contención cura `+2 HP` una sola
+    vez durante la partida actual y comer una parte cura `+2 HP`. Llegar a cero llama
+    `RunManager.end_run()` y muestra el resumen; continuar exige una partida nueva.
 
 15. **La iluminación conserva intensidad, no cobertura antigua.** Cada foco usa energía
-    `1.6` y `texture_scale = 1.35`; no bajar intensidad al ampliar el radio. Respetar el
+    `1.6` y `texture_scale = 1.85`; no bajar intensidad al ampliar el radio. Respetar el
     carril central de puertas y no convertir los decals narrativos en luces.
 
 16. **Contención se genera, no se enumera en `RoomDB.ROOMS`.** `MapGenerator` y `RunMap`
     viven en `core/`, son deterministas por `(seed, attempt)` y no pueden importar
-    autoloads ni escenas. Camino principal `6–8`, máximo `12` salas. Antes de cambiar sus
-    reglas, ejecutar `res://tests/run_map_tests.gd`, que valida 1.000 seeds.
+    autoloads ni escenas. El grafo es un DAG: `doors` contiene salidas futuras,
+    `entrances` conserva entradas consumidas y el jefe es el único sumidero. Tras el
+    cuerpo debe existir al menos una bifurcación que vuelva a converger; toda sala alcanza
+    al jefe. El camino principal conserva `6–8` hitos.
 
 17. **Una rejilla nunca requiere `squeeze`.** Si se usa, el jugador elige sacrificar una
     parte equipada o pagar `1 HP`; a `1 HP` la UI debe pedir confirmación y puede matar.
-    Máximo una rejilla por sala, destinos exclusivos y mínimo una si el mapa contiene
-    combate elegible.
+    Toda sala normal de combate y el preboss tienen exactamente una; caben en `120 × 120`
+    y sus destinos exclusivos se eligen `40 %` vacío, `40 %` loot y `20 %` combate
+    obligatorio. Cruzarla consume la conexión: el destino solo crea `GrateSpawn`, nunca
+    otra rejilla ni un retorno. Las fuentes se procesan por capa ascendente para registrar
+    entradas antes de reservar `grate_direction`; el validador rechaza cualquier pared
+    compartida. Una sala loot entrega una parte aleatoria una sola vez.
 
 18. **El mapa de `TAB` es local y procedural.** Lee `RunManager.current_map`, nunca
     `RoomDB.ROOMS`, y debe admitir vecinos N/E/S/O simultáneos. Solo muestra salas
@@ -201,16 +209,27 @@ lo detectan al instante.
     El mapa corporal se abre con `TAB`. El mural es pasivo, no pausa y no puede bloquear
     spawn ni puertas.
 
-21. **El cuerpo es el segundo hito, no contenido aleatorio.** `main_path[1]` usa rol
-    `body`, contenido `body_reward`, dos puertas y ninguna rejilla. El rastro se orienta
-    desde las conexiones de `RunMap`; la parte se reclama al recogerla y no reaparece
-    durante esa partida. No fijar IDs de sala ni una dirección cardinal.
+21. **La primera parte es el segundo hito, no contenido aleatorio.** `main_path[1]` usa
+    rol `body`, contenido `body_reward`, una entrada sellada, una salida y ninguna
+    rejilla. No se muestra un cadáver humano provisional: la recompensa queda sobre el
+    charco vectorial. El rastro se orienta desde `doors` o `entrances`; la parte se
+    reclama al recogerla y no reaparece durante esa partida.
 
 22. **Solo existen las seis partes equipadas.** `Inventory` mantiene exactamente seis
     slots por compatibilidad interna, pero no hay `pending`, séptimo espacio ni pantalla
-    separada con `I`. Si el cuerpo está lleno, el pickup permanece en el mundo. Consumir
-    se hace únicamente desde `TAB`: flechas para elegir una tarjeta ocupada y `F` para
-    comerla.
+    separada con `I`. Si el cuerpo está lleno, el pickup permanece en el mundo. Desde
+    `TAB`, `WASD` o flechas eligen una tarjeta ocupada y `F` la come. Si el pickup del
+    suelo es un duplicado exacto de una parte equipada, `F` digiere la copia suelta,
+    cura `2 HP` y conserva intacta la equipada.
+
+23. **La Quimera cierra Contención.** La sala `boss_choice` instancia un solo
+    `BossCore` de `12 HP` y el ciclo `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`.
+    `POUNCE` congela la posición del jugador y no corrige rumbo. El boss permanece en
+    capa 2 y grupos `enemies`/`bosses`; los ataques normales deben incluir esa capa.
+    `CORNER_AIM` dura `[1.35, 1.08, 0.84]` s según fase. No hay `StateLabel` ni texto que
+    anuncie acciones: la línea discontinua, el objetivo y la barra de vida son el aviso.
+    Derrotarlo entrega DASH y `silent_claws`, marca la sala y llama
+    `RunManager.complete_floor(&"contencion")`.
 
 ---
 
