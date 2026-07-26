@@ -77,6 +77,17 @@ Cambiar topología o contenido exige actualizar `MapGenerator.validate()` y comp
 conjunto de puertas exista en el catálogo antes de aceptar una seed. `RoomDB.ROOMS` es
 legado.
 
+El inicio tiene contrato fijo por posición del camino, no por ID:
+
+- `main_path[0]`: `entry/tutorial`;
+- `main_path[1]`: `body/body_reward`, dos puertas y sin rejilla;
+- `reward_part_id`: parte inicial determinista;
+- `BloodTrail` resuelve su orientación leyendo `doors`;
+- `BodySource` reclama la recompensa en `GameState` únicamente al recogerla.
+
+Verificar con `room_story_tests.tscn`, `room_assembly_tests.tscn` y
+`run_map_tests.gd`.
+
 ### Añadir decoración
 
 No se toca el árbol de nodos. En la raíz del `.tscn` de la sala:
@@ -98,10 +109,9 @@ lamps_o = Array[int]([3])
 dead_lamps_s = Array[int]([6])
 ```
 
-Cada sala debe sumar **3 focos activos como mínimo** entre `lamps_n/s/e/o`;
-`dead_lamps_*` no cuentan. Evitar el índice del carril de puerta (`6` en N/S, `3` en
-E/O) del lado que tenga puerta y no declarar un mismo lado/índice como activo y averiado.
-Para mejorar la cobertura se cambia la distribución, no las propiedades de `lamp.tscn`.
+Los focos actuales conservan `energy = 1.6` y amplían cobertura con
+`texture_scale = 1.35`. Evitar el carril central de puerta y no usar decals narrativos
+como fuentes de luz.
 
 `room.gd` los instancia en `_ready()`. Para un prop nuevo: escena en `world/props/`,
 `preload` y un `@export var ... : Array[Vector2i]` en `world/rooms/room.gd`.
@@ -121,9 +131,14 @@ añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **so
 - Tarjetas: `body_panel.gd` escucha `Inventory.slots_changed`; un slot vacío no conserva
   ni tarjeta ni curva.
 - Mapa local: `map_overlay.gd` lee `RunManager.current_map`, no `RoomDB.ROOMS`.
-  `build_layout()` debe aceptar cruces cardinales sin solaparlas.
+  `build_layout()` debe aceptar cruces cardinales sin solaparlas y solo recibir IDs
+  visitados.
 - Ruta global: `floor_route_overlay.gd` solo dibuja pisos, con Contención abajo y
   Superficie arriba; dura 3 s.
+- Portada: solo nombre, slime y prompt. Los controles secundarios quedan para el futuro
+  menú con botones.
+- Primera sala: `TutorialMural` enseña mantener dirección, cargar y soltar; es un prop
+  pasivo del mundo y debe dejar libres spawn y puertas.
 - Resolución lógica 1920×1080; comprobar también la salida 1280×720.
 
 Pruebas:
@@ -136,13 +151,30 @@ godot --headless --path prueba_2 res://tests/map_overlay_tests.tscn
 godot --headless --path prueba_2 res://tests/floor_route_tests.tscn
 ```
 
-Captura reproducible (`modo` = `map`, `tooltip`, `route` o `hud`):
+Captura reproducible (`modo` = `title`, `hud`, `map`, `tooltip`, `route` o `tutorial`):
 
 ```bash
 godot --path prueba_2 --windowed --resolution 1920x1080 \
   res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
 godot --path prueba_2 --windowed --resolution 1280x720 \
   res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
+```
+
+### Cambiar movimiento base
+
+- Mantener dirección carga; soltar inicia el arrastre.
+- Rango válido: `112–520 px`, calculado desde el umbral `MIN_CHARGE_TIME = 0.12`.
+- El tramo base avanza uniforme a `CRAWL_SPEED = 480 px/s`; más carga aumenta duración.
+- La deformación de `Body`/`Core` no mueve el `CharacterBody2D` ni cambia el círculo de
+  colisión de radio `45`.
+- El DASH conserva `_eased_speed()` y sus constantes propias; no copiarle el perfil base.
+
+Pruebas:
+
+```bash
+godot --headless --path prueba_2 --script res://tests/slime_movement_tests.gd
+godot --headless --path prueba_2 --script res://tests/run_slime_audio_tests.gd
+godot --headless --path prueba_2 res://tests/combat_smoke.tscn
 ```
 
 ### Ciclo de partida y rejillas

@@ -152,6 +152,8 @@ func _cleanup() -> void:
 		node.queue_free()
 	for _frame in range(8):
 		await process_frame
+	await create_timer(0.2).timeout
+	await process_frame
 
 
 func _assert_close(actual: float, expected: float, tolerance: float, label: String) -> void:

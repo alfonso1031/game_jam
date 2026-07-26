@@ -16,12 +16,8 @@ const MIN_CHARGE_TIME := 0.12
 const MIN_DISTANCE := 112.0
 const MAX_DISTANCE := 520.0
 
-# El recorrido no va a velocidad fija: sale acelerando y frena de forma
-# exponencial hacia el final. La distancia recorrida no cambia (la controla
-# `_remaining`), solo el reparto del tiempo — es lo que quita la sensación tosca.
+# El arrastre base avanza uniforme: la carga aumenta distancia y duración.
 const CRAWL_SPEED := 480.0
-# Arranque: fracción del pico con la que sale y tramo en el que acelera.
-# Cuanto más bajo el arranque y más largo el tramo, más se nota el despegue.
 
 const RECOVERY_TIME := 0.12
 # Chocar contra una pared cuesta caro: el slime queda aplastado y aturdido.
@@ -356,9 +352,8 @@ func _deflect(collision: KinematicCollision2D, dir: Vector2) -> Vector2:
 	move_and_collide(slide)
 	return slide.normalized()
 
-# Perfil compartido por el impulso y el DASH: arranca acelerando desde una
-# fracción del pico y cae exponencialmente hasta una velocidad final finita
-# (finita para que el recorrido termine en vez de arrastrarse).
+# Perfil exclusivo del DASH de habilidad: arranca acelerando y cae hacia una
+# velocidad final finita. El arrastre base no consume esta curva.
 func _eased_speed(
 	remaining_ratio: float,
 	peak: float,
@@ -720,14 +715,12 @@ func _update_visual(delta: float) -> void:
 
 	match _state:
 		State.CHARGING:
-			# Se comprime en el eje del lanzamiento y retrocede como un resorte.
-			# La curva hace que la compresión gane fuerza cerca de la carga plena.
+			# El frente se alarga sin desplazar el cuerpo físico.
 			body.rotation = lerp_angle(body.rotation, _charge_dir.angle(), 1.0 - exp(-14.0 * delta))
 		State.LAUNCHING:
 			body.rotation = lerp_angle(body.rotation, _facing.angle(), 1.0 - exp(-14.0 * delta))
 		State.DASHING, State.PART_DASH:
-			# El estiramiento sigue la velocidad real: se afila al salir y se
-			# redondea solo mientras frena, en vez de un valor fijo todo el vuelo.
+			# El DASH conserva un estiramiento rápido independiente del arrastre.
 			target_scale = Vector2(1.0 + _speed_ratio * 0.36, 1.0 - _speed_ratio * 0.26)
 			body.rotation = lerp_angle(body.rotation, _facing.angle(), 1.0 - exp(-22.0 * delta))
 		State.RECOVERING:

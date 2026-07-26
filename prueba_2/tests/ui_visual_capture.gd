@@ -1,9 +1,12 @@
 extends Node
 
 const RunMap := preload("res://core/run_map.gd")
+const MapGenerator := preload("res://core/map_generator.gd")
+const RoomAssembler := preload("res://world/rooms/room_assembler.gd")
 const MapOverlayScene := preload("res://ui/map_overlay.tscn")
 const FloorRouteScene := preload("res://ui/floor_route_overlay.tscn")
 const HUDScene := preload("res://ui/hud.tscn")
+const TitleScene := preload("res://ui/title.tscn")
 
 var _frames := 0
 var _output_path := ""
@@ -21,6 +24,12 @@ func _ready() -> void:
 			_target_size = Vector2i(int(dimensions[0]), int(dimensions[1]))
 	_prepare_fixture()
 	match mode:
+		"title":
+			var title: Control = TitleScene.instantiate()
+			add_child(title)
+			title.set_process_unhandled_input(false)
+		"tutorial":
+			_prepare_tutorial_room()
 		"route":
 			var route: Control = FloorRouteScene.instantiate()
 			add_child(route)
@@ -41,6 +50,21 @@ func _ready() -> void:
 			var overlay: Control = MapOverlayScene.instantiate()
 			add_child(overlay)
 			overlay.visible = true
+
+
+func _prepare_tutorial_room() -> void:
+	$Background.visible = false
+	GameState.reset_run()
+	Inventory.reset_run()
+	var run_map: RefCounted = MapGenerator.new().generate(1785033756)
+	assert(run_map != null, "la seed visual debe generar Contención")
+	RunManager.current_map = run_map
+	RunManager.current_seed = 1785033756
+	RunManager.active = true
+	GameState.current_room = run_map.entry_room_id
+	GameState.visited[run_map.entry_room_id] = true
+	var room: Node2D = RoomAssembler.build(run_map.room(run_map.entry_room_id))
+	add_child(room)
 
 
 func _process(_delta: float) -> void:

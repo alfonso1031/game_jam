@@ -158,7 +158,8 @@ navegación nueva no lo consulta.
 propuestas y no relaja reglas. Contrato de Contención:
 
 - camino principal de 6–8 salas y máximo 12 contando destinos de rejilla;
-- entrada/tutorial, preboss penúltimo y elección de boss al final;
+- entrada/tutorial, cuerpo con primera parte en la segunda sala, preboss penúltimo y
+  elección de boss al final;
 - salas normales: fácil 40 %, difícil 30 %, vacía 20 %, cierre 10 %;
 - cierre con exactamente tres puertas y conservación del camino al boss;
 - rejilla en 60 % de combates elegibles, mínimo una si existe combate, máximo una por
@@ -173,6 +174,26 @@ horizontalmente los PNG `NO` y `ES`; el destino exclusivo de rejilla reserva una
 visual sin crear una puerta normal. `RoomDB.template_for()` solo conserva la fachada para
 el ensamblador. `MapGenerator.validate()` rechaza cualquier descriptor sin plantilla antes
 de que `Transition` pueda materializarlo.
+
+### Primer hito: cuerpo y parte
+
+`main_path[0]` siempre es `entry/tutorial`; `main_path[1]` siempre es
+`body/body_reward`, conecta directamente con la entrada, tiene exactamente dos puertas y
+no puede alojar rejilla. `MapGenerator` selecciona de forma determinista una parte inicial
+desde `FIRST_PART_POOL` y la guarda en `reward_part_id`.
+
+`ProceduralRoom` consulta las conexiones reales del descriptor, no IDs ni orientaciones
+fijas:
+
+- en la entrada, `BloodTrail` va del centro hacia la puerta que conduce al cuerpo;
+- en la segunda sala, continúa desde la puerta de entrada hasta `BODY_POSITION`, añade
+  charco e instancia `BodySource`;
+- salas normales no reciben cuerpo ni sangre narrativa.
+
+`BodySource` crea un único `PartPickup`. La sala se marca en
+`GameState.claimed_room_rewards` solo al recogerlo: salir antes conserva la recompensa,
+volver después no la duplica y `reset_run()` la libera para la siguiente partida. Cuerpo,
+gotas, arrastre y charco son PNG transparentes; ninguno tiene colisión.
 
 ### Flujo de transición (`transition.gd`)
 
@@ -308,46 +329,40 @@ IDLE ──mantener dirección──▶ CHARGING ──soltar──▶ LAUNCHING
 | `MIN_CHARGE_TIME` | 0.12 s | **Mínimo para que haya impulso** |
 | `MIN_DISTANCE` | 112 px | Distancia con carga mínima |
 | `MAX_DISTANCE` | 520 px | Distancia con carga completa |
-| `LAUNCH_PEAK_SPEED` | 2100 px/s | Velocidad de crucero |
-| `LAUNCH_END_SPEED` | 120 px/s | Velocidad al llegar |
-| `LAUNCH_START` | 0.18 | Fracción del pico con la que despega |
-| `LAUNCH_RAMP` | 0.28 | Tramo del recorrido en el que acelera |
+| `CRAWL_SPEED` | 480 px/s | Velocidad uniforme del arrastre base |
 | `RECOVERY_TIME` | 0.12 s | Pausa tras un recorrido limpio |
 | `WALL_RECOVERY_TIME` | 0.45 s | **Aturdimiento al chocar contra una pared** |
 | `FIZZLE_RECOVERY_TIME` | 0.28 s | Penalización por soltar antes del mínimo |
 
-`distancia = lerp(112, 520, carga / 1.0)`. Las diagonales se normalizan: no dan ventaja.
-
-### Curva de velocidad
-
-El recorrido **no** va a velocidad constante — eso era lo que lo hacía sentir tosco.
-`_eased_speed()` reparte el tiempo con este perfil, compartido por el impulso y el DASH:
+La barra y el audio usan la carga total `carga / 1.0`; la distancia empieza a contar
+después del umbral válido:
 
 ```
-velocidad = fin + (pico − fin) · restante^ease         ← frenada exponencial
-          · lerp(START, 1.0, smoothstep(arranque))     ← salida acelerada
+potencia_recorrido = clamp((carga − 0.12) / (1.0 − 0.12), 0, 1)
+distancia = lerp(112, 520, potencia_recorrido)
 ```
 
-- **Despega al 18 % del pico** y tarda el primer 28 % del recorrido en alcanzarlo: el
-  arranque se siente pesado, como un cuerpo blando que se despega del suelo.
-- La amplitud de la exponencial es alta a propósito (2100 → 120 px/s): entre el crucero y
-  la llegada hay casi 18×, así que el frenado se nota como un frenado y no como un corte.
-- `END_SPEED` es **finita a propósito**: si tendiera a cero, el recorrido se arrastraría
-  sin terminar nunca.
-- **La distancia no cambia**, la controla `_remaining`. Solo cambia cómo se reparte el
-  tiempo, así que toda la calibración de alcance sigue valiendo.
+Las diagonales se normalizan: no dan ventaja.
+
+### Arrastre uniforme
+
+El tramo `LAUNCHING` usa `_remaining` como autoridad y avanza a `480 px/s` multiplicados
+por buffs/estados. Cargar más aumenta la **duración y distancia**, no crea un pico de
+velocidad. El último frame se recorta a la distancia pendiente para terminar exactamente
+en 112–520 px.
 
 Duración resultante del impulso cargado:
 
 | Carga | Distancia | Duración |
 |---|---:|---:|
-| Mínima | 112 px | 0.14 s |
-| Media | 316 px | 0.39 s |
-| Completa | 520 px | 0.65 s |
+| Mínima válida | 112 px | 0.23 s |
+| Media del rango válido | 316 px | 0.66 s |
+| Completa | 520 px | 1.08 s |
 
-El cuerpo se estira en proporción a la velocidad real (`_speed_ratio`), no a un valor fijo:
-se afila al salir y se redondea solo mientras frena. Todo el suavizado visual usa
-`1 − exp(−k·delta)`, así que es independiente del framerate.
+La carga deforma el frente de los `Polygon2D` y el arrastre recorre una onda longitudinal
+corta. Es presentación pura: `CharacterBody2D` no se desplaza mientras carga y su única
+colisión sigue siendo el círculo de radio `45`. Al volver a reposo, cada punto interpola
+hacia su polígono base. El DASH conserva aparte su escala rápida y `_eased_speed()`.
 
 **Anti-machaque.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
 0.28 s inmóvil. El umbral es corto a propósito — castiga el machaque sin volver torpe un
@@ -375,7 +390,7 @@ no servirían de nada: golpearlas contaría como choque. Aplica igual al DASH.
 
 ### DASH de habilidad
 
-Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 0.32 s con la misma curva
+Recompensa del boss, mecánica aparte: ver §9. `Shift`/`Espacio`, 0.32 s con su curva
 (pico 2200 px/s → 300 px/s, arranque al 30 %), invulnerable, cooldown 0.8 s, atraviesa
 huecos. Se lanza en la última dirección cargada y no se puede usar en pleno impulso ni en
 recuperación.
@@ -423,9 +438,9 @@ proyecto, y solo después sus pruebas:
 
 ### Presentación
 
-- **Squash & stretch procedural:** se comprime en el eje del lanzamiento mientras carga y
-  retrocede como un resorte; se estira en vuelo; queda aplastado en la recuperación;
-  quieto, respira con un `sin(t)`. Solo geometría, sin arte.
+- **Deformación peristáltica:** durante la carga se estira solo el frente; durante el
+  arrastre una onda longitudinal recorre el mismo cuerpo. Los puntos regresan al polígono
+  base en reposo y nunca gobiernan la colisión.
 - Núcleo `#73efe8` con opacidad pulsante y `PointLight2D` propia → el slime es la
   fuente de luz principal.
 - Las habilidades se consultan con `GameState.has_ability("dash")`, nunca se guardan en
@@ -438,8 +453,7 @@ proyecto, y solo después sus pruebas:
 ## 8. HUD y mapa
 
 **`hud.tscn` (CanvasLayer, siempre visible)**
-- Arriba-izquierda: barra de biomasa `HP actual / 15 HP`; un HP equivale a medio corazón.
-- Arriba-centro: `NIVEL -3 · CONTENCIÓN` + nombre de sala.
+- Arriba-izquierda: barra `HP actual / 15 HP`; un HP equivale a medio corazón.
 - Arriba-derecha: minimapa de la generación activa, escalado desde el `grid`.
 
 La vida se actualiza por `health_changed` y el mapa por `room_changed`; no sondea estado
@@ -455,8 +469,15 @@ desde `_process()`.
 - Mitad derecha: **solo el mapa local de Contención** desde
   `RunManager.current_map`. Admite cruces N/E/S/O y calcula escala/origen por los extremos
   reales del `grid`; nunca asume una lista fija.
-- Muestra actual, visitadas y vecinas de visitadas. Los destinos de rejilla aparecen
-  después de `GameState.discover_grate()` y usan enlace discontinuo.
+- Muestra exclusivamente salas visitadas. Las puertas hacia espacios desconocidos no
+  revelan nodos ni destinos de rejilla por anticipado.
+
+**Tutorial ambiental**
+- La portada conserva nombre, slime y `PULSA CUALQUIER TECLA`; los controles secundarios
+  esperan el futuro menú con botones.
+- `TutorialMural` pertenece al mundo y aparece una sola vez en `entry/tutorial`.
+- Enseña mantener dirección, cargar y soltar mediante pictogramas; no pausa, no procesa
+  input y su huella deja libres el spawn y las puertas.
 
 **`floor_route_overlay.tscn`**
 - Reacciona a `RunManager.floor_completed`; no contiene habitaciones.
@@ -586,7 +607,7 @@ podrían haber quedado trabados a mitad de una transición.
 | 3 | `RunMap`, generador, ensamblador y transiciones procedurales | ✅ |
 | 4 | Contención: 6–8 hitos, cierres, reconexiones y rejillas | ✅ |
 | 5 | HUD + overlay de mapa | ✅ |
-| 6 | Ambientación: oscuridad, mínimo 3 lámparas activas por sala, props, carteles | ✅ |
+| 6 | Ambientación: focos a energía 1.6/radio 1.35, cuerpo, sangre y mural | ✅ |
 | 7 | Boss 1 + pickup + DASH + hueco | ✅ |
 | 8 | Ciclo de muerte sin respawn y resumen reproducible | ✅ |
 | 9 | Barra 5/15, tooltips, cuerpo conectado y mapas local/global | ✅ |
@@ -605,9 +626,9 @@ futuros y no se simulan con salas fijas durante la partida activa.
   `world/rooms/room.gd`.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
-- `tests/ui_visual_capture.tscn` construye una cruz cardinal con seis partes y permite
-  capturar `map`, `tooltip`, `route` o `hud`; el tercer argumento fija el tamaño físico
-  final de la evidencia cuando el viewport lógico sigue siendo 1080p.
+- `tests/ui_visual_capture.tscn` construye fixtures reproducibles y permite capturar
+  `title`, `hud`, `map`, `tooltip`, `route` o `tutorial`; el tercer argumento fija el
+  tamaño físico final cuando el viewport lógico sigue siendo 1080p.
 - `combat_smoke.tscn` ensambla las 16 configuraciones cardinales, incluidas `NE`, `SO` y
   el destino de rejilla sin puertas normales. `run_map_tests.gd` comprueba además que cada
   sala de 1.000 seeds aceptadas tenga una plantilla renderizable.

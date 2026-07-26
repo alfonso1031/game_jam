@@ -163,17 +163,16 @@ lo detectan al instante.
     vuelve infranqueable y **el juego se queda sin final**. Recalcular la integral antes
     de modificar `DASH_PEAK_SPEED`, `DASH_END_SPEED`, `DASH_EASE`, `DASH_RAMP`,
     `DASH_START` o `DASH_TIME`. En el impulso cargado esto no aplica: ahí la distancia la
-    fija `_remaining` y la curva solo reparte el tiempo.
+    fija `_remaining` y el tramo base avanza uniforme a `CRAWL_SPEED`.
 
 14. **No existen checkpoints ni respawn.** La vida máxima es `15 HP`, se empieza con
     `5 HP` y cada HP representa medio corazón. Completar Contención cura `+2 HP` una sola
     vez durante la partida actual. Llegar a cero llama `RunManager.end_run()` y muestra
     el resumen; continuar exige una partida nueva.
 
-15. **Cada sala mantiene al menos tres focos activos.** `dead_lamps_*` no cuenta como
-    iluminación y un mismo lado/índice no puede estar activo y averiado a la vez. Respetar
-    el carril central de las puertas; mejorar cobertura agregando o redistribuyendo focos,
-    sin alterar energía, radio, color ni parpadeo de `lamp.tscn`.
+15. **La iluminación conserva intensidad, no cobertura antigua.** Cada foco usa energía
+    `1.6` y `texture_scale = 1.35`; no bajar intensidad al ampliar el radio. Respetar el
+    carril central de puertas y no convertir los decals narrativos en luces.
 
 16. **Contención se genera, no se enumera en `RoomDB.ROOMS`.** `MapGenerator` y `RunMap`
     viven en `core/`, son deterministas por `(seed, attempt)` y no pueden importar
@@ -186,15 +185,25 @@ lo detectan al instante.
     combate elegible.
 
 18. **El mapa de `TAB` es local y procedural.** Lee `RunManager.current_map`, nunca
-    `RoomDB.ROOMS`, y debe admitir vecinos N/E/S/O simultáneos. Solo muestra la sala
-    actual, visitadas, vecinas de visitadas y destinos de rejilla descubiertos. La ruta
-    global es otro overlay: cuatro pisos, Contención abajo y Superficie arriba, sin
-    nodos de habitaciones.
+    `RoomDB.ROOMS`, y debe admitir vecinos N/E/S/O simultáneos. Solo muestra salas
+    visitadas; una puerta hacia lo desconocido no revela el destino ni una rejilla lo
+    descubre por anticipado. La ruta global es otro overlay: cuatro pisos, Contención
+    abajo y Superficie arriba, sin nodos de habitaciones.
 
 19. **`PartsDB` es la única fuente de nombres y descripciones de partes.** Tooltips y
     tarjetas llaman `display_name()` / `description()`; no duplicar textos en escenas.
     Comer, perder o sacrificar una parte debe retirar tarjeta, tooltip y curva por la
     señal `slots_changed`.
+
+20. **La primera sala enseña movimiento dentro del mundo.** `TutorialMural` aparece solo
+    en `entry/tutorial` y explica mantener dirección, cargar y soltar. La portada no
+    enumera controles; inventario, pausa, mapa, pantalla completa y DASH esperan el futuro
+    menú con botones. El mural es pasivo, no pausa y no puede bloquear spawn ni puertas.
+
+21. **El cuerpo es el segundo hito, no contenido aleatorio.** `main_path[1]` usa rol
+    `body`, contenido `body_reward`, dos puertas y ninguna rejilla. El rastro se orienta
+    desde las conexiones de `RunMap`; la parte se reclama al recogerla y no reaparece
+    durante esa partida. No fijar IDs de sala ni una dirección cardinal.
 
 ---
 
