@@ -20,6 +20,18 @@ func _run() -> void:
 	var panel: Control = scene.instantiate()
 	add_child(panel)
 	await get_tree().process_frame
+	var test_mode: Button = panel.get_node_or_null("TestMode") as Button
+	_check(test_mode != null, "TAB expone el modo de prueba")
+	_check(
+		panel.has_method("toggle_infinite_health"),
+		"el panel expone el interruptor de vida infinita"
+	)
+	if test_mode != null and panel.has_method("toggle_infinite_health"):
+		test_mode.pressed.emit()
+		_check(GameState.infinite_health, "clic activa vida infinita")
+		_check(test_mode.text.ends_with("SÍ"), "el texto refleja el modo activo")
+		test_mode.pressed.emit()
+		_check(not GameState.infinite_health, "un segundo clic lo apaga")
 	Inventory.pick_up("serrated_jaw")
 	await get_tree().process_frame
 

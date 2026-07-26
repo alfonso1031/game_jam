@@ -32,6 +32,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("pause"):
 		_toggle()
+	elif event.is_action_pressed("test_mode"):
+		body_panel.call("toggle_infinite_health")
 	elif event.is_action_pressed("move_left"):
 		body_panel.call("move_selection", Vector2.LEFT)
 	elif event.is_action_pressed("move_right"):

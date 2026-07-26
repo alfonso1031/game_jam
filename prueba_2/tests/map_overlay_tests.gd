@@ -69,6 +69,10 @@ func _run() -> void:
 	var body_panel: Control = overlay.get_node("BodyPanel")
 	_check(body_panel.get("selected_slot") == 0, "TAB selecciona la primera parte")
 
+	overlay.call("_unhandled_input", _action_event(&"test_mode"))
+	_check(GameState.infinite_health, "TAB entrega V al modo de prueba")
+	_check(not Inventory.is_empty(0), "V no consume la parte seleccionada")
+
 	overlay.call("_unhandled_input", _action_event(&"move_right"))
 	_check(body_panel.get("selected_slot") == 2, "TAB entrega las flechas al cuerpo")
 	overlay.call("_unhandled_input", _action_event(&"consume"))
