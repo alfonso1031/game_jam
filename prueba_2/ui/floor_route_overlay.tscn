@@ -1,0 +1,194 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/floor_route_overlay.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="RoutePanel"]
+bg_color = Color(0.0196078, 0.0431373, 0.0470588, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.117647, 0.611765, 0.607843, 0.9)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="FloorRouteOverlay" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+script = ExtResource("1")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0352941, 0.0627451, 0.0666667, 0.96)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 150.0
+offset_top = 86.0
+offset_right = -150.0
+offset_bottom = -86.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("RoutePanel")
+
+[node name="Title" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 38.0
+offset_top = 28.0
+offset_right = 1582.0
+offset_bottom = 78.0
+theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_font_sizes/font_size = 34
+text = "RUTA DE ASCENSO"
+
+[node name="Timer" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 1130.0
+offset_top = 35.0
+offset_right = 1545.0
+offset_bottom = 72.0
+theme_override_colors/font_color = Color(0.490196, 0.839216, 0.827451, 1)
+theme_override_font_sizes/font_size = 18
+text = "TRANSICIÓN AUTOMÁTICA · 3 S"
+horizontal_alignment = 2
+
+[node name="Divider" type="ColorRect" parent="Panel"]
+layout_mode = 0
+offset_left = 38.0
+offset_top = 90.0
+offset_right = 1544.0
+offset_bottom = 92.0
+color = Color(0.117647, 0.611765, 0.607843, 0.4)
+
+[node name="RouteLine" type="ColorRect" parent="Panel"]
+layout_mode = 0
+offset_left = 786.0
+offset_top = 164.0
+offset_right = 791.0
+offset_bottom = 678.0
+color = Color(0.490196, 0.839216, 0.827451, 0.55)
+
+[node name="SurfaceMarker" type="ColorRect" parent="Panel"]
+layout_mode = 0
+offset_left = 769.0
+offset_top = 150.0
+offset_right = 807.0
+offset_bottom = 188.0
+rotation = 0.785398
+color = Color(0.92549, 0.952941, 0.690196, 1)
+
+[node name="Surface" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 835.0
+offset_top = 142.0
+offset_right = 1410.0
+offset_bottom = 198.0
+theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_font_sizes/font_size = 23
+text = "NIVEL 0 · SUPERFICIE
+OBJETIVO"
+
+[node name="MaintenanceMarker" type="ColorRect" parent="Panel"]
+layout_mode = 0
+offset_left = 773.0
+offset_top = 320.0
+offset_right = 803.0
+offset_bottom = 350.0
+rotation = 0.785398
+color = Color(0.196078, 0.32549, 0.372549, 1)
+
+[node name="Maintenance" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 835.0
+offset_top = 306.0
+offset_right = 1410.0
+offset_bottom = 364.0
+theme_override_colors/font_color = Color(0.490196, 0.839216, 0.827451, 0.72)
+theme_override_font_sizes/font_size = 23
+text = "NIVEL -1 · MANTENIMIENTO
+ZONA FUTURA"
+
+[node name="BiolabsMarker" type="ColorRect" parent="Panel"]
+layout_mode = 0
+offset_left = 773.0
+offset_top = 488.0
+offset_right = 803.0
+offset_bottom = 518.0
+rotation = 0.785398
+color = Color(0.196078, 0.32549, 0.372549, 1)
+
+[node name="Biolabs" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 835.0
+offset_top = 474.0
+offset_right = 1410.0
+offset_bottom = 532.0
+theme_override_colors/font_color = Color(0.490196, 0.839216, 0.827451, 0.72)
+theme_override_font_sizes/font_size = 23
+text = "NIVEL -2 · BIO-LABORATORIOS
+ZONA FUTURA"
+
+[node name="ContainmentMarker" type="ColorRect" parent="Panel"]
+layout_mode = 0
+offset_left = 767.0
+offset_top = 650.0
+offset_right = 809.0
+offset_bottom = 692.0
+rotation = 0.785398
+color = Color(0.45098, 0.937255, 0.909804, 1)
+
+[node name="Containment" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 835.0
+offset_top = 638.0
+offset_right = 1410.0
+offset_bottom = 706.0
+theme_override_colors/font_color = Color(0.45098, 0.937255, 0.909804, 1)
+theme_override_font_sizes/font_size = 23
+text = "NIVEL -3 · CONTENCIÓN
+ORIGEN · SUPERADA"
+
+[node name="Direction" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 525.0
+offset_top = 360.0
+offset_right = 745.0
+offset_bottom = 470.0
+theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_font_sizes/font_size = 72
+text = "↑"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 38.0
+offset_top = 744.0
+offset_right = 1544.0
+offset_bottom = 790.0
+theme_override_colors/font_color = Color(0.92549, 0.952941, 0.690196, 1)
+theme_override_font_sizes/font_size = 22
+text = "CONTENCIÓN SUPERADA · +2 HP"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 38.0
+offset_top = 796.0
+offset_right = 1544.0
+offset_bottom = 832.0
+theme_override_colors/font_color = Color(0.490196, 0.839216, 0.827451, 1)
+theme_override_font_sizes/font_size = 17
+text = "E / ESPACIO / TAB PARA CONTINUAR"
+horizontal_alignment = 1
