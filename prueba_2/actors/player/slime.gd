@@ -19,13 +19,9 @@ const MAX_DISTANCE := 520.0
 # El recorrido no va a velocidad fija: sale acelerando y frena de forma
 # exponencial hacia el final. La distancia recorrida no cambia (la controla
 # `_remaining`), solo el reparto del tiempo — es lo que quita la sensación tosca.
-const LAUNCH_PEAK_SPEED := 2100.0
-const LAUNCH_END_SPEED := 120.0
-const LAUNCH_EASE := 0.7
+const CRAWL_SPEED := 480.0
 # Arranque: fracción del pico con la que sale y tramo en el que acelera.
 # Cuanto más bajo el arranque y más largo el tramo, más se nota el despegue.
-const LAUNCH_START := 0.18
-const LAUNCH_RAMP := 0.28
 
 const RECOVERY_TIME := 0.12
 # Chocar contra una pared cuesta caro: el slime queda aplastado y aturdido.
@@ -265,6 +261,14 @@ func _max_charge_time() -> float:
 func _charge_power() -> float:
 	return clampf(_charge_time / _max_charge_time(), 0.0, 1.0)
 
+
+func _distance_power() -> float:
+	var duration := _max_charge_time() - MIN_CHARGE_TIME
+	if duration <= 0.0:
+		return 1.0
+	return clampf((_charge_time - MIN_CHARGE_TIME) / duration, 0.0, 1.0)
+
+
 func _begin_charge(direction: Vector2) -> void:
 	# Inmovilizado no se puede cargar: la red del Arácnido te deja vendido.
 	if has_status(PartsDB.STATUS_ROOT) or _whiff_lock > 0.0:
@@ -290,20 +294,18 @@ func _release_charge() -> void:
 		slime_audio.fizzle()
 		_begin_recovery(FIZZLE_RECOVERY_TIME)
 		return
-	_launch_power = _charge_power()
+	_launch_power = _distance_power()
 	_remaining = lerpf(MIN_DISTANCE, MAX_DISTANCE, _launch_power)
 	_launch_distance = _remaining
 	_state = State.LAUNCHING
 	slime_audio.launch()
 
 func _advance_launch(delta: float) -> void:
-	var peak := LAUNCH_PEAK_SPEED * _speed_multiplier()
-	var ratio: float = clampf(_remaining / _launch_distance, 0.0, 1.0)
-	var speed := _eased_speed(ratio, peak, LAUNCH_END_SPEED, LAUNCH_EASE, LAUNCH_RAMP, LAUNCH_START)
-	_speed_ratio = speed / peak
+	var speed := CRAWL_SPEED * _speed_multiplier()
+	_speed_ratio = clampf(speed / CRAWL_SPEED, 0.0, 1.5)
 	velocity = _charge_dir * speed
 
-	var step: float = min(speed * delta, _remaining)
+	var step: float = minf(speed * delta, _remaining)
 	var collision := move_and_collide(_charge_dir * step)
 	_remaining -= step
 
