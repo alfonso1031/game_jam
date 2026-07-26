@@ -35,6 +35,7 @@ func _ready() -> void:
 func _run() -> void:
 	await _test_health_halves()
 	await _test_inventory_rules()
+	await _test_ability_number_input()
 	await _test_every_part()
 	await _test_every_enemy()
 	await _test_drop_rules()
@@ -220,6 +221,26 @@ func _has_property(object: Object, property_name: StringName) -> bool:
 		if property["name"] == property_name:
 			return true
 	return false
+
+
+func _test_ability_number_input() -> void:
+	Inventory.reset_run()
+	_check(Inventory.pick_up("serrated_jaw"), "la habilidad de prueba ocupa el slot 1")
+	_check(
+		_runner.has_method("_unhandled_input"),
+		"AbilityRunner recibe directamente los eventos numéricos"
+	)
+	if _runner.has_method("_unhandled_input"):
+		var event := InputEventAction.new()
+		event.action = &"ability_1"
+		event.pressed = true
+		_runner._unhandled_input(event)
+		_check(
+			Inventory.cooldown_left(0) > 0.0,
+			"pulsar 1 activa la parte equipada en el slot 1"
+		)
+	Inventory.reset_run()
+	await get_tree().process_frame
 
 func _test_every_part() -> void:
 	Inventory.reset_run()

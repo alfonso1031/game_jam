@@ -212,7 +212,9 @@ Las salas normales seleccionan de forma determinista y con el mismo peso entre
 pool (25 %). El preboss genera tres enemigos por defecto; sus dos acompañantes proceden
 solo de `exp01`–`exp03` y el último enemigo siempre es un `exp07` marcado como líder.
 Como `exp07` solo declara `crusher_claw` en `drop_parts`, derrotar al líder garantiza
-la Tenaza Trituradora.
+la Tenaza Trituradora. El Crustáceo Triturador no tiene escudo ni bloquea ataques:
+recibe daño desde cualquier dirección. Si el slime invade su espacio de 105 px, retrocede
+en vez de quedar superpuesto o arrastrarlo.
 
 ### Flujo de transición (`transition.gd`)
 
@@ -521,7 +523,7 @@ lienzos transparentes de 1920 × 1080; `tools/art/process_exp07_claw_frames.gd`
 usa un recorte común y produce los cinco PNG runtime de 192 × 108.
 
 `PINCH_WINDUP` dura 0,8 s y reproduce 00→04 a 6,25 FPS. Al vencer el
-temporizador, `_pinch()` aplica una sola vez el cono de 220 px, 50° y su
+temporizador, `_pinch()` aplica una sola vez el cono de 150 px, 50° y su
 retroceso; después `RECOVER` reproduce 04→00 a 8,333333 FPS durante 0,6 s. El
 sprite nunca aplica daño por señales y esta secuencia no pertenece al slime.
 

@@ -95,7 +95,7 @@ func _on_ready() -> void:
 func _tick_ai(_delta: float) -> void:
 	pass
 
-# Los experimentos con guardia frontal (Crustáceo) sobrescriben esto.
+# Punto de extensión para enemigos que puedan tener una guardia frontal.
 func _blocks_from(_attack_position: Vector2) -> bool:
 	return false
 

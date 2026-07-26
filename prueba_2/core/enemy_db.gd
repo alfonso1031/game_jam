@@ -63,8 +63,7 @@ const SPAWNS := {
 		{"type": "exp01", "cell": Vector2i(4, 4)},
 		{"type": "exp03", "cell": Vector2i(8, 2), "leader": true},
 	],
-	# El Crustáceo tapa el paso mientras las Anguilas te pican por los lados:
-	# obliga a estrenar una parte que rompa escudos o a rodearlo.
+	# El Crustáceo presiona con su tenaza mientras las Anguilas atacan por los lados.
 	"L1_TALLER": [
 		{"type": "exp04", "cell": Vector2i(4, 1)},
 		{"type": "exp04", "cell": Vector2i(8, 5)},
@@ -97,7 +96,7 @@ const DISPLAY_NAMES := {
 	"exp04": "Anguila Voltaica",
 	"exp05": "Quimera Alada",
 	"exp06": "Bestia Térmica",
-	"exp07": "Crustáceo Escudo",
+	"exp07": "Crustáceo Triturador",
 	"exp08": "Cuerpo Fúngico",
 	"exp09": "Gólem de Metal Sólido",
 	"exp10": "Mutante Parásito",

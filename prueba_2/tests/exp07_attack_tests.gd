@@ -94,15 +94,16 @@ func _check_state_contract() -> void:
 	)
 
 	enemy.set("facing", Vector2.RIGHT)
-	player.global_position = enemy.global_position + Vector2(-100.0, 0.0)
-	enemy._advance(0.1)
+	player.global_position = enemy.global_position + Vector2(60.0, 0.0)
+	enemy.velocity = Vector2.ZERO
+	enemy._tick_ai(0.1)
 	_check(
-		enemy.get("facing") == Vector2.RIGHT,
-		"EXP07 no gira el escudo para seguir al jugador dentro del alcance"
+		enemy.velocity.dot(Vector2.LEFT) > 0.0,
+		"EXP07 se aparta cuando el jugador invade su espacio"
 	)
 	enemy.set("health", 1)
 	enemy.take_damage(1, player.global_position)
-	_check(bool(enemy.get("_dead")), "EXP07 muere al recibir daño por la espalda")
+	_check(bool(enemy.get("_dead")), "EXP07 muere con daño frontal y no tiene escudo")
 
 	player.queue_free()
 	enemy.queue_free()

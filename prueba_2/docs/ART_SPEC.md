@@ -20,8 +20,8 @@ y el tamaño** o hay que reajustar colisiones y equilibrio.
 
 ### Iluminación — leer esto antes de pintar
 
-El juego oscurece toda la escena a **~47 % de brillo** (`CanvasModulate` a
-`0.45, 0.48, 0.50`) y luego la vuelve a iluminar con luces 2D puntuales
+El juego oscurece toda la escena con una penumbra azulada (`CanvasModulate` a
+`0.28, 0.31, 0.34`) y luego la vuelve a iluminar con luces 2D puntuales
 (lámparas de pared, el propio slime, las partes en el suelo).
 
 Consecuencias para diseño:
@@ -96,7 +96,7 @@ cambia es cuánto ocupa el cuerpo dentro.
 | 04 | Anguila Voltaica | 84 px | Alargado fino, translúcido | 2 |
 | 05 | Quimera Alada | 80 px | Triangular, alas | 2 |
 | 06 | Bestia Térmica | 92 px | Hexágono macizo, vetas al rojo | 4 |
-| 07 | Crustáceo Escudo | 108 px | Ancho, **una tenaza enorme al frente** | 4 |
+| 07 | Crustáceo Triturador | 108 px | Ancho, **una tenaza enorme al frente** | 4 |
 | 08 | Cuerpo Fúngico | 88 px | Humanoide irregular | 3 |
 | 09 | Gólem de Metal Sólido | 112 px | Bloque cuadrado | 6 |
 | 10 | Mutante Parásito | 100 px | Masa amorfa, tentáculo | 3 |
@@ -106,9 +106,8 @@ cambia es cuánto ocupa el cuerpo dentro.
 Tres siluetas tienen que comunicar su regla **de un vistazo**, o el jugador
 pierde vida sin entender por qué:
 
-- **07 Crustáceo:** bloquea el daño que le llega de frente en un cono de 100°.
-  La tenaza tiene que leerse como escudo y **verse claramente hacia dónde
-  apunta**.
+- **07 Crustáceo:** mantiene una distancia corta y avisa el pellizco antes de
+  atacar. La tenaza debe **verse claramente hacia dónde apunta**.
 - **03 Saurio:** es ciego y solo ataca si lo rodeas. Que no tenga ojos, y que
   se note su frente.
 - **09 Gólem:** su embestida es imparable. Tiene que verse macizo y lento, muy
@@ -304,14 +303,24 @@ enemigo, no diez.
 | Qué | Dónde | Notas |
 |---|---|---|
 | 13 fondos de sala | `assets/environment/rooms/` | Cubren las variantes base; `NE` y `SO` reutilizan esquinas espejadas y la sala de rejilla reserva una abertura sin puerta normal. |
-| **07 Crustáceo Escudo** | `assets/enemies/exp07_crustacean/` | 3 fotogramas. Es el primer experimento con arte. |
+| **07 Crustáceo Triturador** | `assets/enemies/exp07_crustacean/` | 3 poses de avance y 5 fotogramas ilustrados de pellizco. |
 
-El Crustáceo llegó como **tres poses de la misma postura a tres alturas**
-(agachado, medio, encabritado), no como estados sueltos. De ahí salen sus tres
-estados reutilizando la tirada en los dos sentidos: sube durante
-`pinch_windup`, se queda arriba en el golpe y baja en `recover`. Está en
-`actors/enemies/exp07_crustacean_frames.tres`, y `tests/check_enemy_animations.tscn`
-avisa si un estado pide una animación que no existe.
+El Crustáceo conserva sus tres poses originales para `advance`. El ataque usa
+cinco fuentes transparentes de 1920 × 1080 guardadas en
+`assets/enemies/exp07_crustacean/source_attack/`. La herramienta reproducible
+`tools/art/process_exp07_claw_frames.gd` calcula un recorte común y genera
+`exp07_pinch_00.png`…`04.png` a 192 × 108 para runtime.
+
+`actors/enemies/exp07_crustacean_frames.tres` reproduce los cinco fotogramas a
+6,25 FPS durante los 0,8 s de `pinch_windup` y los invierte a 8,333333 FPS
+durante los 0,6 s de `recover`. La animación solo comunica el ataque:
+`exp07_crustacean.gd::_pinch()` sigue siendo la única autoridad que aplica daño
+y retroceso al terminar el aviso. **Esta secuencia pertenece al enemigo EXP07;
+no se reutiliza en el slime ni en la parte `crusher_claw`.**
+
+`tests/exp07_asset_tests.tscn`, `tests/exp07_attack_tests.tscn` y
+`tests/check_enemy_animations.tscn` protegen tamaño, orden, velocidades y
+correspondencia entre estados y animaciones.
 
 **Cómo entra el arte de un experimento nuevo:** en su `.tscn`, cambiar el nodo
 `Body` (Polygon2D) por uno llamado `Sprite` (AnimatedSprite2D) con su
