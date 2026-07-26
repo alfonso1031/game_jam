@@ -3,8 +3,11 @@ extends Node2D
 const EnemyDB := preload("res://core/enemy_db.gd")
 const DoorScene := preload("res://world/props/door.tscn")
 const LampScene := preload("res://world/props/lamp.tscn")
+const BloodTrailScene := preload("res://world/props/blood_trail.tscn")
+const BodySourceScene := preload("res://world/props/body_source.tscn")
 
 const ROOM_CENTER := Vector2(960, 540)
+const BODY_POSITION := Vector2(1060, 540)
 const INTERIOR_ORIGIN := Vector2(180, 120)
 const CELL := 120.0
 const DOOR_POSITIONS := {
@@ -41,6 +44,7 @@ func configure(room_data: Dictionary) -> void:
 	_build_background()
 	_build_walls_and_doors()
 	_build_lighting()
+	_build_story_content()
 
 
 func _ready() -> void:
@@ -136,6 +140,57 @@ func _build_lighting() -> void:
 		lamp.position = data[2]
 		lamp.rotation = float(data[3])
 		add_child(lamp)
+
+
+func _build_story_content() -> void:
+	if RunManager.current_map == null or RunManager.current_map.main_path.size() < 2:
+		return
+	var role: StringName = _room_data.get("role", &"normal")
+	if role == &"entry":
+		var body_id: String = RunManager.current_map.main_path[1]
+		var direction := _direction_to(body_id)
+		if not _require_story_direction(direction, body_id):
+			return
+		_add_blood(ROOM_CENTER, DOOR_POSITIONS[direction], false)
+	elif role == &"body":
+		var entry_id: String = RunManager.current_map.main_path[0]
+		var direction := _direction_to(entry_id)
+		if not _require_story_direction(direction, entry_id):
+			return
+		_add_blood(DOOR_POSITIONS[direction], BODY_POSITION, true)
+		var source: Node2D = BodySourceScene.instantiate()
+		source.name = "BodySource"
+		source.position = BODY_POSITION
+		source.configure(
+			String(_room_data["id"]),
+			String(_room_data.get("reward_part_id", ""))
+		)
+		add_child(source)
+
+
+func _direction_to(target_id: String) -> String:
+	var doors: Dictionary = _room_data.get("doors", {})
+	for direction: String in doors:
+		if String(doors[direction]) == target_id:
+			return direction
+	return ""
+
+
+func _require_story_direction(direction: String, target_id: String) -> bool:
+	if not direction.is_empty() and DOOR_POSITIONS.has(direction):
+		return true
+	push_error(
+		"La sala %s no conecta físicamente con el hito %s"
+		% [String(_room_data.get("id", "")), target_id]
+	)
+	return false
+
+
+func _add_blood(start: Vector2, finish: Vector2, include_pool: bool) -> void:
+	var trail: Node2D = BloodTrailScene.instantiate()
+	trail.name = "BloodTrail"
+	trail.configure(start, finish, include_pool)
+	add_child(trail)
 
 
 func _spawn_enemies() -> void:

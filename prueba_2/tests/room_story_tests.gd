@@ -1,5 +1,8 @@
 extends Node
 
+const RunMap := preload("res://core/run_map.gd")
+const RoomAssembler := preload("res://world/rooms/room_assembler.gd")
+
 var _failures: Array[String] = []
 var _checks := 0
 
@@ -45,6 +48,8 @@ func _run() -> void:
 	_check(has_trail_scene, "existe la escena reutilizable del rastro")
 	if has_trail_scene:
 		_test_blood_trail(trail_path)
+
+	_test_story_rooms()
 
 	_finish()
 
@@ -97,6 +102,39 @@ func _test_blood_trail(trail_path: String) -> void:
 	for child in trail.get_children():
 		_check(not child is CollisionObject2D, "el rastro no bloquea al jugador")
 	trail.free()
+
+
+func _test_story_rooms() -> void:
+	var grids := {
+		"N": Vector2i(0, -1),
+		"E": Vector2i(1, 0),
+		"S": Vector2i(0, 1),
+		"O": Vector2i(-1, 0),
+	}
+	for direction: String in ["N", "E", "S", "O"]:
+		var run_map := RunMap.new(100, 0)
+		run_map.add_room("ENTRY", Vector2i.ZERO, &"entry", &"tutorial")
+		run_map.add_room("BODY", grids[direction], &"body", &"body_reward")
+		run_map.add_room("NORMAL", grids[direction] * 2, &"normal", &"empty")
+		run_map.connect_rooms("ENTRY", "BODY", direction)
+		run_map.connect_rooms("BODY", "NORMAL", direction)
+		run_map.entry_room_id = "ENTRY"
+		run_map.main_path.assign(["ENTRY", "BODY", "NORMAL"])
+		run_map.rooms["BODY"]["reward_part_id"] = "serrated_jaw"
+		RunManager.current_map = run_map
+
+		var entry: Node2D = RoomAssembler.build(run_map.room("ENTRY"))
+		var body: Node2D = RoomAssembler.build(run_map.room("BODY"))
+		var normal: Node2D = RoomAssembler.build(run_map.room("NORMAL"))
+		_check(entry.get_node_or_null("BloodTrail") != null, "%s guía desde tutorial" % direction)
+		_check(entry.get_node_or_null("BodySource") == null, "%s no pone cuerpo en tutorial" % direction)
+		_check(body.get_node_or_null("BloodTrail") != null, "%s continúa sangre" % direction)
+		_check(body.get_node_or_null("BodySource") != null, "%s pone cuerpo segundo" % direction)
+		_check(normal.get_node_or_null("BloodTrail") == null, "%s no sangra en sala normal" % direction)
+		_check(normal.get_node_or_null("BodySource") == null, "%s no repite el cuerpo" % direction)
+		entry.free()
+		body.free()
+		normal.free()
 
 
 func _check(condition: bool, message: String) -> void:
