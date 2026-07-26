@@ -20,7 +20,7 @@ script = ExtResource("1")
 texture = SubResource("2")
 color = Color(0.92549, 0.952941, 0.690196, 1)
 energy = 1.6
-texture_scale = 1.0
+texture_scale = 1.35
 
 [node name="Fixture" type="ColorRect" parent="."]
 offset_left = -32.0

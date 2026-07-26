@@ -50,6 +50,7 @@ func _run() -> void:
 		_test_blood_trail(trail_path)
 
 	_test_story_rooms()
+	_test_lamp_reach()
 
 	_finish()
 
@@ -135,6 +136,15 @@ func _test_story_rooms() -> void:
 		entry.free()
 		body.free()
 		normal.free()
+
+
+func _test_lamp_reach() -> void:
+	var lamp_scene: PackedScene = load("res://world/props/lamp.tscn")
+	var lamp: Node2D = lamp_scene.instantiate()
+	var light: PointLight2D = lamp.get_node("Light")
+	_check(is_equal_approx(light.energy, 1.6), "la intensidad de los focos se conserva")
+	_check(is_equal_approx(light.texture_scale, 1.35), "el radio de los focos aumenta 35 por ciento")
+	lamp.free()
 
 
 func _check(condition: bool, message: String) -> void:
