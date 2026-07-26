@@ -7,6 +7,8 @@ const VIEWPORT_MARGIN := 8.0
 @onready var title: Label = $Content/Title
 @onready var body: Label = $Content/Body
 
+var _active_part := ""
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -15,6 +17,7 @@ func _ready() -> void:
 
 
 func show_part(part_id: String, anchor_position: Vector2) -> void:
+	_active_part = part_id
 	title.text = PartsDB.display_name(part_id)
 	body.text = PartsDB.description(part_id)
 	global_position = _clamp_to_viewport(anchor_position + CURSOR_OFFSET)
@@ -22,7 +25,15 @@ func show_part(part_id: String, anchor_position: Vector2) -> void:
 
 
 func hide_part() -> void:
+	_active_part = ""
 	hide()
+
+
+func _input(event: InputEvent) -> void:
+	if not visible or _active_part.is_empty():
+		return
+	if event is InputEventMouseMotion:
+		global_position = _clamp_to_viewport(event.position + CURSOR_OFFSET)
 
 
 func clamped_position() -> Vector2:

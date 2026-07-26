@@ -58,7 +58,6 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, Vector2(1920, 1080)), Color(Palette.VOID, 0.94), true)
 
 	var font := ThemeDB.fallback_font
-	_draw_left_panel(font)
 
 	var layout := _build_layout()
 
