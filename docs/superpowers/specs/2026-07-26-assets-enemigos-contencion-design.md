@@ -257,7 +257,7 @@ siendo autoridad de `boss_core.gd`.
 Fuentes de generación:
 
 ```text
-art_raw/enemies/containment/
+art_raw/enemigos/containment/
   exp01_centipede/
   exp02_spider/
   exp03_saurian/
