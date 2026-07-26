@@ -2,8 +2,10 @@ extends SceneTree
 
 # Generador reproducible de las hojas fuente de los enemigos de Contención.
 #
-# Escribe cuatro hojas 3 x 2 con fondo croma `#ff00ff` en `art_raw/`, tal y como
+# Escribe tres hojas 3 x 2 con fondo croma `#ff00ff` en `art_raw/`, tal y como
 # las pide `docs/superpowers/specs/2026-07-26-assets-enemigos-contencion-design.md`.
+# La Quimera ilustrada usa `process_chimera_delivered_frames.gd` y no pertenece
+# ya a este generador de arte provisional.
 # El arte se compone con formas orgánicas superpuestas —el mismo lenguaje vectorial
 # del resto del juego— y no con píxeles a mano: así las seis poses de un personaje
 # comparten anatomía, escala y punto de apoyo por construcción, que es justo lo que
@@ -21,7 +23,6 @@ const CHROMA := Color(1.0, 0.0, 1.0)
 const AA_WIDTH := 1.0
 
 const ENEMY_CELL := Vector2i(512, 448)
-const BOSS_CELL := Vector2i(640, 448)
 
 # --- Paletas ---------------------------------------------------------------
 # Ningún blanco llega a #E0E0E0: el destello de daño multiplica x2,2 y un blanco
@@ -66,7 +67,6 @@ func _init() -> void:
 		"exp01_centipede": [ENEMY_CELL, _centipede_poses()],
 		"exp02_spider": [ENEMY_CELL, _spider_poses()],
 		"exp03_saurian": [ENEMY_CELL, _saurian_poses()],
-		"boss_chimera": [BOSS_CELL, _chimera_poses()],
 	}
 	for name: String in sheets:
 		var entry: Array = sheets[name]
@@ -79,10 +79,7 @@ func _init() -> void:
 		if not _write_sheet(name, cell, poses):
 			quit(1)
 			return
-	print("CONTAINMENT_SHEETS_OK  hojas=4  celda_enemigo=%s  celda_jefe=%s" % [
-		ENEMY_CELL,
-		BOSS_CELL,
-	])
+	print("CONTAINMENT_SHEETS_OK  hojas=3  celda_enemigo=%s" % ENEMY_CELL)
 	quit(0)
 
 

@@ -2,9 +2,11 @@ extends SceneTree
 
 # Procesador reproducible de las hojas de enemigos de Contención.
 #
-# Toma las cuatro hojas 3 x 2 con fondo croma de `art_raw/`, les quita el croma,
+# Toma las tres hojas 3 x 2 con fondo croma de `art_raw/`, les quita el croma,
 # separa las seis poses y las deja centradas en el lienzo de runtime que pide
 # `docs/superpowers/specs/2026-07-26-assets-enemigos-contencion-design.md`.
+# La Quimera ilustrada tiene su propio pipeline de 23 fotogramas en
+# `process_chimera_delivered_frames.gd`.
 #
 #   godot --headless --path prueba_2 --script res://tools/art/process_containment_enemy_sheets.gd
 #
@@ -52,16 +54,6 @@ const CONFIG := {
 			"exp03_walk_00", "exp03_walk_01",
 			"exp03_tail_windup_00", "exp03_tail_windup_01",
 			"exp03_tail_sweep_00", "exp03_recover_00",
-		],
-	},
-	"boss_chimera": {
-		"output": "res://assets/bosses/containment_chimera/animations",
-		"canvas": Vector2i(384, 256),
-		"fit": Vector2i(350, 205),
-		"names": [
-			"chimera_seek_00", "chimera_seek_01",
-			"chimera_aim_00", "chimera_aim_01",
-			"chimera_pounce_00", "chimera_recover_00",
 		],
 	},
 }
