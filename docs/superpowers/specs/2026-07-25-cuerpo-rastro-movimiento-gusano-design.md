@@ -122,7 +122,8 @@ generadas. También comprueba coordenadas y retornos bidireccionales.
 
 ## 4. Descubrimiento del mapa local
 
-Una sala se descubre al entrar, no al verla como vecina.
+Una sala se descubre al entrar, no al verla como vecina. Este contrato se
+aplica tanto al mapa de `TAB` como al minimapa persistente del HUD.
 
 - Solo se dibujan IDs cuyo valor en `GameState.visited` sea `true`.
 - La sala actual también debe estar visitada por el flujo de transición.
@@ -131,6 +132,8 @@ Una sala se descubre al entrar, no al verla como vecina.
 - Las muescas de puerta se dibujan únicamente para esos enlaces visibles.
 - Una rejilla y su destino siguen apareciendo después de usarla y descubrir la
   conexión, respetando `discovered_grates`.
+- El minimapa del HUD usa el mismo subconjunto visitado y no reserva espacio
+  para salas ocultas.
 
 El layout se calcula con el subconjunto visible, no con todas las salas de la
 seed. De ese modo el tamaño, posición y escala del mapa no filtran la extensión
@@ -263,7 +266,7 @@ oscuros ampliando el radio, sin aumentar la intensidad declarada de cada foco.
 | `autoload/game_state.gd` | Recordar recompensas de sala reclamadas durante la partida |
 | `ui/map_overlay.gd` | Mostrar únicamente salas y enlaces descubiertos |
 | `ui/title.tscn` | Dejar solo identidad del juego y acción para comenzar |
-| `ui/hud.*` | Conservar vida/carga y retirar rótulos redundantes |
+| `ui/hud.*` | Conservar vida/carga, ocultar topología no visitada y retirar rótulos redundantes |
 | `world/props/tutorial_mural.*` | Enseñar visualmente mantener, cargar y soltar |
 | `actors/player/slime.gd` | Aplicar velocidad uniforme y deformación peristáltica |
 | `world/props/lamp.tscn` | Ampliar radio sin cambiar energía |
@@ -292,6 +295,7 @@ prueba_2/assets/environment/tutorial/
 - Una vecina no visitada no aparece como `?` ni altera el layout.
 - Rejillas permanecen ocultas hasta descubrirlas.
 - No quedan título, leyenda ni ayuda de cierre sobre el mapa.
+- El minimapa del HUD tampoco dibuja ni reserva espacio para salas no visitadas.
 
 ### UI y tutorial
 
