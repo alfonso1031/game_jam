@@ -26,6 +26,7 @@ enum State { SEEK_CORNER, CORNER_AIM, POUNCE, RECOVER, DEAD }
 @export var room_id: String = "L3_NUCLEO"
 @export var ability_id: String = "dash"
 @export var part_id: String = "silent_claws"
+@export var is_room_leader := true
 @export var sealed_directions: Array[String] = ["N", "S", "E", "O"]
 
 var health := MAX_HEALTH

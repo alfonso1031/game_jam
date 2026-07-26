@@ -346,7 +346,7 @@ func _test_rooms() -> void:
 		var spawned := 0
 		var leaders := 0
 		for child in room.get_children():
-			if child.is_in_group("enemies"):
+			if child.is_in_group("enemies") and not child.is_in_group("bosses"):
 				spawned += 1
 				if child.is_room_leader:
 					leaders += 1

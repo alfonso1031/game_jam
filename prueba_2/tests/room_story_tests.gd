@@ -204,7 +204,7 @@ func _test_lamp_reach() -> void:
 	var lamp: Node2D = lamp_scene.instantiate()
 	var light: PointLight2D = lamp.get_node("Light")
 	_check(is_equal_approx(light.energy, 1.6), "la intensidad de los focos se conserva")
-	_check(is_equal_approx(light.texture_scale, 1.35), "el radio de los focos aumenta 35 por ciento")
+	_check(is_equal_approx(light.texture_scale, 1.85), "el radio de los focos conserva la cobertura aprobada")
 	lamp.free()
 
 
