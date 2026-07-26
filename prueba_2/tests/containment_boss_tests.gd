@@ -47,18 +47,40 @@ func _run() -> void:
 	var frames: SpriteFrames = sprite.sprite_frames if sprite != null else null
 	_check(frames != null, "la Quimera trae su SpriteFrames")
 	if frames != null:
-		for animation: StringName in [&"seek_corner", &"corner_aim", &"pounce", &"recover"]:
-			_check(
-				frames.has_animation(animation) and frames.get_frame_count(animation) > 0,
-				"la Quimera anima '%s'" % animation
-			)
 		_check(
-			sprite.autoplay != "" and frames.has_animation(StringName(sprite.autoplay)),
-			"la Quimera conserva una animación por defecto válida"
+			frames.has_animation(&"idle")
+			and frames.get_frame_count(&"idle") == 7,
+			"la Quimera reproduce los 7 fotogramas de Idle"
+		)
+		_check(
+			frames.has_animation(&"angry")
+			and frames.get_frame_count(&"angry") == 16,
+			"la Quimera reproduce los 16 fotogramas de Angry"
+		)
+		_check(
+			sprite.autoplay == "idle",
+			"la Quimera usa Idle como animación por defecto"
 		)
 	# El estado visual tiene que traducirse sin reiniciar la animación en cada
 	# fotograma: si `corner_aim` se relanzara, el aviso no avanzaría de pose.
 	_check(boss.has_method("_visual_state"), "la Quimera traduce su estado a animación")
+	boss.set("_state", 0)
+	_check(boss.call("_visual_state") == &"idle", "buscar esquina usa Idle")
+	boss.set("_state", 1)
+	_check(boss.call("_visual_state") == &"angry", "apuntar usa Angry")
+	boss.set("_state", 2)
+	_check(boss.call("_visual_state") == &"angry", "embestir mantiene Angry")
+	boss.set("_state", 3)
+	_check(boss.call("_visual_state") == &"idle", "recuperarse vuelve a Idle")
+	if sprite != null and frames != null and frames.has_animation(&"angry"):
+		sprite.play(&"angry")
+		sprite.frame = 5
+		boss.set("_state", 2)
+		boss.call("_update_sprite_animation")
+		_check(
+			sprite.animation == &"angry" and sprite.frame == 5,
+			"Angry no se reinicia al comenzar POUNCE"
+		)
 
 	var can_snapshot := (
 		boss.has_method("_enter_corner_aim")
