@@ -15,6 +15,11 @@ var parts_sacrificed: Array[String] = []
 var active := false
 
 
+func _ready() -> void:
+	if not Inventory.part_consumed.is_connected(_on_part_consumed):
+		Inventory.part_consumed.connect(_on_part_consumed)
+
+
 func start_new_run(seed_value: int = -1) -> void:
 	GameState.reset_run()
 	Inventory.reset_run()
@@ -41,3 +46,24 @@ func complete_floor(floor_id: StringName) -> bool:
 	GameState.heal_halves(2)
 	floor_completed.emit(floor_id, GameState.health_halves - before)
 	return true
+
+
+func pay_grate_cost(slot_index: int, confirm_lethal: bool = false) -> StringName:
+	if not Inventory.is_empty(slot_index):
+		var sacrificed_id: String = Inventory.sacrifice_slot(slot_index)
+		if sacrificed_id != "":
+			parts_sacrificed.append(sacrificed_id)
+			return &"part"
+	if GameState.health_halves <= 0:
+		return &"invalid"
+	if GameState.health_halves == 1 and not confirm_lethal:
+		return &"confirmation_required"
+	GameState.damage_halves(1)
+	if GameState.health_halves <= 0:
+		return &"death"
+	return &"hp"
+
+
+func _on_part_consumed(part_id: String) -> void:
+	if active:
+		parts_consumed.append(part_id)

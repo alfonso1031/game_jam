@@ -143,6 +143,14 @@ func clear_slot(index: int) -> String:
 
 # Comer la parte del hueco: medio corazón de vida. Es el destino de las partes
 # que no quieres llevar encima.
+func lose_slot(index: int) -> String:
+	return clear_slot(index)
+
+
+func sacrifice_slot(index: int) -> String:
+	return clear_slot(index)
+
+
 func consume_slot(index: int) -> bool:
 	var id := part_at(index)
 	if id == "":
