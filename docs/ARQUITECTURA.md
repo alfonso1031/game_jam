@@ -42,7 +42,7 @@ para leer la salida de debug, `stop_project` para cerrarlo.
 |---|---|
 | Cargar impulso / lanzarse | mantener `WASD` / flechas y **soltar** |
 | Mapa completo | `TAB` |
-| Seleccionar parte (con `TAB` abierto) | flechas |
+| Seleccionar parte (con `TAB` abierto) | `WASD` / flechas |
 | Comer parte seleccionada (con `TAB` abierto) | `F` |
 | Interactuar | `E` |
 | Dash (tras vencer al boss) | `Shift` / `Espacio` |
@@ -345,10 +345,19 @@ muy oscuro o muy claro. Las lámparas se mantienen aparte a energía `1.6`,
 
 ## 7. El slime (`slime.gd`)
 
-### Impulso cargado — movimiento base
+### Movimiento base según las piernas
 
-El slime **no tiene piernas**: no camina, acumula energía y se lanza. Portado desde
-`prototypes/slime_charge_movement/` (ver su
+`slime.gd` deriva el modo desde las partes equipadas; no guarda una habilidad paralela.
+`Inventory.equipped_count_for_slot(PartsDB.SLOT_PIERNA)` permite además diferenciar en el
+futuro reglas para una o dos piernas.
+
+| Piernas equipadas | Movimiento |
+|---:|---|
+| 0 | Impulso cargado |
+| 1 o más | Movimiento continuo a `280 px/s` |
+
+Sin piernas, el slime no camina: acumula energía y se lanza. Este modo fue portado desde
+`prototypes/slime_charge_movement/` (ver
 [DASH_DEFINITION.md](../prototypes/slime_charge_movement/docs/DASH_DEFINITION.md)).
 
 ```
@@ -401,12 +410,13 @@ corta. Es presentación pura: `CharacterBody2D` no se desplaza mientras carga y 
 colisión sigue siendo el círculo de radio `45`. Al volver a reposo, cada punto interpola
 hacia su polígono base. El DASH conserva aparte su escala rápida y `_eased_speed()`.
 
-**Anti-machaque.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
+**Anti-machaque sin piernas.** Soltar antes de `MIN_CHARGE_TIME` no lanza nada y deja al slime
 0.28 s inmóvil. El umbral es corto a propósito — castiga el machaque sin volver torpe un
 toque rápido intencionado. Golpear teclas de dirección repetidamente no produce desplazamiento —
-el movimiento continuo es una **habilidad futura** (piernas), no algo que se pueda
-improvisar con la mecánica base. La barra dibuja una marca en el umbral mínimo y el
-relleno se queda en color de muro hasta superarlo.
+no se puede improvisar el movimiento continuo con la mecánica base. Al equipar cualquier
+parte de tipo `pierna`, la carga y su barra desaparecen y `WASD`/flechas desplazan al
+slime directamente. Consumir o perder la última pierna restaura la carga. La barra dibuja
+una marca en el umbral mínimo y el relleno se queda en color de muro hasta superarlo.
 
 **Castigo por chocar.** Estrellarse contra una pared corta el recorrido en seco y cuesta
 0.45 s de aturdimiento, casi cuatro veces la recuperación normal. Lanzarse a ciegas sale
@@ -610,7 +620,7 @@ BUSCA ESQUINA → FIJA POSICIÓN → EMBESTIDA → RECUPERA → BUSCA OTRA ESQUI
 - **BUSCA ESQUINA:** elige una esquina distinta entre `(330,270)`, `(1590,270)`,
   `(1590,810)` y `(330,810)` y llega en una ráfaga de velocidad.
 - **FIJA POSICIÓN:** se detiene, mira al jugador y dibuja una línea discontinua hasta su
-  posición.
+  posición. No muestra texto que anuncie el estado.
 - **EMBESTIDA:** congela esa posición al empezar y se lanza hacia ella sin corregir el
   rumbo. Solo este estado aplica `1 HP` de contacto y retroceso.
 - **RECUPERA:** frena antes de elegir la siguiente esquina.
@@ -619,9 +629,9 @@ Tres fases según vida aceleran desplazamiento/embestida y reducen aviso/recuper
 
 | Fase | Vida | Esquina | Embestida | Aviso | Recuperación |
 |---|---:|---:|---:|---:|---:|
-| 1 | 12–9 | 620 px/s | 950 px/s | 0.90 s | 0.64 s |
-| 2 | 8–5 | 720 px/s | 1080 px/s | 0.72 s | 0.52 s |
-| 3 | 4–1 | 820 px/s | 1220 px/s | 0.56 s | 0.42 s |
+| 1 | 12–9 | 620 px/s | 950 px/s | 1.35 s | 0.64 s |
+| 2 | 8–5 | 720 px/s | 1080 px/s | 1.08 s | 0.52 s |
+| 3 | 4–1 | 820 px/s | 1220 px/s | 0.84 s | 0.42 s |
 
 `procedural_room.gd` materializa un único `BossCore` cuando
 `role == &"boss_choice"` y añade debajo `ChimeraArena`, un decal cenital que marca anillo
