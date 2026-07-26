@@ -13,7 +13,7 @@
 script = ExtResource("2")
 
 [node name="Darkness" type="CanvasModulate" parent="."]
-color = Color(0.09, 0.1, 0.12, 1)
+color = Color(0.28, 0.31, 0.34, 1)
 
 [node name="RoomHost" type="Node2D" parent="."]
 

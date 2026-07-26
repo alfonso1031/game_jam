@@ -181,7 +181,21 @@ Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `toolt
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- grate user://grate-wall-flow.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
 ```
+
+### Ataque ilustrado del EXP07
+
+- Fuentes: cinco PNG transparentes 1920 × 1080 en
+  `assets/enemies/exp07_crustacean/source_attack/`.
+- Regenerar runtime: `godot --headless --path prueba_2 --script
+  res://tools/art/process_exp07_claw_frames.gd`; produce cinco frames 192 × 108
+  con recorte común.
+- `pinch_windup`: 00→04 a 6,25 FPS durante 0,8 s. `recover`: 04→00 a
+  8,333333 FPS durante 0,6 s.
+- `_pinch()` es la única autoridad del daño. No conectar daño a frames ni
+  reutilizar este arte en el slime o en el pickup `crusher_claw`.
 
 ### Cambiar movimiento base
 
@@ -203,6 +217,9 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
 ### Ciclo de partida y rejillas
 
 - Nueva partida: `RunManager.start_new_run(seed)`; máximo 15 HP, inicio 7 HP.
+- TAB expone `MODO PRUEBA · VIDA INFINITA`; clic o `V` lo alternan. El flag vive en
+  `GameState`, persiste entre salas y se apaga con `reset_run()`. Bloquea solo la pérdida
+  de HP: el golpe conserva invulnerabilidad temporal y retroceso.
 - Completar Contención: `RunManager.complete_floor(&"contencion")`, cura +2 HP una vez.
 - Comer: `TAB` abre el mapa corporal, las flechas seleccionan y `F` llama
   `Inventory.consume_slot()`. Cura +2 HP y libera el slot; `Tab` solo muestra `F · COMER`.
@@ -213,6 +230,9 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
   ejecuta `GameState.unlock_grate(source_id)` para la partida actual; entrar por la fuente
   desbloqueada o regresar por `grate_source` es gratis.
 - A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
+- Penumbra global: `main.tscn::Darkness = Color(0.28, 0.31, 0.34, 1)`. No aclarar
+  fondos individuales. Las lámparas conservan energía `1.6`, radio `1.85`, parpadeo y
+  estado fundido.
 
 ---
 

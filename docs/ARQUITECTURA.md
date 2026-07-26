@@ -321,8 +321,11 @@ requiere tocar el árbol de nodos** ni los `ext_resource` del `.tscn`.
 | `puddle` | no | Mancha de biomasa en el suelo |
 | cartel | no | `Label` en `#ecf3b0` generado desde `sign_text` |
 
-`CanvasModulate` en `main.tscn` (nodo `Darkness`) da la oscuridad base — **un solo color
-que tocar** si el juego se ve muy oscuro o muy claro.
+`CanvasModulate` en `main.tscn` (nodo `Darkness`) da la penumbra base con
+`Color(0.28, 0.31, 0.34, 1)`: toda la sala permanece legible sin parecer
+iluminada de día. Es **el único color que tocar** si el ambiente general se ve
+muy oscuro o muy claro. Las lámparas se mantienen aparte a energía `1.6`,
+`texture_scale = 1.85`, con su parpadeo y estado fundido.
 
 ---
 
@@ -470,6 +473,18 @@ proyecto, y solo después sus pruebas:
 
 ---
 
+### Ataque ilustrado del EXP07
+
+`actors/enemies/exp07_crustacean_frames.tres` separa el avance del ataque. Las
+cinco fuentes de `assets/enemies/exp07_crustacean/source_attack/` conservan los
+lienzos transparentes de 1920 × 1080; `tools/art/process_exp07_claw_frames.gd`
+usa un recorte común y produce los cinco PNG runtime de 192 × 108.
+
+`PINCH_WINDUP` dura 0,8 s y reproduce 00→04 a 6,25 FPS. Al vencer el
+temporizador, `_pinch()` aplica una sola vez el cono de 220 px, 50° y su
+retroceso; después `RECOVER` reproduce 04→00 a 8,333333 FPS durante 0,6 s. El
+sprite nunca aplica daño por señales y esta secuencia no pertenece al slime.
+
 ## 8. HUD y mapa
 
 **`hud.tscn` (CanvasLayer, siempre visible)**
@@ -488,6 +503,9 @@ desde `_process()`.
   entre tarjetas ocupadas y `F` consume la seleccionada para curar `2 HP`. La interfaz no
   anuncia la cantidad antes de comer. La
   tarjeta activa se amplía, ilumina su borde y resalta su conexión al slime.
+- El botón `MODO PRUEBA · VIDA INFINITA` se alterna con clic o `V` mientras TAB está
+  abierto. Persiste entre salas de la run, pero una partida nueva lo apaga. Solo bloquea
+  la pérdida de HP: destello, invulnerabilidad temporal y retroceso siguen ocurriendo.
 - El hover abre `PartTooltip` con nombre/descripción de `PartsDB`; la selección por
   teclado lo mantiene anclado a su tarjeta.
 - Mitad derecha: **solo el mapa local de Contención** desde
@@ -668,7 +686,8 @@ futuros y no se simulan con salas fijas durante la partida activa.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
 - `tests/ui_visual_capture.tscn` construye fixtures reproducibles y permite capturar
-  `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route`, `tutorial` o `grate`; el tercer
+  `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route`, `tutorial`, `grate`,
+  `exp07_attack` o `lighting`; el tercer
   argumento fija el tamaño físico final cuando el viewport lógico sigue siendo 1080p.
   `grate` materializa `CENTER` con su conexión, muestra el prompt y abre el selector con dos
   partes sin cambiar `GameState.current_room`.
@@ -677,6 +696,8 @@ futuros y no se simulan con salas fijas durante la partida activa.
   ```powershell
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
   & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
   ```
 - `combat_smoke.tscn` ensambla las 16 configuraciones cardinales, incluidas `NE`, `SO` y
   el destino de rejilla sin puertas normales. `run_map_tests.gd` comprueba además que cada

@@ -8,16 +8,21 @@ const FloorRouteScene := preload("res://ui/floor_route_overlay.tscn")
 const HUDScene := preload("res://ui/hud.tscn")
 const TitleScene := preload("res://ui/title.tscn")
 const GrateCostOverlayScene := preload("res://ui/grate_cost_overlay.tscn")
+const Exp07Scene := preload("res://actors/enemies/exp07_crustacean.tscn")
+const MainScene := preload("res://game/main.tscn")
 
 var _frames := 0
 var _output_path := ""
 var _target_size := Vector2i.ZERO
+var _mode := ""
+var _exp07_sprite: AnimatedSprite2D
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var args := OS.get_cmdline_user_args()
 	var mode: String = args[0] if args.size() > 0 else "map"
+	_mode = mode
 	_output_path = args[1] if args.size() > 1 else "user://ui_capture.png"
 	if args.size() > 2:
 		var dimensions := args[2].split("x")
@@ -54,6 +59,10 @@ func _ready() -> void:
 			)
 		"grate":
 			_prepare_grate_room()
+		"exp07_attack":
+			_prepare_exp07_attack()
+		"lighting":
+			_prepare_lighting()
 		_:
 			var overlay: Control = MapOverlayScene.instantiate()
 			add_child(overlay)
@@ -79,6 +88,12 @@ func _prepare_tutorial_room() -> void:
 func _process(_delta: float) -> void:
 	_frames += 1
 	if _frames < 12:
+		return
+	if _mode == "exp07_attack" and (
+		_exp07_sprite == null
+		or _exp07_sprite.animation != &"pinch_windup"
+		or _exp07_sprite.frame < 4
+	):
 		return
 	var image := get_viewport().get_texture().get_image()
 	# Con stretch `canvas_items`, Godot compone en el viewport lógico de 1080p
@@ -116,6 +131,25 @@ func _prepare_grate_room() -> void:
 	assert(overlay.visible, "el selector de rejilla debe permanecer abierto")
 	assert(overlay.selected_option == 0, "la primera parte debe quedar resaltada")
 	assert(GameState.current_room == "CENTER", "la captura no debe viajar por la rejilla")
+
+
+func _prepare_exp07_attack() -> void:
+	var enemy: CharacterBody2D = Exp07Scene.instantiate()
+	enemy.position = Vector2(960.0, 540.0)
+	add_child(enemy)
+	enemy.set_physics_process(false)
+	var states: Dictionary = enemy.get_script().get_script_constant_map().get("State", {})
+	assert(states.has("PINCH_WINDUP"), "EXP07 debe declarar el estado de aviso")
+	enemy.set("_state", states["PINCH_WINDUP"])
+	_exp07_sprite = enemy.get_node("Sprite") as AnimatedSprite2D
+	_exp07_sprite.play(&"pinch_windup")
+
+
+func _prepare_lighting() -> void:
+	$Background.visible = false
+	RunManager.start_new_run(1785033756)
+	var main: Node2D = MainScene.instantiate()
+	add_child(main)
 
 
 func _prepare_fixture(mode: String) -> void:
