@@ -66,16 +66,6 @@ collision_mask = 1
 position = Vector2(0, 12)
 shape = SubResource("2")
 
-[node name="StateLabel" type="Label" parent="."]
-offset_left = -210.0
-offset_top = -150.0
-offset_right = 210.0
-offset_bottom = -116.0
-theme_override_colors/font_color = Color(0.45098, 0.937255, 0.909804, 1)
-theme_override_font_sizes/font_size = 24
-horizontal_alignment = 1
-text = "QUIMERA ALBINA"
-
 [node name="HealthBar" type="Panel" parent="."]
 offset_left = -130.0
 offset_top = -110.0

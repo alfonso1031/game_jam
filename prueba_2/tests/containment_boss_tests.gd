@@ -33,6 +33,14 @@ func _run() -> void:
 
 	_check(boss.is_in_group("enemies"), "la Quimera participa en el contrato de enemigos")
 	_check(int(boss.get("health")) == 12, "la Quimera comienza con 12 HP")
+	_check(
+		boss.get_node_or_null("StateLabel") == null,
+		"la Quimera no anuncia sus acciones con texto"
+	)
+	_check(
+		boss.get_node_or_null("HealthBar") != null,
+		"la Quimera conserva la barra de vida"
+	)
 
 	var sprite := boss.get_node_or_null("Sprite") as Sprite2D
 	_check(sprite != null, "la Quimera usa un Sprite2D")
@@ -50,7 +58,24 @@ func _run() -> void:
 	)
 	_check(can_snapshot, "la Quimera expone el ciclo esquina-apuntar-ráfaga")
 	if can_snapshot:
+		boss.set("health", 12)
 		boss.call("_enter_corner_aim")
+		_check(
+			is_equal_approx(float(boss.get("_timer")), 1.35),
+			"la fase 1 anticipa la embestida durante 1.35 s"
+		)
+		boss.set("health", 8)
+		boss.call("_enter_corner_aim")
+		_check(
+			is_equal_approx(float(boss.get("_timer")), 1.08),
+			"la fase 2 anticipa la embestida durante 1.08 s"
+		)
+		boss.set("health", 4)
+		boss.call("_enter_corner_aim")
+		_check(
+			is_equal_approx(float(boss.get("_timer")), 0.84),
+			"la fase 3 anticipa la embestida durante 0.84 s"
+		)
 		player.position = Vector2(1250, 700)
 		boss.call("_enter_pounce")
 		var frozen_target: Vector2 = boss.call("get_pounce_target")
@@ -59,6 +84,7 @@ func _run() -> void:
 			boss.call("get_pounce_target") == frozen_target,
 			"la ráfaga conserva la posición del jugador tomada al lanzarse"
 		)
+		boss.set("health", 12)
 
 	_check(boss.has_method("take_damage"), "la Quimera recibe daño del combate normal")
 	if boss.has_method("take_damage"):

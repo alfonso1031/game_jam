@@ -18,7 +18,7 @@ const CORNERS: Array[Vector2] = [
 ]
 const CORNER_SPEED := [620.0, 720.0, 820.0]
 const POUNCE_SPEED := [950.0, 1080.0, 1220.0]
-const AIM_TIME := [0.9, 0.72, 0.56]
+const AIM_TIME := [1.35, 1.08, 0.84]
 const RECOVER_TIME := [0.64, 0.52, 0.42]
 
 enum State { SEEK_CORNER, CORNER_AIM, POUNCE, RECOVER, DEAD }
@@ -44,7 +44,6 @@ var _visual_time := 0.0
 
 @onready var sprite: Sprite2D = $Sprite
 @onready var hitbox: Area2D = $Hitbox
-@onready var state_label: Label = $StateLabel
 @onready var health_fill: ColorRect = $HealthBar/Fill
 
 
@@ -119,7 +118,6 @@ func _choose_next_corner() -> void:
 			candidates.append(index)
 	_corner_index = candidates[randi() % candidates.size()]
 	_corner_target = CORNERS[_corner_index]
-	_set_label("RÁFAGA HACIA ESQUINA", Palette.SLIME_CORE)
 
 
 func _seek_corner(delta: float) -> void:
@@ -141,7 +139,6 @@ func _enter_corner_aim() -> void:
 		if is_instance_valid(_player)
 		else Vector2(960, 540)
 	)
-	_set_label("FIJA TU POSICIÓN", Palette.WARM_LIGHT)
 
 
 func _enter_pounce() -> void:
@@ -150,7 +147,6 @@ func _enter_pounce() -> void:
 		_pounce_target = _player.global_position
 	var distance := global_position.distance_to(_pounce_target)
 	_timer = maxf(0.22, distance / POUNCE_SPEED[_phase() - 1] + 0.08)
-	_set_label("¡EMBESTIDA!", Palette.WARM_LIGHT)
 
 
 func get_pounce_target() -> Vector2:
@@ -169,7 +165,6 @@ func _pounce(_delta: float) -> void:
 func _enter_recover() -> void:
 	_state = State.RECOVER
 	_timer = RECOVER_TIME[_phase() - 1]
-	_set_label("RECUPERANDO", Palette.WALL.lightened(0.35))
 
 
 func _brake(delta: float, rate: float) -> void:
@@ -231,11 +226,6 @@ func _update_visual() -> void:
 	sprite.scale = Vector2(0.22 * stretch, 0.22 * squash)
 	sprite.rotation = clampf(direction.y / 3000.0, -0.08, 0.08)
 	sprite.modulate = Color(1.8, 1.8, 1.8) if _hurt_flash > 0.0 else Color.WHITE
-
-
-func _set_label(text: String, color: Color) -> void:
-	state_label.text = text
-	state_label.add_theme_color_override("font_color", color)
 
 
 func _die() -> void:
