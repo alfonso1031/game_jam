@@ -159,13 +159,14 @@ navegación nueva no lo consulta.
 `MapGenerator` es determinista por `(run_seed, generation_attempt)`, prueba hasta 128
 propuestas y no relaja reglas. Contrato de Contención:
 
-- camino principal de 6–8 salas y máximo 12 contando destinos de rejilla;
+- grafo dirigido acíclico con camino principal de 6–8 hitos, bifurcación posterior al
+  cuerpo y reconvergencia obligatoria;
 - entrada/tutorial, cuerpo con primera parte en la segunda sala, preboss penúltimo y
   elección de boss al final;
-- salas normales: fácil 40 %, difícil 30 %, vacía 20 %, cierre 10 %;
-- cierre con exactamente tres puertas y conservación del camino al boss;
-- rejilla en 60 % de combates elegibles, mínimo una si existe combate, máximo una por
-  origen y destinos exclusivos;
+- salas normales: fácil 50 %, difícil 30 %, vacía 20 %;
+- `doors` guarda únicamente salidas y `entrances` las aberturas selladas ya consumidas;
+- toda sala distinta del jefe tiene un camino futuro al jefe, que es el único sumidero;
+- toda sala normal de combate y el preboss tienen una rejilla irreversible;
 - destino de rejilla: vacío 40 %, combate 20 %, loot 40 %.
 
 `RunMap.canonical_snapshot()` permite comparar generaciones y reproducir bugs con la seed.
@@ -180,22 +181,22 @@ de que `Transition` pueda materializarlo.
 ### Primer hito: cuerpo y parte
 
 `main_path[0]` siempre es `entry/tutorial`; `main_path[1]` siempre es
-`body/body_reward`, conecta directamente con la entrada, tiene exactamente dos puertas y
-no puede alojar rejilla. `MapGenerator` selecciona de forma determinista una parte inicial
+`body/body_reward`, conecta directamente con la entrada, tiene una entrada sellada, una
+salida y no puede alojar rejilla. `MapGenerator` selecciona una parte inicial
 desde `FIRST_PART_POOL` y la guarda en `reward_part_id`.
 
 `ProceduralRoom` consulta las conexiones reales del descriptor, no IDs ni orientaciones
 fijas:
 
 - en la entrada, `BloodTrail` va del centro hacia la puerta que conduce al cuerpo;
-- en la segunda sala, continúa desde la puerta de entrada hasta `BODY_POSITION`, añade
-  charco e instancia `BodySource`;
+- en la segunda sala, continúa desde la entrada sellada hasta `BODY_POSITION`, añade
+  charco vectorial e instancia `BodySource` sin mostrar un cadáver humano provisional;
 - salas normales no reciben cuerpo ni sangre narrativa.
 
 `BodySource` crea un único `PartPickup`. La sala se marca en
 `GameState.claimed_room_rewards` solo al recogerlo: salir antes conserva la recompensa,
-volver después no la duplica y `reset_run()` la libera para la siguiente partida. Cuerpo,
-gotas, arrastre y charco son PNG transparentes; ninguno tiene colisión.
+volver después no la duplica y `reset_run()` la libera para la siguiente partida. Gotas,
+arrastre y charco son PNG transparentes de estilo 2D plano; ninguno tiene colisión.
 
 Las salas de Contención también reciben utilería desde
 `core/containment_prop_catalog.gd`: la receta es determinista por ID de sala y
@@ -234,10 +235,11 @@ Completar Contención cura `+2 HP` una sola vez. Comer parte cura `+2 HP`; comer
 sacrificar libera el slot.
 
 Una conexión de rejilla queda modelada en ambos extremos: `grate_target` desde la sala de
-origen y `grate_source` desde su destino. La entrada cuesta una parte equipada elegida o
-`1 HP`, sin bandera `squeeze`; al pagar, `GameState.unlock_grate(source_id)` persiste solo
-durante la partida. El retorno desde el destino no cuesta nada. Con `1 HP` la UI debe pedir
-confirmación y el jugador puede elegir morir. A cero no hay respawn:
+origen y `grate_source` como metadato de llegada. La entrada cuesta una parte equipada
+elegida o `1 HP`, sin bandera `squeeze`; al pagar,
+`GameState.unlock_grate(source_id)` persiste solo durante la partida. El destino crea
+`GrateSpawn`, pero no instancia otra rejilla: no existe retorno. Con `1 HP` la UI debe
+pedir confirmación y el jugador puede elegir morir. A cero no hay respawn:
 `RunManager.end_run()` emite un resumen con zona, salas, consumidas, sacrificadas y seed.
 
 ---
@@ -277,11 +279,11 @@ orientaciones.
 **Carriles de puerta:** la columna `x = 6` y la fila `y = 3` se dejan libres de props
 sólidos para no bloquear las entradas.
 
-La rejilla no ocupa una celda de prop. `grate_direction` elige una pared sin puerta:
-`Grate` usa `DOOR_POSITIONS[direction]` y `GrateSpawn` el punto interior equivalente.
-Fuente y retorno quedan en paredes opuestas, el PNG conserva su aspecto dentro de
-`120 × 120` y el destino siempre ocupa la celda adyacente. `grate.tscn` es un `Area2D`
-con prompt; abre el selector solo en el origen todavía bloqueado y
+La rejilla no ocupa una celda de prop. `grate_direction` elige una pared sin abertura:
+`Grate` usa `DOOR_POSITIONS[direction]`; el destino usa `grate_arrival_direction` para
+ubicar un único `GrateSpawn`. El PNG conserva su aspecto dentro de `120 × 120`, recibe
+un halo cian tenue y no existe sensor de regreso. `grate.tscn` es un `Area2D` con prompt;
+abre el selector solo en el origen todavía bloqueado y
 `Transition.go_via_grate()` conserva el mismo fundido de una puerta.
 
 La textura permanece centrada en el muro, pero el `CollisionShape2D` de interacción se

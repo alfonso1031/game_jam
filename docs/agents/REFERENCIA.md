@@ -46,8 +46,8 @@ Preguntas para ubicar algo nuevo:
 - `cell_center(c) = Vector2(180, 120) + c * 120 + Vector2(60, 60)`
 - **Carriles de puerta libres:** columna `x = 6` y fila `y = 3` no llevan props sólidos.
 - Rejilla: `grate_direction` reserva una pared sin puerta. `Grate` usa
-  `DOOR_POSITIONS[direction]`, `GrateSpawn` usa el punto interior equivalente y el retorno
-  queda en la pared opuesta.
+  `DOOR_POSITIONS[direction]`; el destino crea solo `GrateSpawn` según
+  `grate_arrival_direction`. Nunca se materializa un retorno.
 - Una puerta por lado como máximo, centrada. El muro se parte en **dos** `ColorRect` +
   **dos** `CollisionShape2D` y el `Area2D` de la puerta va en el medio.
 - **El hueco del muro mide 240 px, no 120.** Las jambas en embudo de `door.tscn` lo
@@ -83,9 +83,9 @@ legado.
 El inicio tiene contrato fijo por posición del camino, no por ID:
 
 - `main_path[0]`: `entry/tutorial`;
-- `main_path[1]`: `body/body_reward`, dos puertas y sin rejilla;
+- `main_path[1]`: `body/body_reward`, una entrada sellada, una salida y sin rejilla;
 - `reward_part_id`: parte inicial determinista;
-- `BloodTrail` resuelve su orientación leyendo `doors`;
+- `BloodTrail` resuelve su orientación leyendo `doors` y `entrances`;
 - `BodySource` reclama la recompensa en `GameState` únicamente al recogerla.
 
 Verificar con `room_story_tests.tscn`, `room_assembly_tests.tscn` y
@@ -129,8 +129,8 @@ Usa solo las ocho celdas seguras y deja libres fila 3/columna 6; `entry` recibe 
 Las escenas `world/props/containment/` deben conservar el nodo `Sprite`, `footprint()` y una
 colisión de base. Para una rejilla, no crear puertas:
 `RunMap.set_grate(source, target, direction)` registra `grate_target`, `grate_source` y
-paredes opuestas; `procedural_room.gd` instancia ambos extremos dentro de `120 × 120` y
-`Transition.go_via_grate()` coloca al jugador en `GrateSpawn`.
+`grate_arrival_direction`; `procedural_room.gd` instancia la fuente dentro de `120 × 120`
+y en el destino solo crea `GrateSpawn`. `Transition.go_via_grate()` nunca ofrece regreso.
 El sprite queda en el muro. `grate.gd::SENSOR_POSITIONS` desplaza solo el
 `CollisionShape2D` `105 px` hacia el interior; no abrir el muro ni volver a centrar el
 sensor, porque desde allí el jugador no puede alcanzarlo físicamente.
@@ -257,7 +257,7 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
   pantalla separada con `I`.
 - Rejilla: `RunManager.pay_grate_cost(slot, confirm_lethal)`; parte equipada o 1 HP. Pagar
   ejecuta `GameState.unlock_grate(source_id)` para la partida actual; entrar por la fuente
-  desbloqueada o regresar por `grate_source` es gratis.
+  desbloqueada viaja una sola vez hacia delante. `grate_source` es solo metadato.
 - A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
 - Penumbra global: `main.tscn::Darkness = Color(0.32, 0.35, 0.37, 1)`. No aclarar
   fondos individuales. Las lámparas conservan energía `1.6`, radio `1.85`, parpadeo y

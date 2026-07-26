@@ -178,14 +178,17 @@ lo detectan al instante.
 
 16. **Contención se genera, no se enumera en `RoomDB.ROOMS`.** `MapGenerator` y `RunMap`
     viven en `core/`, son deterministas por `(seed, attempt)` y no pueden importar
-    autoloads ni escenas. Camino principal `6–8`, máximo `12` salas. Antes de cambiar sus
-    reglas, ejecutar `res://tests/run_map_tests.gd`, que valida 1.000 seeds.
+    autoloads ni escenas. El grafo es un DAG: `doors` contiene salidas futuras,
+    `entrances` conserva entradas consumidas y el jefe es el único sumidero. Tras el
+    cuerpo debe existir al menos una bifurcación que vuelva a converger; toda sala alcanza
+    al jefe. El camino principal conserva `6–8` hitos.
 
 17. **Una rejilla nunca requiere `squeeze`.** Si se usa, el jugador elige sacrificar una
     parte equipada o pagar `1 HP`; a `1 HP` la UI debe pedir confirmación y puede matar.
-    Máximo una rejilla por sala, destinos exclusivos y mínimo una si el mapa contiene
-    combate elegible. Fuente y retorno usan paredes libres opuestas, caben en `120 × 120`
-    y su destino adyacente se elige `40 %` vacío, `40 %` loot y `20 %` combate.
+    Toda sala normal de combate y el preboss tienen exactamente una; caben en `120 × 120`
+    y sus destinos exclusivos se eligen `40 %` vacío, `40 %` loot y `20 %` combate
+    obligatorio. Cruzarla consume la conexión: el destino solo crea `GrateSpawn`, nunca
+    otra rejilla ni un retorno. Una sala loot entrega una parte aleatoria una sola vez.
 
 18. **El mapa de `TAB` es local y procedural.** Lee `RunManager.current_map`, nunca
     `RoomDB.ROOMS`, y debe admitir vecinos N/E/S/O simultáneos. Solo muestra salas
@@ -204,10 +207,11 @@ lo detectan al instante.
     El mapa corporal se abre con `TAB`. El mural es pasivo, no pausa y no puede bloquear
     spawn ni puertas.
 
-21. **El cuerpo es el segundo hito, no contenido aleatorio.** `main_path[1]` usa rol
-    `body`, contenido `body_reward`, dos puertas y ninguna rejilla. El rastro se orienta
-    desde las conexiones de `RunMap`; la parte se reclama al recogerla y no reaparece
-    durante esa partida. No fijar IDs de sala ni una dirección cardinal.
+21. **La primera parte es el segundo hito, no contenido aleatorio.** `main_path[1]` usa
+    rol `body`, contenido `body_reward`, una entrada sellada, una salida y ninguna
+    rejilla. No se muestra un cadáver humano provisional: la recompensa queda sobre el
+    charco vectorial. El rastro se orienta desde `doors` o `entrances`; la parte se
+    reclama al recogerla y no reaparece durante esa partida.
 
 22. **Solo existen las seis partes equipadas.** `Inventory` mantiene exactamente seis
     slots por compatibilidad interna, pero no hay `pending`, séptimo espacio ni pantalla

@@ -184,8 +184,9 @@ base visual para que la silueta alta no bloquee al slime de forma invisible.
 | `grate.png` | 445 × 483 px | Conexión mural; se ajusta con aspecto intacto dentro de 120 × 120 |
 
 La rejilla siempre ocupa una pared libre y usa el mismo centro funcional que
-una puerta. Fuente y retorno quedan enfrentados; no se coloca una rejilla en el
-suelo ni sobre una pared que ya tenga puerta. Los focos conservan energía `1.6`
+una puerta. La fuente recibe un halo cian tenue; el destino conserva solo el
+punto de llegada y no muestra una rejilla de retorno. No se coloca en el suelo
+ni sobre una pared que ya tenga una abertura. Los focos conservan energía `1.6`
 y usan `texture_scale = 1.85` para ampliar cobertura sin aumentar intensidad.
 
 ### Ambientación por nivel
