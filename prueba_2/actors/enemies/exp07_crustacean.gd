@@ -6,7 +6,7 @@ extends "res://actors/enemies/enemy_base.gd"
 # Serrada, Tenaza Trituradora, Pistón de Compresión).
 
 const SHIELD_CONE_DEG := 100.0
-const PINCH_RANGE := 220.0
+const PINCH_RANGE := 150.0
 const PINCH_ARC := 50.0
 const PINCH_WINDUP := 0.8
 const PINCH_COOLDOWN := 2.6
@@ -70,9 +70,9 @@ func _advance(delta: float) -> void:
 	var offset := player_offset()
 	var to_player := offset.normalized()
 	# Dentro del alcance mantiene su espacio: espera el próximo ataque sin
-	# perseguir al jugador durante el cooldown ni invadir su posición.
+	# perseguir al jugador durante el cooldown ni girar el escudo para seguirlo.
+	# Conservar la orientación de entrada permite rodearlo y golpear su espalda.
 	if offset.length() <= PINCH_RANGE:
-		facing = to_player
 		brake(delta, 10.0)
 		if _pinch_cd <= 0.0:
 			_state = State.PINCH_WINDUP

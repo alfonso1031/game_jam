@@ -74,15 +74,36 @@ func _check_state_contract() -> void:
 
 	var player := Node2D.new()
 	add_child(player)
-	player.global_position = enemy.global_position + Vector2(100.0, 0.0)
 	enemy.set("_player", player)
 	enemy.set("_pinch_cd", 1.0)
+
+	player.global_position = enemy.global_position + Vector2(160.0, 0.0)
+	enemy.velocity = Vector2.ZERO
+	enemy._advance(0.1)
+	_check(
+		not enemy.velocity.is_zero_approx(),
+		"EXP07 no inicia el ataque fuera del alcance visual"
+	)
+
+	player.global_position = enemy.global_position + Vector2(100.0, 0.0)
 	enemy.velocity = Vector2.ZERO
 	enemy._advance(0.1)
 	_check(
 		enemy.velocity.is_zero_approx(),
 		"EXP07 no persigue al jugador dentro del alcance durante el cooldown"
 	)
+
+	enemy.set("facing", Vector2.RIGHT)
+	player.global_position = enemy.global_position + Vector2(-100.0, 0.0)
+	enemy._advance(0.1)
+	_check(
+		enemy.get("facing") == Vector2.RIGHT,
+		"EXP07 no gira el escudo para seguir al jugador dentro del alcance"
+	)
+	enemy.set("health", 1)
+	enemy.take_damage(1, player.global_position)
+	_check(bool(enemy.get("_dead")), "EXP07 muere al recibir daño por la espalda")
+
 	player.queue_free()
 	enemy.queue_free()
 	await get_tree().process_frame
