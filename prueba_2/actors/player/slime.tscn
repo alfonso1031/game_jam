@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://actors/player/slime.gd" id="1"]
 [ext_resource type="Script" path="res://actors/player/slime_audio.gd" id="2_audio"]
 [ext_resource type="Script" path="res://actors/player/abilities/ability_runner.gd" id="3_abilities"]
+[ext_resource type="SpriteFrames" path="res://actors/player/slime_frames.tres" id="4_frames"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 45.0
@@ -27,12 +28,19 @@ script = ExtResource("1")
 shape = SubResource("1")
 
 [node name="Body" type="Polygon2D" parent="."]
+visible = false
 color = Color(0.290196, 0.658824, 0.505882, 1)
 polygon = PackedVector2Array(48, 0, 44, 16, 36, 30, 22, 40, 0, 46, -20, 42, -36, 32, -46, 18, -50, 0, -46, -18, -36, -32, -20, -42, 0, -46, 22, -40, 36, -30, 44, -16)
 
 [node name="Core" type="Polygon2D" parent="Body"]
+visible = false
 color = Color(0.45098, 0.937255, 0.909804, 0.7)
 polygon = PackedVector2Array(26, 0, 24, 9, 20, 17, 12, 22, 0, 25, -11, 23, -20, 17, -25, 10, -27, 0, -25, -10, -20, -17, -11, -23, 0, -25, 12, -22, 20, -17, 24, -9)
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("4_frames")
+animation = &"idle"
+autoplay = "idle"
 
 [node name="ScaleShell" type="Line2D" parent="."]
 visible = false

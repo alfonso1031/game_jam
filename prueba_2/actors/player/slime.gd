@@ -85,6 +85,7 @@ enum State {IDLE, CHARGING, LAUNCHING, RECOVERING, DASHING, PART_DASH}
 
 @onready var body: Polygon2D = $Body
 @onready var core: Polygon2D = $Body/Core
+@onready var sprite: AnimatedSprite2D = $Sprite
 @onready var scale_shell: Line2D = $ScaleShell
 @onready var slime_audio: Node = $SlimeAudio
 
@@ -777,7 +778,25 @@ func _lerp_points(
 	return result
 
 
+func _visual_animation() -> StringName:
+	if _state in [State.LAUNCHING, State.DASHING, State.PART_DASH]:
+		return &"jump"
+	if _state == State.RECOVERING:
+		return &"recover"
+	if _continuous_moving:
+		return &"walk"
+	return &"idle"
+
+
+func _update_sprite_animation() -> void:
+	var next_animation: StringName = _visual_animation()
+	if sprite.animation != next_animation:
+		sprite.play(next_animation)
+	sprite.flip_h = _facing.x < 0.0
+
+
 func _update_visual(delta: float) -> void:
+	_update_sprite_animation()
 	var target_scale := Vector2.ONE
 	var target_offset := Vector2.ZERO
 	var charge := pow(_charge_power(), 0.75) if _state == State.CHARGING else 0.0
