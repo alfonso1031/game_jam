@@ -178,6 +178,11 @@ func validate(run_map: RefCounted) -> PackedStringArray:
 		if must_have_grate != not grate_target.is_empty():
 			errors.append("%s no cumple su regla de rejilla" % room_id)
 		if not grate_target.is_empty():
+			var grate_direction := String(data.get("grate_direction", ""))
+			if _opening_directions(data).has(grate_direction):
+				errors.append(
+					"%s comparte pared entre abertura y rejilla" % room_id
+				)
 			if not run_map.rooms.has(grate_target):
 				errors.append("%s apunta a una rejilla inexistente" % room_id)
 			elif String(run_map.room(grate_target).get("grate_source", "")) != room_id:
@@ -250,7 +255,7 @@ func _add_grates(
 			sources.append(room_id)
 	sources.sort_custom(
 		func(a: String, b: String) -> bool:
-			return int(run_map.room(a)["layer"]) > int(run_map.room(b)["layer"])
+			return int(run_map.room(a)["layer"]) < int(run_map.room(b)["layer"])
 	)
 
 	for source_id: String in sources:
