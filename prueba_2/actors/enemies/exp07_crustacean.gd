@@ -38,6 +38,15 @@ func _visual_state() -> StringName:
 		_:
 			return &"advance"
 
+
+func _update_sprite() -> void:
+	super()
+	# La tenaza fue dibujada mirando a la izquierda, al contrario que el resto
+	# del arte de enemigos. Solo EXP07 invierte la orientación visual.
+	if sprite != null and absf(facing.x) > 0.05:
+		sprite.flip_h = facing.x > 0.0
+
+
 func _tick_ai(delta: float) -> void:
 	_timer -= delta
 	_pinch_cd = max(0.0, _pinch_cd - delta)
