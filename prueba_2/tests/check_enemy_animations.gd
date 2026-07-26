@@ -46,6 +46,8 @@ func _ready() -> void:
 				var wanted: StringName = enemy._visual_state()
 				if wanted != &"" and not frames.has_animation(wanted):
 					problems.append("%s: estado %d pide '%s' y no existe" % [type_id, state_value, wanted])
+				elif wanted != &"" and frames.get_frame_count(wanted) == 0:
+					problems.append("%s: estado %d pide '%s' sin fotogramas" % [type_id, state_value, wanted])
 		enemy.free()
 
 	if problems.is_empty():
