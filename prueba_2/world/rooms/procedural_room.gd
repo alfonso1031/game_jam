@@ -8,6 +8,10 @@ const BloodTrailScene := preload("res://world/props/blood_trail.tscn")
 const BodySourceScene := preload("res://world/props/body_source.tscn")
 const TutorialMuralScene := preload("res://world/props/tutorial_mural.tscn")
 const GrateScene := preload("res://world/props/grate.tscn")
+const BossScene := preload("res://actors/boss/boss_core.tscn")
+const ChimeraArenaTexture := preload(
+	"res://assets/environment/containment/chimera_arena.png"
+)
 
 const ROOM_CENTER := Vector2(960, 540)
 const BODY_POSITION := Vector2(1060, 540)
@@ -49,6 +53,7 @@ func configure(room_data: Dictionary) -> void:
 	_build_walls_and_doors()
 	_build_lighting()
 	_build_environment_props()
+	_build_boss_arena()
 	_build_story_content()
 	_build_tutorial_mural()
 	_build_grate()
@@ -57,6 +62,7 @@ func configure(room_data: Dictionary) -> void:
 func _ready() -> void:
 	add_to_group("room")
 	_spawn_enemies()
+	_spawn_boss()
 	if _room_data.get("content_type", &"") == &"closure":
 		_apply_closure()
 
@@ -160,6 +166,19 @@ func _build_environment_props() -> void:
 		prop.position = placement["position"] as Vector2
 		prop.set_meta("prop_id", prop_id)
 		add_child(prop)
+
+
+func _build_boss_arena() -> void:
+	if _room_data.get("role", &"normal") != &"boss_choice":
+		return
+	var arena := Sprite2D.new()
+	arena.name = "ChimeraArena"
+	arena.texture = ChimeraArenaTexture
+	arena.position = ROOM_CENTER
+	arena.scale = Vector2.ONE * 0.62
+	arena.modulate = Color(0.8, 0.92, 0.9, 0.72)
+	arena.z_index = -5
+	add_child(arena)
 
 
 func _build_story_content() -> void:
@@ -275,6 +294,22 @@ func _spawn_enemies() -> void:
 		_alive.append(enemy)
 	if not _alive.is_empty():
 		_seal_doors(true)
+
+
+func _spawn_boss() -> void:
+	if _room_data.get("role", &"normal") != &"boss_choice":
+		return
+	var room_id: String = String(_room_data["id"])
+	if GameState.is_room_cleared(room_id) or GameState.bosses_defeated.get(room_id, false):
+		return
+	var boss: CharacterBody2D = BossScene.instantiate()
+	boss.name = "BossCore"
+	boss.room_id = room_id
+	boss.position = ROOM_CENTER
+	boss.died.connect(_on_enemy_died)
+	add_child(boss)
+	_alive.append(boss)
+	_seal_doors(true)
 
 
 func _stable_room_index() -> int:

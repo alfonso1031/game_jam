@@ -1,191 +1,274 @@
 extends CharacterBody2D
 
 const Palette := preload("res://core/palette.gd")
-const ProjectileScene := preload("res://actors/boss/projectile.tscn")
-const PickupScene := preload("res://world/props/ability_pickup.tscn")
+const AbilityPickupScene := preload("res://world/props/ability_pickup.tscn")
+const PartPickupScene := preload("res://world/props/part_pickup.tscn")
 
-const MAX_HEALTH := 4
-const HIT_COOLDOWN := 0.7
-# Tras un golpe el boss retrocede y no hace daño por contacto: si no, el jugador
-# sigue solapado con la hitbox y come daño en el frame siguiente.
-const RECOIL_TIME := 0.9
+signal died(boss: Node)
 
-# Por fase (1..3): velocidad de persecución, duración de persecución,
-# cantidad de proyectiles y ventana de vulnerabilidad.
-const CHASE_SPEED := [45.0, 65.0, 85.0]
-const CHASE_TIME := [2.4, 2.0, 1.7]
-const BURST_COUNT := [6, 8, 10]
-const VULNERABLE_TIME := [3.4, 3.0, 2.6]
+const MAX_HEALTH := 12
+const HEALTH_BAR_WIDTH := 260.0
+const CONTACT_COOLDOWN := 0.8
+const CORNER_REACHED_DISTANCE := 24.0
+const CORNERS: Array[Vector2] = [
+	Vector2(330, 270),
+	Vector2(1590, 270),
+	Vector2(1590, 810),
+	Vector2(330, 810),
+]
+const CORNER_SPEED := [620.0, 720.0, 820.0]
+const POUNCE_SPEED := [950.0, 1080.0, 1220.0]
+const AIM_TIME := [0.9, 0.72, 0.56]
+const RECOVER_TIME := [0.64, 0.52, 0.42]
 
-enum State {CHASE, SHOOT, VULNERABLE, RECOIL, DEAD}
+enum State { SEEK_CORNER, CORNER_AIM, POUNCE, RECOVER, DEAD }
 
 @export var room_id: String = "L3_NUCLEO"
 @export var ability_id: String = "dash"
-# Solo se sellan estas salidas. La puerta de vuelta queda abierta para no
-# encerrar al jugador si todavía no entendió la mecánica.
-@export var sealed_directions: Array[String] = ["N"]
+@export var part_id: String = "silent_claws"
+@export var sealed_directions: Array[String] = ["N", "S", "E", "O"]
 
 var health := MAX_HEALTH
 
-var _state: int = State.CHASE
+var _state: int = State.SEEK_CORNER
 var _timer := 0.0
-var _hit_cd := 0.0
-var _pulse := 0.0
+var _contact_cd := 0.0
+var _hurt_flash := 0.0
+var _corner_index := -1
+var _corner_target := Vector2.ZERO
+var _pounce_target := Vector2.ZERO
 var _player: Node2D
+var _dead := false
+var _visual_time := 0.0
 
-@onready var shell: Polygon2D = $Shell
-@onready var core: Polygon2D = $Core
-@onready var light: PointLight2D = $Light
+@onready var sprite: Sprite2D = $Sprite
 @onready var hitbox: Area2D = $Hitbox
 @onready var state_label: Label = $StateLabel
 @onready var health_fill: ColorRect = $HealthBar/Fill
 
-const HEALTH_BAR_WIDTH := 200.0
 
 func _ready() -> void:
 	if GameState.bosses_defeated.get(room_id, false):
 		queue_free()
 		return
+	add_to_group("enemies")
+	add_to_group("bosses")
 	_player = get_tree().get_first_node_in_group("player")
 	_seal_doors(true)
 	_refresh_health_bar()
-	_enter_chase()
+	_choose_next_corner()
+
 
 func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
 		return
-
-	_timer -= delta
-	_hit_cd = max(0.0, _hit_cd - delta)
-	_pulse += delta
+	_timer = maxf(0.0, _timer - delta)
+	_contact_cd = maxf(0.0, _contact_cd - delta)
+	_hurt_flash = maxf(0.0, _hurt_flash - delta)
+	_visual_time += delta
 
 	match _state:
-		State.CHASE:
-			_chase(delta)
+		State.SEEK_CORNER:
+			_seek_corner(delta)
+		State.CORNER_AIM:
+			_brake(delta, 12.0)
 			if _timer <= 0.0:
-				_enter_shoot()
-		State.SHOOT:
-			velocity = velocity.lerp(Vector2.ZERO, 0.25)
-			move_and_slide()
+				_enter_pounce()
+		State.POUNCE:
+			_pounce(delta)
+		State.RECOVER:
+			_brake(delta, 7.0)
 			if _timer <= 0.0:
-				_enter_vulnerable()
-		State.VULNERABLE:
-			velocity = velocity.lerp(Vector2.ZERO, 0.15)
-			move_and_slide()
-			core.scale = Vector2.ONE * (1.0 + sin(_pulse * 8.0) * 0.12)
-			if _timer <= 0.0:
-				_enter_chase()
-		State.RECOIL:
-			velocity = velocity.lerp(Vector2.ZERO, 0.06)
-			move_and_slide()
-			if _timer <= 0.0:
-				_enter_chase()
+				_choose_next_corner()
 
 	_resolve_contact()
+	_update_visual()
+	queue_redraw()
+
+
+func _draw() -> void:
+	if _state != State.CORNER_AIM or _pounce_target == Vector2.ZERO:
+		return
+	var local_target := to_local(_pounce_target)
+	var pulse := 0.52 + sin(_visual_time * 12.0) * 0.18
+	draw_dashed_line(
+		Vector2.ZERO,
+		local_target,
+		Color(Palette.WARM_LIGHT, pulse),
+		5.0,
+		18.0
+	)
+	draw_circle(local_target, 22.0, Color(Palette.WARM_LIGHT, 0.18))
+	draw_arc(local_target, 30.0, 0.0, TAU, 24, Palette.WARM_LIGHT, 4.0)
+
 
 func _phase() -> int:
-	if health > 2:
+	if health > 8:
 		return 1
-	elif health > 1:
+	if health > 4:
 		return 2
 	return 3
 
-func _chase(_delta: float) -> void:
-	if not is_instance_valid(_player):
+
+func _choose_next_corner() -> void:
+	_state = State.SEEK_CORNER
+	var candidates: Array[int] = []
+	for index in range(CORNERS.size()):
+		if index != _corner_index:
+			candidates.append(index)
+	_corner_index = candidates[randi() % candidates.size()]
+	_corner_target = CORNERS[_corner_index]
+	_set_label("RÁFAGA HACIA ESQUINA", Palette.SLIME_CORE)
+
+
+func _seek_corner(delta: float) -> void:
+	var offset := _corner_target - global_position
+	if offset.length() <= CORNER_REACHED_DISTANCE:
+		global_position = _corner_target
+		_enter_corner_aim()
 		return
-	var dir := (_player.global_position - global_position).normalized()
-	velocity = velocity.lerp(dir * CHASE_SPEED[_phase() - 1], 0.08)
+	var target_velocity: Vector2 = offset.normalized() * CORNER_SPEED[_phase() - 1]
+	velocity = velocity.lerp(target_velocity, 1.0 - exp(-14.0 * delta))
 	move_and_slide()
 
-func _enter_chase() -> void:
-	_state = State.CHASE
-	_timer = CHASE_TIME[_phase() - 1]
-	core.scale = Vector2.ONE
-	core.color = Palette.WALL.lightened(0.1)
-	light.energy = 0.5
-	shell.color = Palette.WALL
-	_set_label("NÚCLEO SELLADO", Palette.WALL.lightened(0.4))
 
-func _enter_shoot() -> void:
-	_state = State.SHOOT
-	_timer = 0.45
-	shell.color = Palette.WARM_LIGHT
-	_set_label("¡CUIDADO!", Palette.WARM_LIGHT)
-	_fire_burst()
+func _enter_corner_aim() -> void:
+	_state = State.CORNER_AIM
+	_timer = AIM_TIME[_phase() - 1]
+	_pounce_target = (
+		_player.global_position
+		if is_instance_valid(_player)
+		else Vector2(960, 540)
+	)
+	_set_label("FIJA TU POSICIÓN", Palette.WARM_LIGHT)
 
-func _enter_vulnerable() -> void:
-	_state = State.VULNERABLE
-	_timer = VULNERABLE_TIME[_phase() - 1]
-	shell.color = Palette.WALL.darkened(0.3)
-	core.color = Palette.SLIME_CORE
-	light.energy = 1.4
-	_set_label("¡NÚCLEO EXPUESTO — CHOCALO!", Palette.SLIME_CORE)
+
+func _enter_pounce() -> void:
+	_state = State.POUNCE
+	if is_instance_valid(_player):
+		_pounce_target = _player.global_position
+	var distance := global_position.distance_to(_pounce_target)
+	_timer = maxf(0.22, distance / POUNCE_SPEED[_phase() - 1] + 0.08)
+	_set_label("¡EMBESTIDA!", Palette.WARM_LIGHT)
+
+
+func get_pounce_target() -> Vector2:
+	return _pounce_target
+
+
+func _pounce(_delta: float) -> void:
+	var offset := _pounce_target - global_position
+	if offset.length() <= 34.0 or _timer <= 0.0:
+		_enter_recover()
+		return
+	velocity = offset.normalized() * POUNCE_SPEED[_phase() - 1]
+	move_and_slide()
+
+
+func _enter_recover() -> void:
+	_state = State.RECOVER
+	_timer = RECOVER_TIME[_phase() - 1]
+	_set_label("RECUPERANDO", Palette.WALL.lightened(0.35))
+
+
+func _brake(delta: float, rate: float) -> void:
+	velocity = velocity.lerp(Vector2.ZERO, 1.0 - exp(-rate * delta))
+	move_and_slide()
+
+
+func _resolve_contact() -> void:
+	if _state != State.POUNCE or _contact_cd > 0.0:
+		return
+	for body: Node in hitbox.get_overlapping_bodies():
+		if not body.is_in_group("player"):
+			continue
+		_contact_cd = CONTACT_COOLDOWN
+		if body.has_method("take_damage"):
+			body.take_damage(1, global_position)
+		if body.has_method("apply_knockback"):
+			body.apply_knockback(global_position, 760.0)
+		return
+
+
+func take_damage(
+	amount: int,
+	from: Vector2 = Vector2.ZERO,
+	knockback: float = 0.0,
+	_break_shield: bool = false
+) -> void:
+	if _dead or amount <= 0:
+		return
+	health -= amount
+	_hurt_flash = 0.14
+	if knockback > 0.0 and from != Vector2.ZERO:
+		var direction := (global_position - from).normalized()
+		velocity += direction * minf(knockback * 0.18, 140.0)
+	_refresh_health_bar()
+	if health <= 0:
+		_die()
+
+
+func _refresh_health_bar() -> void:
+	health_fill.size.x = HEALTH_BAR_WIDTH * maxf(0.0, float(health) / float(MAX_HEALTH))
+
+
+func _update_visual() -> void:
+	var direction := velocity
+	if _state == State.CORNER_AIM and _pounce_target != Vector2.ZERO:
+		direction = _pounce_target - global_position
+	if absf(direction.x) > 0.05:
+		sprite.flip_h = direction.x < 0.0
+
+	var stretch := 1.0
+	var squash := 1.0
+	if _state == State.POUNCE:
+		stretch = 1.1
+		squash = 0.92
+	elif _state == State.CORNER_AIM:
+		stretch = 0.96 + sin(_visual_time * 10.0) * 0.025
+		squash = 1.04 - sin(_visual_time * 10.0) * 0.025
+	sprite.scale = Vector2(0.22 * stretch, 0.22 * squash)
+	sprite.rotation = clampf(direction.y / 3000.0, -0.08, 0.08)
+	sprite.modulate = Color(1.8, 1.8, 1.8) if _hurt_flash > 0.0 else Color.WHITE
+
 
 func _set_label(text: String, color: Color) -> void:
 	state_label.text = text
 	state_label.add_theme_color_override("font_color", color)
 
-func _refresh_health_bar() -> void:
-	health_fill.size.x = HEALTH_BAR_WIDTH * float(health) / float(MAX_HEALTH)
-
-func _fire_burst() -> void:
-	var count: int = BURST_COUNT[_phase() - 1]
-	var offset := randf() * TAU
-	for i in range(count):
-		var angle: float = offset + TAU * float(i) / float(count)
-		var dir := Vector2.RIGHT.rotated(angle)
-		var projectile: Node2D = ProjectileScene.instantiate()
-		projectile.direction = dir
-		projectile.position = position + dir * 78.0
-		get_parent().add_child(projectile)
-
-func _resolve_contact() -> void:
-	if _state == State.RECOIL:
-		return
-	for body in hitbox.get_overlapping_bodies():
-		if not body.is_in_group("player"):
-			continue
-		if _state == State.VULNERABLE:
-			if _hit_cd <= 0.0:
-				_take_damage(body)
-		else:
-			body.take_damage(1, global_position)
-		return
-
-func _take_damage(player_node: Node2D) -> void:
-	health -= 1
-	_hit_cd = HIT_COOLDOWN
-	_refresh_health_bar()
-	var away := (player_node.global_position - global_position).normalized()
-	player_node.apply_knockback(global_position, 700.0)
-	if health <= 0:
-		_die()
-		return
-	_enter_recoil(-away)
-
-func _enter_recoil(push_dir: Vector2) -> void:
-	_state = State.RECOIL
-	_timer = RECOIL_TIME
-	velocity = push_dir * 420.0
-	shell.color = Palette.WALL
-	core.color = Palette.WALL.lightened(0.1)
-	core.scale = Vector2.ONE
-	light.energy = 0.5
-	_set_label("¡GOLPE!", Palette.SLIME_BODY)
 
 func _die() -> void:
+	if _dead:
+		return
+	_dead = true
 	_state = State.DEAD
+	velocity = Vector2.ZERO
 	GameState.bosses_defeated[room_id] = true
+	GameState.mark_room_cleared(room_id)
+	RunManager.complete_floor(&"contencion")
 	_seal_doors(false)
 
-	var pickup: Node2D = PickupScene.instantiate()
-	pickup.ability_id = ability_id
-	pickup.position = position
-	get_parent().add_child(pickup)
+	var ability_pickup: Node2D = AbilityPickupScene.instantiate()
+	ability_pickup.ability_id = ability_id
+	ability_pickup.position = position + Vector2(-80, 0)
+	get_parent().add_child(ability_pickup)
 
-	queue_free()
+	var part_pickup: Node2D = PartPickupScene.instantiate()
+	part_pickup.part_id = part_id
+	part_pickup.position = position + Vector2(80, 0)
+	get_parent().add_child(part_pickup)
+
+	died.emit(self)
+	call_deferred("queue_free")
+
 
 func _seal_doors(value: bool) -> void:
-	for node in get_parent().get_children():
-		if node.has_method("set_sealed") and node.get("direction") in sealed_directions:
+	var parent := get_parent()
+	if parent == null:
+		return
+	for node: Node in parent.get_children():
+		if not node.has_method("set_sealed"):
+			continue
+		var direction: Variant = node.get("direction")
+		if direction in sealed_directions:
 			node.set_sealed(value)
