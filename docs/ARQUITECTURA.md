@@ -567,8 +567,9 @@ máquina de estados → _visual_state() → AnimatedSprite2D → SpriteFrames
 ```
 
 - El **arte crudo vive fuera de `prueba_2/`**, en
-  `art_raw/enemigos/containment/<personaje>/source_sheet.png`: cuatro hojas 3 × 2
-  con fondo croma `#ff00ff` y las seis poses en orden fijo.
+  `art_raw/enemigos/containment/<personaje>/source_sheet.png`: tres hojas 3 × 2
+  con fondo croma `#ff00ff` y las seis poses en orden fijo para EXP01–03. La Quimera
+  conserva por separado 7 PNG Idle y 16 Angry ya ilustrados y transparentes.
 - Las **poses de runtime** viven en `assets/enemies/exp0{1,2,3}_*/` y
   `assets/bosses/containment_chimera/animations/`, ya con alfa y centradas.
 - El **`SpriteFrames` vive junto al actor**: `actors/enemies/*_frames.tres` y
@@ -581,8 +582,9 @@ Dos herramientas reproducen el pipeline entero:
 
 | Herramienta | Qué hace |
 |---|---|
-| `tools/art/gen_containment_enemy_sheets.gd` | Compone las cuatro hojas fuente con formas orgánicas y las escribe en `art_raw/` |
+| `tools/art/gen_containment_enemy_sheets.gd` | Compone las tres hojas provisionales de EXP01–03 y las escribe en `art_raw/` |
 | `tools/art/process_containment_enemy_sheets.gd` | Quita el croma, separa las seis poses con **un recorte común** y las centra en el lienzo de runtime |
+| `tools/art/process_chimera_delivered_frames.gd` | Recorta en común los 23 PNG ilustrados de la Quimera, premultiplica el alfa y genera los frames `idle`/`angry` |
 
 El recorte común es lo que conserva la escala y el punto de apoyo entre poses:
 ajustar cada una por separado haría que la embestida estirada y la pose encogida
@@ -691,17 +693,19 @@ también es un `CharacterBody2D`).
 
 ### Ciclo del boss (`boss_core.gd`)
 
-La Quimera Albina anima con `actors/boss/boss_core_frames.tres` sobre las poses de
-`assets/bosses/containment_chimera/animations/`, tiene `12 HP`, pertenece a los grupos
-`enemies` y `bosses`, y recibe la misma firma `take_damage()` que los experimentos
-normales. Los proyectiles del slime incluyen la capa 2 en su máscara
+La Quimera Albina anima con `actors/boss/boss_core_frames.tres` sobre 7 frames `idle` y
+16 `angry` ilustrados en `assets/bosses/containment_chimera/animations/`. Tiene `12 HP`,
+pertenece a los grupos `enemies` y `bosses`, y recibe la misma firma `take_damage()` que
+los experimentos normales. Los proyectiles del slime incluyen la capa 2 en su máscara
 (`11 = mundo + boss + enemigos`).
 
 `_update_visual()` traduce el estado con `_visual_state()` y solo relanza la animación
-cuando cambia; el estiramiento mecánico se conserva, pero la escala base pasó de `0.22`
-a `1.0` porque las poses ya vienen al tamaño de juego (350 × 205 px, la misma huella que
-tenía el `Sprite2D` estático). `assets/bosses/containment_chimera/chimera.png` se
-conserva solo como referencia de identidad para redibujar; ya no es arte de runtime.
+cuando cambia. Búsqueda y recuperación usan `idle`; aviso y embestida usan el mismo nombre
+`angry`, por lo que el frame no se reinicia en la transición `CORNER_AIM → POUNCE`. El
+procesador usa un recorte compartido, lienzo `384 × 256` y ajuste máximo `350 × 205`; la
+escala base sigue en `1.0` y el estiramiento mecánico se conserva. Los tiempos del script
+continúan siendo la autoridad: ningún frame aplica daño ni cambia de estado.
+`assets/bosses/containment_chimera/chimera.png` queda como referencia de identidad.
 
 ```
 BUSCA ESQUINA → FIJA POSICIÓN → EMBESTIDA → RECUPERA → BUSCA OTRA ESQUINA …

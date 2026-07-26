@@ -153,8 +153,15 @@ sensor, porque desde allí el jugador no puede alcanzarlo físicamente.
   `assets/bosses/containment_chimera/animations/` y
   `assets/environment/containment/chimera_arena.png`. `chimera.png` queda solo como
   referencia de identidad.
-- `boss_core.gd` traduce el estado con `_visual_state()` y solo relanza la animación al
-  cambiar; la escala base del sprite es `1.0` porque las poses ya vienen a 350 × 205 px.
+- Fuentes ilustradas: siete PNG en
+  `art_raw/enemigos/containment/boss_chimera/idle/` y dieciséis en
+  `art_raw/enemigos/containment/boss_chimera/angry/`.
+- Regenerar runtime: `godot --headless --path prueba_2 --script
+  res://tools/art/process_chimera_delivered_frames.gd`; usa recorte común, lienzo
+  `384 × 256` y ajuste máximo `350 × 205`.
+- `boss_core.gd` mapea búsqueda/recuperación a `idle` y aviso/embestida a `angry`.
+  `_update_sprite_animation()` solo relanza al cambiar de nombre, así que `angry` continúa
+  sin reiniciarse al comenzar `POUNCE`.
 
 ### Añadir una habilidad
 
@@ -226,22 +233,25 @@ Pipeline reproducible, de crudo a runtime:
 ```bash
 godot --headless --path prueba_2 --script res://tools/art/gen_containment_enemy_sheets.gd
 godot --headless --path prueba_2 --script res://tools/art/process_containment_enemy_sheets.gd
+godot --headless --path prueba_2 --script res://tools/art/process_chimera_delivered_frames.gd
 godot --headless --path prueba_2 --import
 godot --headless --path prueba_2 res://tests/check_enemy_animations.tscn
 ```
 
-- El generador escribe cuatro hojas 3 × 2 con fondo `#ff00ff` en
+- El generador escribe tres hojas 3 × 2 con fondo `#ff00ff` en
   `art_raw/enemigos/containment/<personaje>/source_sheet.png`. El orden de las seis
   poses es contrato: cambiarlo obliga a cambiar `names` en el procesador.
-- Para sustituir una criatura por arte pintado a mano **basta con reemplazar su
-  `source_sheet.png`** respetando la rejilla 3 × 2 y el orden de poses; el resto del
-  pipeline no se toca.
+- Para sustituir EXP01, EXP02 o EXP03 por arte pintado a mano **basta con reemplazar su
+  `source_sheet.png`** respetando la rejilla 3 × 2 y el orden de poses.
 - El procesador usa **un recorte común a las seis poses**, no uno por pose: es lo que
   conserva escala y punto de apoyo entre fotogramas. Mismo criterio que
   `process_exp07_claw_frames.gd`.
 - El croma se retira midiendo `min(r, b) - g` y deshaciendo la composición sobre el
   magenta; por eso no quedan orlas. Antes de escalar se premultiplica el alfa, o el
   borde se ensucia de negro.
+- La Quimera no pertenece a ese generador provisional: su procesador carga 23 PNG con
+  alfa, calcula un único recorte para Idle y Angry y genera
+  `chimera_{idle,angry}_XX.png`.
 
 Para integrarlo en el juego, por experimento:
 
