@@ -134,6 +134,23 @@ func _test_story_rooms() -> void:
 		_check(body.get_node_or_null("BodySource") != null, "%s pone cuerpo segundo" % direction)
 		_check(normal.get_node_or_null("BloodTrail") == null, "%s no sangra en sala normal" % direction)
 		_check(normal.get_node_or_null("BodySource") == null, "%s no repite el cuerpo" % direction)
+		var mural := entry.get_node_or_null("TutorialMural") as Node2D
+		_check(mural != null, "%s siempre incluye mural" % direction)
+		_check(body.get_node_or_null("TutorialMural") == null, "%s no repite mural" % direction)
+		_check(normal.get_node_or_null("TutorialMural") == null, "%s mural solo vive en tutorial" % direction)
+		if mural != null:
+			var rect: Rect2 = mural.footprint()
+			_check(not rect.has_point(Vector2(960, 540)), "%s deja libre el spawn" % direction)
+			for door_position: Vector2 in [
+				Vector2(960, 60),
+				Vector2(1800, 540),
+				Vector2(960, 1020),
+				Vector2(120, 540),
+			]:
+				_check(
+					not rect.grow(80.0).has_point(door_position),
+					"%s deja libre la puerta %s" % [direction, door_position]
+				)
 		entry.free()
 		body.free()
 		normal.free()

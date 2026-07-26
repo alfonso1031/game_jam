@@ -5,6 +5,7 @@ const DoorScene := preload("res://world/props/door.tscn")
 const LampScene := preload("res://world/props/lamp.tscn")
 const BloodTrailScene := preload("res://world/props/blood_trail.tscn")
 const BodySourceScene := preload("res://world/props/body_source.tscn")
+const TutorialMuralScene := preload("res://world/props/tutorial_mural.tscn")
 
 const ROOM_CENTER := Vector2(960, 540)
 const BODY_POSITION := Vector2(1060, 540)
@@ -45,6 +46,7 @@ func configure(room_data: Dictionary) -> void:
 	_build_walls_and_doors()
 	_build_lighting()
 	_build_story_content()
+	_build_tutorial_mural()
 
 
 func _ready() -> void:
@@ -191,6 +193,19 @@ func _add_blood(start: Vector2, finish: Vector2, include_pool: bool) -> void:
 	trail.name = "BloodTrail"
 	trail.configure(start, finish, include_pool)
 	add_child(trail)
+
+
+func _build_tutorial_mural() -> void:
+	if (
+		_room_data.get("role", &"normal") != &"entry"
+		or _room_data.get("content_type", &"empty") != &"tutorial"
+	):
+		return
+	var doors: Dictionary = _room_data.get("doors", {})
+	var mural: Node2D = TutorialMuralScene.instantiate()
+	mural.name = "TutorialMural"
+	mural.position = Vector2(960, 290) if doors.has("S") else Vector2(960, 790)
+	add_child(mural)
 
 
 func _spawn_enemies() -> void:
