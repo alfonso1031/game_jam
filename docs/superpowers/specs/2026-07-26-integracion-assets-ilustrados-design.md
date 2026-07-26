@@ -91,10 +91,14 @@ procedural ya modela.
 - No se crea un objeto adicional de tipo `squeeze`.
 - Si el coste escogido mata al jugador, la decisión se respeta y termina la
   partida.
+- La sala destino conserva una rejilla de retorno hacia su sala de origen.
+- El coste se cobra una sola vez al abrir la ramificación; regresar desde el
+  destino es gratuito durante la partida actual.
 
 La transición solo ocurre después de confirmar y cobrar correctamente el
 coste. Cancelar devuelve el control al jugador sin modificar vida, partes o
-mapa.
+mapa. El desbloqueo de la conexión vive únicamente en el estado de la partida
+actual y se pierde al comenzar una nueva.
 
 ## 4. Ataque ilustrado del enemigo
 
