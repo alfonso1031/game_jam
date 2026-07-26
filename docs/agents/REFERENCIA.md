@@ -131,6 +131,23 @@ colisión de base. Para una rejilla, no crear puertas:
 `RunMap.set_grate(source, target, direction)` registra `grate_target`, `grate_source` y
 paredes opuestas; `procedural_room.gd` instancia ambos extremos dentro de `120 × 120` y
 `Transition.go_via_grate()` coloca al jugador en `GrateSpawn`.
+El sprite queda en el muro. `grate.gd::SENSOR_POSITIONS` desplaza solo el
+`CollisionShape2D` `105 px` hacia el interior; no abrir el muro ni volver a centrar el
+sensor, porque desde allí el jugador no puede alcanzarlo físicamente.
+
+### Boss de Contención
+
+- `role = &"boss_choice"` instancia `BossCore` y `ChimeraArena`; no usa el pool normal.
+- Ciclo: `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`.
+- La posición del jugador se congela al entrar a `POUNCE`; no hay homing durante la
+  embestida.
+- `BossCore` usa capa 2, grupos `enemies`/`bosses`, `12 HP` y la firma normal de
+  `take_damage(amount, from, knockback, break_shield)`.
+- `player_projectile.tscn` conserva máscara `11` para incluir esa capa.
+- Muerte: `dash`, `silent_claws`, sala limpia, boss derrotado y
+  `RunManager.complete_floor(&"contencion")`.
+- Arte runtime: `assets/bosses/containment_chimera/chimera.png` y
+  `assets/environment/containment/chimera_arena.png`.
 
 ### Añadir una habilidad
 
@@ -160,6 +177,11 @@ añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **so
   introducción: no activa `PlayButton` ni inicia la partida.
 - Primera sala: `TutorialMural` enseña mantener dirección, cargar y soltar; es un prop
   pasivo del mundo y debe dejar libres spawn y puertas.
+- Tema: `ui/game_theme.tres` se asigna en las raíces de portada, HUD, mapa, pausa,
+  rejilla, ruta, resumen y final. No copiar StyleBox comunes en cada escena.
+- Música: `ui/title.tscn::Music` usa `main_menu.ogg` a `-10 dB`;
+  `game/main.tscn::Music` usa `containment_ambience.ogg` a `-13 dB`. Los `.opus` fuente
+  viven en `assets/audio/music/source/`.
 - Resolución lógica 1920×1080; comprobar también la salida 1280×720.
 
 Pruebas:
@@ -170,10 +192,13 @@ godot --headless --path prueba_2 res://tests/part_tooltip_tests.tscn
 godot --headless --path prueba_2 res://tests/body_panel_tests.tscn
 godot --headless --path prueba_2 res://tests/map_overlay_tests.tscn
 godot --headless --path prueba_2 res://tests/floor_route_tests.tscn
+godot --headless --path prueba_2 res://tests/ui_theme_tests.tscn
+godot --headless --path prueba_2 res://tests/containment_boss_tests.tscn
+godot --headless --path prueba_2 res://tests/music_asset_tests.tscn
 ```
 
 Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `tooltip`,
-`route`, `tutorial` o `grate`):
+`route`, `tutorial`, `grate`, `exp07_attack`, `lighting` o `boss`):
 
 ```powershell
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
@@ -183,6 +208,7 @@ Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `toolt
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- grate user://grate-wall-flow.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- exp07_attack user://exp07-attack.png 1920x1080
 & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- lighting user://lighting-test-mode.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- boss user://chimera-arena.png 1920x1080
 ```
 
 ### Ataque ilustrado del EXP07
@@ -230,7 +256,7 @@ godot --headless --path prueba_2 res://tests/combat_smoke.tscn
   ejecuta `GameState.unlock_grate(source_id)` para la partida actual; entrar por la fuente
   desbloqueada o regresar por `grate_source` es gratis.
 - A 1 HP se exige confirmación; morir llama `RunManager.end_run()`. No hay respawn.
-- Penumbra global: `main.tscn::Darkness = Color(0.28, 0.31, 0.34, 1)`. No aclarar
+- Penumbra global: `main.tscn::Darkness = Color(0.32, 0.35, 0.37, 1)`. No aclarar
   fondos individuales. Las lámparas conservan energía `1.6`, radio `1.85`, parpadeo y
   estado fundido.
 

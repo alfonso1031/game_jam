@@ -213,6 +213,13 @@ lo detectan al instante.
     se hace únicamente desde `TAB`: flechas para elegir una tarjeta ocupada y `F` para
     comerla.
 
+23. **La Quimera cierra Contención.** La sala `boss_choice` instancia un solo
+    `BossCore` de `12 HP` y el ciclo `SEEK_CORNER → CORNER_AIM → POUNCE → RECOVER`.
+    `POUNCE` congela la posición del jugador y no corrige rumbo. El boss permanece en
+    capa 2 y grupos `enemies`/`bosses`; los ataques normales deben incluir esa capa.
+    Derrotarlo entrega DASH y `silent_claws`, marca la sala y llama
+    `RunManager.complete_floor(&"contencion")`.
+
 ---
 
 ## 4. Antes de dar algo por terminado

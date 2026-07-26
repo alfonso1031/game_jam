@@ -284,6 +284,11 @@ Fuente y retorno quedan en paredes opuestas, el PNG conserva su aspecto dentro d
 con prompt; abre el selector solo en el origen todavía bloqueado y
 `Transition.go_via_grate()` conserva el mismo fundido de una puerta.
 
+La textura permanece centrada en el muro, pero el `CollisionShape2D` de interacción se
+desplaza `105 px` hacia el interior según la pared. El muro no pierde colisión; el sensor
+alcanza `GrateSpawn` y permite mostrar el prompt sin exigir que el jugador atraviese una
+pared sólida.
+
 ---
 
 ## 6. Decoración data-driven (`room.gd`)
@@ -331,7 +336,7 @@ requiere tocar el árbol de nodos** ni los `ext_resource` del `.tscn`.
 | cartel | no | `Label` en `#ecf3b0` generado desde `sign_text` |
 
 `CanvasModulate` en `main.tscn` (nodo `Darkness`) da la penumbra base con
-`Color(0.28, 0.31, 0.34, 1)`: toda la sala permanece legible sin parecer
+`Color(0.32, 0.35, 0.37, 1)`: toda la sala permanece legible sin parecer
 iluminada de día. Es **el único color que tocar** si el ambiente general se ve
 muy oscuro o muy claro. Las lámparas se mantienen aparte a energía `1.6`,
 `texture_scale = 1.85`, con su parpadeo y estado fundido.
@@ -454,6 +459,20 @@ pero **no** posee ni cambia el estado de movimiento: `slime.gd` decide los event
 El loop de carga cambia de tono de `0.85` a `1.18` y de `-20` a `-8 dB` según la
 potencia. Existe un recurso idle, pero permanece apagado por defecto.
 
+### Música de pantallas
+
+La música no vive en `SlimeAudio`: cada pantalla posee su propio
+`AudioStreamPlayer` llamado `Music`.
+
+| Pantalla | Recurso runtime | Volumen |
+|---|---|---:|
+| Portada | `assets/audio/music/main_menu.ogg` | `-10 dB` |
+| Partida | `assets/audio/music/containment_ambience.ogg` | `-13 dB` |
+
+Los `.opus` recibidos se conservan en `assets/audio/music/source/`; Ogg Vorbis es el
+formato runtime que Godot importa de forma reproducible. `finished` vuelve a llamar
+`play()`, y el cambio de escena libera el reproductor anterior antes de iniciar el nuevo.
+
 ### Importación reproducible de Godot
 
 En un checkout nuevo se versionan los sidecars `.import` de los WAV y los `.uid`
@@ -497,7 +516,8 @@ sprite nunca aplica daño por señales y esta secuencia no pertenece al slime.
 ## 8. HUD y mapa
 
 **`hud.tscn` (CanvasLayer, siempre visible)**
-- Arriba-izquierda: barra `HP actual / 15 HP`; un HP equivale a medio corazón.
+- Arriba-izquierda: bloque `BIOMASA` y barra `HP actual / 15 HP`; un HP equivale a medio
+  corazón.
 - Arriba-derecha: minimapa de la generación activa, escalado desde el `grid`.
 
 La vida se actualiza por `health_changed` y el mapa por `room_changed`; no sondea estado
@@ -520,6 +540,9 @@ desde `_process()`.
 - Mitad derecha: **solo el mapa local de Contención** desde
   `RunManager.current_map`. Admite cruces N/E/S/O y calcula escala/origen por los extremos
   reales del `grid`; nunca asume una lista fija.
+- `game_theme.tres` unifica botones, foco de teclado y paneles de portada, HUD, mapa,
+  pausa, costo de rejilla, ruta, resumen y final. El encabezado y la leyenda del mapa
+  describen solo estado jugable, no vuelven a introducir tutoriales en overlays.
 - Muestra exclusivamente salas visitadas. Las puertas hacia espacios desconocidos no
   revelan nodos ni destinos de rejilla por anticipado.
 - No existe una pantalla de inventario ni una parte pendiente. `Inventory` conserva el
@@ -575,38 +598,39 @@ también es un `CharacterBody2D`).
 
 ### Ciclo del boss (`boss_core.gd`)
 
-El slime no tiene ataque, así que el daño se hace por posicionamiento:
+La Quimera Albina usa el asset de `assets/bosses/containment_chimera/`, tiene `12 HP`,
+pertenece a los grupos `enemies` y `bosses`, y recibe la misma firma `take_damage()` que
+los experimentos normales. Los proyectiles del slime incluyen la capa 2 en su máscara
+(`11 = mundo + boss + enemigos`).
 
 ```
-PERSIGUE  →  DISPARA (ráfaga radial)  →  VULNERABLE  →  [RECOIL si lo golpeás]  →  PERSIGUE …
+BUSCA ESQUINA → FIJA POSICIÓN → EMBESTIDA → RECUPERA → BUSCA OTRA ESQUINA …
 ```
 
-- **PERSIGUE:** avanza lento hacia el jugador, coraza cerrada. Tocarlo **te hace daño**.
-- **DISPARA:** se frena, se pone `#ecf3b0` y lanza una ráfaga radial de proyectiles.
-- **VULNERABLE:** núcleo `#73efe8` abierto y pulsando. Tocarlo **le hace daño** y te empuja.
-- **RECOIL:** tras recibir un golpe sale despedido y **no hace daño por contacto** durante
-  0.9 s. Sin este estado el jugador seguía solapado con la hitbox y comía daño en el frame
-  siguiente al golpe — era el bug de "le pego y igual me lastima".
+- **BUSCA ESQUINA:** elige una esquina distinta entre `(330,270)`, `(1590,270)`,
+  `(1590,810)` y `(330,810)` y llega en una ráfaga de velocidad.
+- **FIJA POSICIÓN:** se detiene, mira al jugador y dibuja una línea discontinua hasta su
+  posición.
+- **EMBESTIDA:** congela esa posición al empezar y se lanza hacia ella sin corregir el
+  rumbo. Solo este estado aplica `1 HP` de contacto y retroceso.
+- **RECUPERA:** frena antes de elegir la siguiente esquina.
 
-3 fases según vida (4 golpes): cada fase acelera la persecución, acorta la ventana
-vulnerable y suma proyectiles por ráfaga.
+Tres fases según vida aceleran desplazamiento/embestida y reducen aviso/recuperación:
 
-| Fase | Vida | Velocidad | Proyectiles | Ventana vulnerable |
-|---|---|---|---|---|
-| 1 | 4–3 | 45 | 6 | 3.4 s |
-| 2 | 2 | 65 | 8 | 3.0 s |
-| 3 | 1 | 85 | 10 | 2.6 s |
+| Fase | Vida | Esquina | Embestida | Aviso | Recuperación |
+|---|---:|---:|---:|---:|---:|
+| 1 | 12–9 | 620 px/s | 950 px/s | 0.90 s | 0.64 s |
+| 2 | 8–5 | 720 px/s | 1080 px/s | 0.72 s | 0.52 s |
+| 3 | 4–1 | 820 px/s | 1220 px/s | 0.56 s | 0.42 s |
 
-El jugador tiene **5 de vida**. Los proyectiles van a 250 px/s.
+`procedural_room.gd` materializa un único `BossCore` cuando
+`role == &"boss_choice"` y añade debajo `ChimeraArena`, un decal cenital que marca anillo
+y cuatro esquinas. No genera enemigos normales en esa sala.
 
-El estado se telegrafía en pantalla: barra de vida sobre el boss y cartel de estado
-(`NÚCLEO SELLADO` / `¡CUIDADO!` / `¡NÚCLEO EXPUESTO — CHOCALO!`), más un cartel en la sala.
-
-Al entrar, el boss **sella solo las salidas listadas en `sealed_directions`** (por defecto
-`["N"]`, el ascensor de progresión). **La puerta de vuelta queda abierta a propósito**: si
-se sellan todas y el jugador todavía no entendió la mecánica, queda encerrado sin salida.
-Al morir, abre lo sellado y suelta el pickup de **DASH**. `GameState.bosses_defeated` evita
-que reaparezca.
+Al entrar sella las puertas de la sala. Al morir las abre, marca sala/boss como
+completados durante la run, suelta **DASH** y `silent_claws`, y llama una sola vez a
+`RunManager.complete_floor(&"contencion")`. Esa llamada cura `+2 HP` y dispara la ruta de
+ascenso. `GameState.bosses_defeated` evita que reaparezca.
 
 ### DASH
 
