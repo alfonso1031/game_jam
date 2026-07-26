@@ -22,6 +22,9 @@ graphify-out/
 # Local isolated worktrees used by coding agents
 .worktrees/
 
+# Bocetos temporales del companero visual de brainstorming
+.superpowers/
+
 # Entregas de arte comprimidas. El contenido va extraído al lado, así que el ZIP
 # solo duplicaría en el historial unos archivos que git ya guarda (y no olvida).
 art_raw/**/*.zip
