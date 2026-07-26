@@ -145,8 +145,8 @@ func _run() -> void:
 		"morir muestra el fondo de muerte"
 	)
 	_check(
-		summary_ui.get_node("Panel/Content/Title").text == "TE CONTUVIERON",
-		"morir titula la contención"
+		summary_ui.get_node("Panel/Content/Title").text == "MORISTE",
+		"morir titula la muerte"
 	)
 	get_tree().paused = false
 

@@ -791,7 +791,7 @@ title.tscn ──primera tecla/clic──▶ menú ──JUGAR──▶ main.tsc
 
   | `reason` | Fondo en `assets/ui/summary/` | Titular | Lo dispara |
   |---|---|---|---|
-  | `death` | `run_summary_death.png` | TE CONTUVIERON | `GameState.died` → `main.gd` |
+  | `death` | `run_summary_death.png` | MORISTE | `GameState.died` → `main.gd` |
   | `escape` | `run_summary_escape.png` | ESCAPASTE | cerrar el aviso de Contención superada |
   | cualquier otra | `run_summary_bg.png` | PARTIDA TERMINADA | reserva; hoy nada lo emite |
 

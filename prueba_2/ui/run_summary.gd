@@ -11,7 +11,7 @@ const BG_ESCAPE := preload("res://assets/ui/summary/run_summary_escape.png")
 const OUTCOMES := {
 	&"death": {
 		"background": BG_DEATH,
-		"title": "TE CONTUVIERON",
+		"title": "MORISTE",
 		"color": Color(0.768627, 0.270588, 0.247059),
 	},
 	&"escape": {
