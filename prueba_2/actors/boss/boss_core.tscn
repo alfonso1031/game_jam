@@ -50,8 +50,8 @@ polygon = PackedVector2Array(-105, 0, -82, -25, 0, -35, 82, -25, 105, 0, 82, 25,
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("2")
-animation = &"seek_corner"
-autoplay = "seek_corner"
+animation = &"idle"
+autoplay = "idle"
 
 [node name="Light" type="PointLight2D" parent="."]
 texture = SubResource("4")

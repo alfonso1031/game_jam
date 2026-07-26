@@ -210,14 +210,10 @@ func _refresh_health_bar() -> void:
 
 func _visual_state() -> StringName:
 	match _state:
-		State.CORNER_AIM:
-			return &"corner_aim"
-		State.POUNCE:
-			return &"pounce"
-		State.RECOVER:
-			return &"recover"
+		State.CORNER_AIM, State.POUNCE:
+			return &"angry"
 		_:
-			return &"seek_corner"
+			return &"idle"
 
 
 # La animación solo se relanza al cambiar de estado: reiniciarla cada fotograma

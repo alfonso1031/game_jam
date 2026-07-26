@@ -1,11 +1,28 @@
-[gd_resource type="SpriteFrames" load_steps=7 format=3]
+[gd_resource type="SpriteFrames" load_steps=24 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_seek_00.png" id="1"]
-[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_seek_01.png" id="2"]
-[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_aim_00.png" id="3"]
-[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_aim_01.png" id="4"]
-[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_pounce_00.png" id="5"]
-[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_recover_00.png" id="6"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_idle_00.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_idle_01.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_idle_02.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_idle_03.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_idle_04.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_idle_05.png" id="6"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_idle_06.png" id="7"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_00.png" id="8"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_01.png" id="9"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_02.png" id="10"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_03.png" id="11"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_04.png" id="12"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_05.png" id="13"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_06.png" id="14"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_07.png" id="15"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_08.png" id="16"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_09.png" id="17"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_10.png" id="18"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_11.png" id="19"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_12.png" id="20"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_13.png" id="21"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_14.png" id="22"]
+[ext_resource type="Texture2D" path="res://assets/bosses/containment_chimera/animations/chimera_angry_15.png" id="23"]
 
 [resource]
 animations = [{
@@ -15,38 +32,76 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("2")
-}],
-"loop": true,
-"name": &"seek_corner",
-"speed": 7.0
 }, {
-"frames": [{
 "duration": 1.0,
 "texture": ExtResource("3")
 }, {
 "duration": 1.0,
 "texture": ExtResource("4")
-}],
-"loop": true,
-"name": &"corner_aim",
-"speed": 3.0
 }, {
-"frames": [{
 "duration": 1.0,
 "texture": ExtResource("5")
-}],
-"loop": false,
-"name": &"pounce",
-"speed": 1.0
 }, {
-"frames": [{
 "duration": 1.0,
 "texture": ExtResource("6")
 }, {
 "duration": 1.0,
-"texture": ExtResource("1")
+"texture": ExtResource("7")
 }],
-"loop": false,
-"name": &"recover",
-"speed": 4.0
+"loop": true,
+"name": &"idle",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("8")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23")
+}],
+"loop": true,
+"name": &"angry",
+"speed": 8.0
 }]
