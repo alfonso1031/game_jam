@@ -10,8 +10,10 @@ const TitleScene := preload("res://ui/title.tscn")
 const GrateCostOverlayScene := preload("res://ui/grate_cost_overlay.tscn")
 const Exp07Scene := preload("res://actors/enemies/exp07_crustacean.tscn")
 const MainScene := preload("res://game/main.tscn")
+const RunSummaryScene := preload("res://ui/run_summary.tscn")
 
 var _frames := 0
+var _min_frames := 12
 var _output_path := ""
 var _target_size := Vector2i.ZERO
 var _mode := ""
@@ -65,6 +67,8 @@ func _ready() -> void:
 			_prepare_lighting()
 		"boss":
 			_prepare_boss_room()
+		"summary":
+			_prepare_summary(args)
 		_:
 			var overlay: Control = MapOverlayScene.instantiate()
 			add_child(overlay)
@@ -87,9 +91,21 @@ func _prepare_tutorial_room() -> void:
 	add_child(room)
 
 
+func _prepare_summary(args: PackedStringArray) -> void:
+	$Background.visible = false
+	# La animación de entrada dura ~0,5 s: capturamos con el estado ya asentado.
+	_min_frames = 60
+	var reason: StringName = StringName(args[3]) if args.size() > 3 else &"death"
+	var summary_ui: Control = RunSummaryScene.instantiate()
+	add_child(summary_ui)
+	RunManager.start_new_run(5150)
+	GameState.visited[RunManager.current_map.entry_room_id] = true
+	RunManager.end_run(reason)
+
+
 func _process(_delta: float) -> void:
 	_frames += 1
-	if _frames < 12:
+	if _frames < _min_frames:
 		return
 	if _mode == "exp07_attack" and (
 		_exp07_sprite == null
