@@ -137,8 +137,11 @@ añadirla en `ui/body_panel.gd` junto con su curva al slime. El estado vive **so
   visitados.
 - Ruta global: `floor_route_overlay.gd` solo dibuja pisos, con Contención abajo y
   Superficie arriba; dura 3 s.
-- Portada: solo nombre, slime y prompt. Los controles secundarios quedan para el futuro
-  menú con botones.
+- Portada: `BackgroundContained` y `BackgroundEscaped` usan
+  `prueba_2/assets/ui/title/title_contained.png` y
+  `prueba_2/assets/ui/title/title_escaped.png`; `Menu` contiene `PlayButton` y
+  `QuitButton` sobre la ilustración escapada. La primera tecla o clic solo omite la
+  introducción: no activa `PlayButton` ni inicia la partida.
 - Primera sala: `TutorialMural` enseña mantener dirección, cargar y soltar; es un prop
   pasivo del mundo y debe dejar libres spawn y puertas.
 - Resolución lógica 1920×1080; comprobar también la salida 1280×720.
@@ -153,13 +156,16 @@ godot --headless --path prueba_2 res://tests/map_overlay_tests.tscn
 godot --headless --path prueba_2 res://tests/floor_route_tests.tscn
 ```
 
-Captura reproducible (`modo` = `title`, `hud`, `map`, `tooltip`, `route` o `tutorial`):
+Captura reproducible (`modo` = `title_intro`, `title_menu`, `hud`, `map`, `tooltip`,
+`route` o `tutorial`):
 
-```bash
+```powershell
 godot --path prueba_2 --windowed --resolution 1920x1080 \
   res://tests/ui_visual_capture.tscn -- map "<salida.png>" 1920x1080
 godot --path prueba_2 --windowed --resolution 1280x720 \
   res://tests/ui_visual_capture.tscn -- map "<salida-720p.png>" 1280x720
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
+& '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
 ```
 
 ### Cambiar movimiento base

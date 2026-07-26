@@ -24,10 +24,15 @@ func _ready() -> void:
 			_target_size = Vector2i(int(dimensions[0]), int(dimensions[1]))
 	_prepare_fixture()
 	match mode:
-		"title":
+		"title_intro":
 			var title: Control = TitleScene.instantiate()
 			add_child(title)
 			title.set_process_unhandled_input(false)
+		"title_menu":
+			var title: Control = TitleScene.instantiate()
+			add_child(title)
+			title.set_process_unhandled_input(false)
+			title.skip_intro()
 		"tutorial":
 			_prepare_tutorial_room()
 		"route":

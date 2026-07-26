@@ -480,9 +480,15 @@ desde `_process()`.
   nombre de autoload como autoridad interna de los seis slots. Si el cuerpo está lleno,
   un pickup permanece en el suelo hasta que el jugador consume o pierde una parte.
 
+**Portada ilustrada**
+- `ui/title.tscn` superpone `BackgroundContained`, `BackgroundEscaped` y `Menu`.
+  Los fondos son `prueba_2/assets/ui/title/title_contained.png` y
+  `prueba_2/assets/ui/title/title_escaped.png`; el segundo aparece tras la introducción
+  y el menú contiene `PlayButton` y `QuitButton`.
+- La primera tecla o clic solo omite la introducción: no activa `PlayButton` ni inicia
+  una partida. Después, los botones controlan JUGAR y SALIR.
+
 **Tutorial ambiental**
-- La portada conserva nombre, slime y `PULSA CUALQUIER TECLA`; los controles secundarios
-  esperan el futuro menú con botones.
 - `TutorialMural` pertenece al mundo y aparece una sola vez en `entry/tutorial`.
 - Enseña mantener dirección, cargar y soltar mediante pictogramas; no pausa, no procesa
   input y su huella deja libres el spawn y las puertas.
@@ -582,14 +588,14 @@ El jugador tiene 1 s de invulnerabilidad con parpadeo tras cada golpe.
 ## 11. Flujo de pantallas y pausa
 
 ```
-title.tscn ──cualquier tecla──▶ main.tscn ──morir──▶ run_summary
-     ▲                             │                      │
-     └──────── TÍTULO ─────────────┴── pausa ─────────────┘
+title.tscn ──primera tecla/clic──▶ menú ──JUGAR──▶ main.tscn ──morir──▶ run_summary
+     ▲                                             │                       │
+     └────────────────── TÍTULO ◀── pausa ─────────┴───────────────────────┘
 ```
 
 - **Título** (`ui/title.gd`): llama a `GameState.reset_run()` al entrar, así que volver al
-  título siempre limpia la partida. Ignora la acción `fullscreen` para que `F11` no
-  arranque el juego.
+  título siempre limpia la partida. La primera tecla o clic omite la introducción sin
+  activar `PlayButton`; ignora la acción `fullscreen` para que `F11` no altere ese flujo.
 - **Pausa** (`ui/pause_menu.gd`, `Esc`): CONTINUAR / REINICIAR / TÍTULO.
 - **Resumen** (`ui/run_summary.gd`): escucha `RunManager.run_ended`, muestra seed y
   decisiones de la partida, y ofrece nueva partida o título.
@@ -635,8 +641,14 @@ futuros y no se simulan con salas fijas durante la partida activa.
 - El MCP de Godot **no** edita árboles de nodos complejos: los `.tscn`/`.gd` se escriben a
   disco directamente y el MCP solo ejecuta y verifica (`run_project` + `get_debug_output`).
 - `tests/ui_visual_capture.tscn` construye fixtures reproducibles y permite capturar
-  `title`, `hud`, `map`, `tooltip`, `route` o `tutorial`; el tercer argumento fija el
-  tamaño físico final cuando el viewport lógico sigue siendo 1080p.
+  `title_intro`, `title_menu`, `hud`, `map`, `tooltip`, `route` o `tutorial`; el tercer
+  argumento fija el tamaño físico final cuando el viewport lógico sigue siendo 1080p.
+  Para registrar la portada a 1920×1080:
+
+  ```powershell
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_intro user://title-intro.png 1920x1080
+  & '<ruta-a-godot>/Godot_v4.7.1-stable_win64.exe' --path prueba_2 --windowed --resolution 1920x1080 res://tests/ui_visual_capture.tscn -- title_menu user://title-menu.png 1920x1080
+  ```
 - `combat_smoke.tscn` ensambla las 16 configuraciones cardinales, incluidas `NE`, `SO` y
   el destino de rejilla sin puertas normales. `run_map_tests.gd` comprueba además que cada
   sala de 1.000 seeds aceptadas tenga una plantilla renderizable.
