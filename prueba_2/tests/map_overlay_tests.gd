@@ -73,8 +73,12 @@ func _run() -> void:
 	_check(GameState.infinite_health, "TAB entrega V al modo de prueba")
 	_check(not Inventory.is_empty(0), "V no consume la parte seleccionada")
 
-	overlay.call("_unhandled_input", _action_event(&"move_right"))
-	_check(body_panel.get("selected_slot") == 2, "TAB entrega las flechas al cuerpo")
+	overlay.call("_unhandled_input", _key_event(KEY_D))
+	_check(body_panel.get("selected_slot") == 2, "TAB permite navegar con WASD")
+	overlay.call("_unhandled_input", _key_event(KEY_LEFT))
+	_check(body_panel.get("selected_slot") == 0, "TAB permite navegar con flechas")
+	overlay.call("_unhandled_input", _key_event(KEY_D))
+	_check(body_panel.get("selected_slot") == 2, "WASD mantiene la selección espacial")
 	overlay.call("_unhandled_input", _action_event(&"consume"))
 	_check(Inventory.is_empty(2), "TAB entrega F para consumir la selección")
 	overlay.call("_toggle")
@@ -126,6 +130,13 @@ func _method_argument_count(object: Object, method_name: StringName) -> int:
 func _action_event(action: StringName) -> InputEventAction:
 	var event := InputEventAction.new()
 	event.action = action
+	event.pressed = true
+	return event
+
+
+func _key_event(physical_keycode: Key) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = physical_keycode
 	event.pressed = true
 	return event
 
